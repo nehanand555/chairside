@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:chairside/data/backend.dart';
 import 'package:chairside/data/store.dart';
@@ -10,8 +11,11 @@ import 'package:timezone/data/latest.dart' as tz;
 class TestBackend extends Backend {
   @override
   String? userId = 'customer';
+  StreamController<void>? authEvents;
   @override
-  Stream<void> get authChanges => const Stream.empty();
+  Stream<void> get authChanges => authEvents?.stream ?? const Stream.empty();
+  int googleSignIns = 0;
+  Object? googleError;
   final List<Json> visits = [];
   final Json business = {
     'id': 'p1',
@@ -118,9 +122,10 @@ class TestBackend extends Backend {
   @override
   Future<void> remove(String table, Json filters) async {}
   @override
-  Future<void> sendCode(String phone) async {}
-  @override
-  Future<void> verifyCode(String phone, String code) async {}
+  Future<void> signInWithGoogle() async {
+    googleSignIns++;
+    if (googleError != null) throw googleError!;
+  }
   @override
   Future<void> signOut() async {
     userId = null;
@@ -155,6 +160,64 @@ void main() {
     expect(() => normalizePhone('abc'), throwsException);
     expect(money(3500), '\$35.00');
     expect(nzTime('2026-10-18T00:00:00Z'), contains('1:00 PM'));
+  });
+  testWidgets('Google login requires terms and receives the returned session without SMS', (tester) async {
+    final backend = TestBackend()..userId = null;
+    final events = StreamController<void>.broadcast();
+    backend.authEvents = events;
+    final store = AppStore(backend);
+    await tester.pumpWidget(ChairsideApp(store: store, mapsEnabled: false));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Account').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Phone number'), findsNothing);
+    expect(find.text('Text me a code'), findsNothing);
+    await tapVisible(tester, find.text('Continue with Google'));
+    expect(backend.googleSignIns, 0);
+    expect(find.textContaining('Please read and accept'), findsOneWidget);
+    await tapVisible(tester, find.byType(CheckboxListTile));
+    await tapVisible(tester, find.text('Continue with Google'));
+    expect(backend.googleSignIns, 1);
+    expect(store.signedIn, false); // Opening the browser does not create a session.
+    backend.userId = 'google-customer';
+    events.add(null); // Supabase emits this after exchanging the PKCE code.
+    await tester.pumpAndSettle();
+    expect(find.text('Your account'), findsOneWidget);
+    expect(find.text('Your name'), findsOneWidget);
+    expect(find.text('Booking texts'), findsNothing);
+    await tapVisible(tester, find.text('Sign out'));
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(store.visits, isEmpty);
+    await tester.pumpWidget(const SizedBox.shrink());
+    store.dispose();
+    await events.close();
+  });
+  testWidgets('Google launch and callback failures leave sign-in available to retry', (tester) async {
+    final backend = TestBackend()..userId = null;
+    final events = StreamController<void>.broadcast();
+    backend.authEvents = events;
+    backend.googleError = Exception('Could not open Google sign-in. Please try again.');
+    final store = AppStore(backend);
+    await tester.pumpWidget(ChairsideApp(store: store, mapsEnabled: false));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Account').last);
+    await tester.pumpAndSettle();
+    await tapVisible(tester, find.byType(CheckboxListTile));
+    await tapVisible(tester, find.text('Continue with Google'));
+    expect(find.textContaining('Could not open Google sign-in'), findsOneWidget);
+    expect(store.busy, false);
+    expect(store.signedIn, false);
+    backend.googleError = null;
+    await tapVisible(tester, find.text('Continue with Google'));
+    expect(backend.googleSignIns, 2);
+    events.addError(Exception('Google sign-in was cancelled. Please try again.'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Google sign-in was cancelled'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(store.signedIn, false);
+    await tester.pumpWidget(const SizedBox.shrink());
+    store.dispose();
+    await events.close();
   });
   testWidgets(
       'customer joins queue, business serves them, customer sees completion',

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 typedef Json = Map<String, dynamic>;
@@ -13,8 +14,8 @@ abstract class Backend {
   Future<void> save(String table, Json values);
   Future<void> remove(String table, Json filters);
   Future<Json> invoke(String name, Json data);
-  Future<void> sendCode(String phone);
-  Future<void> verifyCode(String phone, String code);
+  Future<void> signInWithGoogle();
+  bool get hasVerifiedPhone => false;
   Future<void> signOut();
   Future<List<Json>> factors();
   Future<Json> enrollFactor();
@@ -64,9 +65,16 @@ class SupabaseBackend extends Backend {
     }
   }
   @override
-  Future<void> sendCode(String phone) => client.auth.signInWithOtp(phone: phone);
+  Future<void> signInWithGoogle() async {
+    final launched = await client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? '${Uri.base.origin}/' : 'nz.chairside.chairside://login-callback/',
+      authScreenLaunchMode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+    );
+    if (!launched) throw Exception('Could not open Google sign-in. Please try again.');
+  }
   @override
-  Future<void> verifyCode(String phone, String code) async { await client.auth.verifyOTP(phone: phone, token: code, type: OtpType.sms); }
+  bool get hasVerifiedPhone => client.auth.currentUser?.phoneConfirmedAt != null && (client.auth.currentUser?.phone ?? '').isNotEmpty;
   @override
   Future<void> signOut() => client.auth.signOut();
   @override

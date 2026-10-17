@@ -20,9 +20,9 @@ def configure(platform="web"):
     with tempfile.TemporaryDirectory(prefix="chairside-platforms-") as temp:
         shell = Path(temp) / "chairside"
         subprocess.run(["flutter", "create", "--empty", "--platforms=android,ios,web", "--org=nz.chairside", "--project-name=chairside", str(shell)], check=True)
-        for platform in ("android", "ios", "web"):
-            if not (ROOT / platform).exists():
-                shutil.copytree(shell / platform, ROOT / platform)
+        for shell_platform in ("android", "ios", "web"):
+            if not (ROOT / shell_platform).exists():
+                shutil.copytree(shell / shell_platform, ROOT / shell_platform)
     ns = "http://schemas.android.com/apk/res/android"
     ET.register_namespace("android", ns)
     manifest = ROOT / "android/app/src/main/AndroidManifest.xml"
@@ -38,11 +38,28 @@ def configure(platform="web"):
         if meta.get(f"{{{ns}}}name") == "com.google.android.geo.API_KEY":
             application.remove(meta)
     ET.SubElement(application, "meta-data", {f"{{{ns}}}name": "com.google.android.geo.API_KEY", f"{{{ns}}}value": os.getenv("GOOGLE_MAPS_ANDROID_KEY", "")})
+    activity = application.find("activity")
+    # Supabase's app_links handler owns OAuth callbacks, not Flutter's router.
+    deep_link_meta = next((m for m in activity.findall("meta-data") if m.get(f"{{{ns}}}name") == "flutter_deeplinking_enabled"), None)
+    if deep_link_meta is None:
+        deep_link_meta = ET.SubElement(activity, "meta-data")
+    deep_link_meta.set(f"{{{ns}}}name", "flutter_deeplinking_enabled")
+    deep_link_meta.set(f"{{{ns}}}value", "false")
+    if not any(d.get(f"{{{ns}}}scheme") == "nz.chairside.chairside" for d in activity.findall("intent-filter/data")):
+        intent = ET.SubElement(activity, "intent-filter")
+        ET.SubElement(intent, "action", {f"{{{ns}}}name": "android.intent.action.VIEW"})
+        for category in ("DEFAULT", "BROWSABLE"):
+            ET.SubElement(intent, "category", {f"{{{ns}}}name": f"android.intent.category.{category}"})
+        ET.SubElement(intent, "data", {f"{{{ns}}}scheme": "nz.chairside.chairside", f"{{{ns}}}host": "login-callback", f"{{{ns}}}path": "/"})
     doc.write(manifest, encoding="utf-8", xml_declaration=True)
     plist = ROOT / "ios/Runner/Info.plist"
     with plist.open("rb") as f:
         info = plistlib.load(f)
     info.update(CFBundleDisplayName="Chairside", NSLocationWhenInUseUsageDescription="Find hair professionals near you, only when you choose Near me.", NSPhotoLibraryUsageDescription="Choose photos to publish on your business portfolio.", GMapsKey=os.getenv("GOOGLE_MAPS_IOS_KEY", ""))
+    url_types = info.setdefault("CFBundleURLTypes", [])
+    if not any("nz.chairside.chairside" in entry.get("CFBundleURLSchemes", []) for entry in url_types):
+        url_types.append({"CFBundleTypeRole": "Editor", "CFBundleURLName": "Chairside sign-in", "CFBundleURLSchemes": ["nz.chairside.chairside"]})
+    info["FlutterDeepLinkingEnabled"] = False
     with plist.open("wb") as f:
         plistlib.dump(info, f)
     delegate = ROOT / "ios/Runner/AppDelegate.swift"

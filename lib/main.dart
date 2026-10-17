@@ -15,7 +15,11 @@ Future<void> main() async {
   String? startupError;
   if (url.isNotEmpty && key.isNotEmpty) {
     try {
-      await Supabase.initialize(url: url, publishableKey: key);
+      await Supabase.initialize(
+        url: url,
+        publishableKey: key,
+        authOptions: const FlutterAuthClientOptions(authFlowType: AuthFlowType.pkce),
+      );
       backend = SupabaseBackend(Supabase.instance.client);
     } catch (_) {
       startupError =

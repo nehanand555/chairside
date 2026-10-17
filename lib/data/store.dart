@@ -7,6 +7,9 @@ class AppStore extends ChangeNotifier {
   AppStore(this.backend) {
     _auth = backend?.authChanges.listen((_) {
       unawaited(refreshAccount());
+    }, onError: (Object e) {
+      error = friendlyError(e);
+      changed();
     });
     if (signedIn) unawaited(refreshAccount());
   }

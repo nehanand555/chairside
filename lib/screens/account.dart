@@ -12,15 +12,11 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final phone = TextEditingController(),
-      code = TextEditingController(),
-      name = TextEditingController();
-  bool sent = false, sms = false, marketing = false, accepted = false;
-  String? sentPhone, loadedUser;
+  final name = TextEditingController();
+  bool sms = false, marketing = false, accepted = false;
+  String? loadedUser;
   @override
   void dispose() {
-    phone.dispose();
-    code.dispose();
     name.dispose();
     super.dispose();
   }
@@ -31,55 +27,28 @@ class _AccountScreenState extends State<AccountScreen> {
     if (!s.signedIn)
       return PageBody(width: 520, children: [
         const PageHeading('Welcome to Chairside',
-            'Use your phone number. No email or password needed.'),
+            'Continue with your Google account. No SMS code needed.'),
         Panel(
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-              FormFieldBox(phone, 'Phone number',
-                  hint: '021 123 4567', keyboard: TextInputType.phone),
               CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: accepted,
-                  onChanged: sent ? null : (v) => setState(() => accepted = v!),
+                  onChanged: s.busy ? null : (v) => setState(() => accepted = v!),
                   title: const Text(
                       'I agree to the booking terms and privacy notice.')),
               TextButton(
                   onPressed: () => showLegal(context),
                   child: const Text('Read terms and privacy')),
-              if (!sent)
-                ActionButton(s, 'Text me a code', () async {
-                  if (!accepted)
-                    throw Exception('Please read and accept the terms first');
-                  final number = normalizePhone(phone.text);
-                  await s.backend!.sendCode(number);
-                  if (mounted)
-                    setState(() {
-                      sent = true;
-                      sentPhone = number;
-                    });
-                }, icon: Icons.sms_outlined),
-              if (sent) ...[
-                Text('Enter the code sent to $sentPhone'),
-                const SizedBox(height: 16),
-                FormFieldBox(code, 'Verification code',
-                    keyboard: TextInputType.number),
-                ActionButton(s, 'Verify & continue', () async {
-                  await s.backend!.verifyCode(sentPhone!, code.text.trim());
-                  await s.refreshAccount();
-                }, icon: Icons.verified_outlined),
-                TextButton(
-                    onPressed: s.busy
-                        ? null
-                        : () => setState(() {
-                              sent = false;
-                              code.clear();
-                            }),
-                    child: const Text('Change number or request another code'))
-              ],
+              ActionButton(s, 'Continue with Google', () async {
+                if (!accepted)
+                  throw Exception('Please read and accept the terms first');
+                await s.backend!.signInWithGoogle();
+              }, icon: Icons.login),
             ])),
         const Text(
-            'We only send sign-in codes unless you choose booking updates. Standard carrier charges may apply.'),
+            'Google handles your sign-in. We never receive your Google password. You can browse nearby businesses without signing in.'),
       ]);
     if (loadedUser != s.backend!.userId && s.profile.isNotEmpty) {
       loadedUser = s.backend!.userId;
@@ -94,7 +63,11 @@ class _AccountScreenState extends State<AccountScreen> {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         FormFieldBox(name, 'Your name'),
-        SwitchListTile(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Text('Check My visits for booking confirmations and live queue updates.'),
+        ),
+        if (s.backend!.hasVerifiedPhone) SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Booking texts'),
             subtitle: const Text('Confirmations, reminders and queue updates.'),
@@ -107,7 +80,7 @@ class _AccountScreenState extends State<AccountScreen> {
             value: marketing,
             onChanged: (v) => setState(() => marketing = v)),
         ActionButton(s, 'Save preferences', () async {
-          await s.saveProfile(name.text, sms, marketing);
+          await s.saveProfile(name.text, s.backend!.hasVerifiedPhone && sms, marketing);
           if (context.mounted)
             ScaffoldMessenger.of(context)
                 .showSnackBar(const SnackBar(content: Text('Saved')));
@@ -122,7 +95,6 @@ class _AccountScreenState extends State<AccountScreen> {
                     await s.refreshAccount();
                     if (mounted)
                       setState(() {
-                        sent = false;
                         loadedUser = null;
                       });
                   }),
@@ -157,7 +129,7 @@ class OperatorGate extends StatelessWidget {
       return PageBody(children: [
         const PageHeading('Your business, in your pocket.',
             'Manage appointments and a calmer queue from your phone or tablet.'),
-        Notice('Sign in with your phone to register or manage a business.',
+        Notice('Sign in with Google to register or manage a business.',
             action: FilledButton(
                 onPressed: () => openAccount(context, store),
                 child: const Text('Sign in')))
