@@ -16,6 +16,18 @@ class TestBackend extends Backend {
   Stream<void> get authChanges => authEvents?.stream ?? const Stream.empty();
   int googleSignIns = 0;
   Object? googleError;
+  final Map<String, String> googleNames = {};
+  @override
+  String? get suggestedName => googleNames[userId];
+  int initializedProfiles = 0;
+  final Map<String, Json> profiles = {
+    for (final user in ['customer', 'owner']) user: {
+      'id': user, 'display_name': 'Customer', 'sms_updates': false, 'marketing_consent': false,
+    },
+  };
+  Json? discoverFailure;
+  final List<Json> discoverRequests = [];
+  final List<Json> publicPlaces = [];
   final List<Json> visits = [];
   final Json business = {
     'id': 'p1',
@@ -92,33 +104,37 @@ class TestBackend extends Backend {
   @override
   Future<List<Json>> rows(String table,
       {Json filters = const {}, String? order, int limit = 100}) async {
-    if (table == 'profiles')
-      return [
-        {
-          'id': userId,
-          'display_name': 'Customer',
-          'sms_updates': false,
-          'marketing_consent': false
-        }
-      ];
+    if (table == 'profiles') return profiles[filters['id']] == null ? [] : [Json.from(profiles[filters['id']]!)];
     if (table == 'visits') return visits.map(Json.from).toList();
     if (table == 'favorites') return [];
     throw StateError(table);
   }
 
   @override
-  Future<Json> invoke(String name, Json data) async => {
+  Future<Json> invoke(String name, Json data) async {
+    discoverRequests.add(Json.from(data));
+    if (discoverFailure != null && data['query'] == discoverFailure!['query']) throw Exception(discoverFailure!['message']);
+    return {
         'center': {'lat': -36.85, 'lng': 174.76},
         'businesses': [business],
-        'places': <Json>[],
+        'places': publicPlaces,
         'warning': null
       };
+  }
   @override
   Future<List<String>> photos(String business) async => [];
   @override
   Future<List<Json>> factors() async => [];
   @override
-  Future<void> save(String table, Json values) async {}
+  Future<void> save(String table, Json values) async {
+    if (table == 'profiles') profiles[values['id'] as String] = {...?profiles[values['id']], ...values};
+  }
+  @override
+  Future<void> initializeProfile(String user, String displayName) async {
+    initializedProfiles++;
+    profiles.putIfAbsent(user, () => {'id': user, 'display_name': displayName, 'sms_updates': false, 'marketing_consent': false});
+    if (profiles[user]!['display_name'] == '') profiles[user]!['display_name'] = displayName;
+  }
   @override
   Future<void> remove(String table, Json filters) async {}
   @override
@@ -179,10 +195,15 @@ void main() {
     await tapVisible(tester, find.text('Continue with Google'));
     expect(backend.googleSignIns, 1);
     expect(store.signedIn, false); // Opening the browser does not create a session.
+    backend.googleNames['google-customer'] = 'Nikita';
     backend.userId = 'google-customer';
     events.add(null); // Supabase emits this after exchanging the PKCE code.
     await tester.pumpAndSettle();
     expect(find.text('Your account'), findsOneWidget);
+    expect(find.text('Hi, Nikita'), findsOneWidget);
+    expect(backend.profiles['google-customer']!['display_name'], 'Nikita');
+    final nameInput = find.descendant(of: find.byType(FormFieldBox).first, matching: find.byType(TextFormField));
+    expect(tester.widget<TextFormField>(nameInput).controller!.text, 'Nikita');
     expect(find.text('Your name'), findsOneWidget);
     expect(find.text('Booking texts'), findsNothing);
     await tapVisible(tester, find.text('Sign out'));
@@ -218,6 +239,67 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
     await events.close();
+  });
+  test('Google names initialize missing profiles without replacing saved names or consent', () async {
+    final backend = TestBackend()..userId = 'fresh-google';
+    backend.googleNames['fresh-google'] = 'Nikita';
+    final store = AppStore(backend);
+    await store.refreshAccount();
+    expect(store.displayName, 'Nikita');
+    expect(backend.profiles['fresh-google']!['display_name'], 'Nikita');
+    await store.saveProfile('Niki', false, true);
+    backend.googleNames['fresh-google'] = 'Different Google name';
+    await store.refreshAccount();
+    expect(store.displayName, 'Niki');
+    expect(backend.profiles['fresh-google']!['marketing_consent'], true);
+    final secondSession = AppStore(backend);
+    await secondSession.refreshAccount();
+    expect(secondSession.displayName, 'Niki');
+    backend.userId = null;
+    await store.refreshAccount();
+    expect(store.displayName, '');
+    store.dispose();
+    secondSession.dispose();
+  });
+  test('an empty saved name can be initialized without opting into texts', () async {
+    final backend = TestBackend();
+    backend.profiles['customer']!['display_name'] = '';
+    backend.profiles['customer']!['marketing_consent'] = true;
+    backend.googleNames['customer'] = 'Google name';
+    final store = AppStore(backend);
+    await store.refreshAccount();
+    expect(store.displayName, 'Google name');
+    expect(store.profile['sms_updates'], false);
+    expect(store.profile['marketing_consent'], true);
+    store.dispose();
+  });
+  testWidgets('Google listings and postcode retries work when the map is unavailable', (tester) async {
+    final backend = TestBackend();
+    backend.publicPlaces.add({'place_id':'google-barber', 'name':'Google Barber', 'address':'Porirua 5014', 'lat':-41.1, 'lng':174.9, 'maps_url':'https://maps.google.com/', 'attributions': <Json>[]});
+    final store = AppStore(backend);
+    await store.refreshAccount();
+    await tester.pumpWidget(ChairsideApp(store: store, mapsEnabled: false));
+    await tester.pumpAndSettle();
+    expect(backend.discoverRequests.last['include_public'], true);
+    await tester.ensureVisible(find.text('Google Barber'));
+    await tester.pumpAndSettle();
+    expect(find.text('Google Barber'), findsOneWidget);
+    backend.discoverFailure = {'query':'5014', 'message':'Search temporarily unavailable'};
+    final search = find.byType(TextField).first;
+    await tester.ensureVisible(search);
+    await tester.pumpAndSettle();
+    await tester.enterText(search, '5014');
+    await tapVisible(tester, find.widgetWithText(FilledButton, 'Search'));
+    expect(backend.discoverRequests.last['query'], '5014');
+    expect(find.text('Google Barber'), findsNothing);
+    expect(find.text('Search temporarily unavailable'), findsOneWidget);
+    backend.discoverFailure = null;
+    await tapVisible(tester, find.text('Try again'));
+    expect(backend.discoverRequests.last['query'], '5014');
+    expect(find.text('Google Barber'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    store.dispose();
   });
   testWidgets(
       'customer joins queue, business serves them, customer sees completion',
@@ -265,7 +347,9 @@ void main() {
       const Size(1200, 900)
     ]) {
       await tester.binding.setSurfaceSize(size);
-      final store = AppStore(TestBackend());
+      final backend = TestBackend();
+      backend.profiles['customer']!['display_name'] = List.filled(20, 'Long name').join(' ');
+      final store = AppStore(backend);
       await store.refreshAccount();
       await tester.pumpWidget(
           ChairsideApp(key: ValueKey(size), store: store, mapsEnabled: false));

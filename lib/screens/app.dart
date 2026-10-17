@@ -123,6 +123,22 @@ class _ChairsideAppState extends State<ChairsideApp>
                             label: const Text('About'))
                       ]),
                   body: Column(children: [
+                    if (s.signedIn)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: TextButton.icon(
+                            key: const ValueKey('account-greeting'),
+                            onPressed: () => setState(() => index = 3),
+                            icon: const Icon(Icons.person_outline),
+                            label: Text(
+                              s.displayName.isEmpty ? 'Complete your account' : 'Hi, ${s.displayName}',
+                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ),
                     StoreFeedback(store: s),
                     Expanded(
                         child: Row(children: [

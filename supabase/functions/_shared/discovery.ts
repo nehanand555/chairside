@@ -14,3 +14,16 @@ export function validateArea(data: Record<string, unknown>) {
   if (query.length > 100) throw new Error("Search must be 100 characters or fewer");
   return { lat, lng, query };
 }
+
+/** Build Google requests server-side; keep NZ postcode searches independent of GPS. */
+export function placesRequest(area: { lat: number; lng: number; query: string }) {
+  if (area.query) return {
+    method: "searchText",
+    body: { textQuery: `barbers and hairdressers in ${area.query}, New Zealand`, regionCode: "NZ", pageSize: 20 },
+  };
+  return {
+    method: "searchNearby",
+    body: { includedTypes: ["barber_shop", "hair_salon"], maxResultCount: 20,
+      locationRestriction: { circle: { center: { latitude: area.lat, longitude: area.lng }, radius: 15000 } } },
+  };
+}
