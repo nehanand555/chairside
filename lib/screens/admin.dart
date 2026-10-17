@@ -78,6 +78,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                           as String),
                                       Text(
                                           'Owner phone: ${b['owner_phone'] ?? 'Not available'}'),
+                                      Text('Owner email: ${b['owner_email'] ?? 'Not available'}'),
                                       if (b['place_id'] != null)
                                         SelectableText(
                                             'Google claim: ${b['place_id']}'),

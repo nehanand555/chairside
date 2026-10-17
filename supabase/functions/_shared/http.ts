@@ -13,7 +13,9 @@ export async function authenticated(req: Request) {
   if (!token?.startsWith("Bearer ")) throw new HttpError(401, "Please sign in again");
   const client = createClient(env("SUPABASE_URL"), env("SUPABASE_ANON_KEY"), { global: { headers: { Authorization: token } }, auth: { persistSession: false } });
   const { data, error } = await client.auth.getUser(token.slice(7));
-  if (error || !data.user?.phone_confirmed_at) throw new HttpError(401, "Verify your phone number first");
+  if (error || !data.user) throw new HttpError(401, "Please sign in again");
+  // Share PostgreSQL's verified identity / blocked-user check with booking RPCs.
+  await rpc(client, "account_context");
   return { user: data.user, client };
 }
 export class HttpError extends Error {

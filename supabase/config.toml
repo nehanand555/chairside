@@ -13,11 +13,13 @@ major_version = 17
 enabled = true
 site_url = "http://localhost:3000"
 enable_signup = true
+additional_redirect_urls = ["nz.chairside.chairside://login-callback/"]
 minimum_password_length = 12
 
 [auth.sms]
-enable_signup = true
-enable_confirmations = true
+# Google is the app login. Enable SMS only after choosing a paid provider.
+enable_signup = false
+enable_confirmations = false
 template = "Your Chairside verification code is {{ .Code }}"
 max_frequency = "60s"
 
