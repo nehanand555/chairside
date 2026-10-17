@@ -1,0 +1,40 @@
+begin;
+create function pg_temp.check_true(ok boolean,label text) returns void language plpgsql as $$ begin if not coalesce(ok,false) then raise exception 'FAIL: %',label; end if; raise notice 'PASS: %',label; end $$;
+insert into auth.users(id,phone,phone_confirmed_at) values('10000000-0000-4000-8000-000000000001','+64210000111',now()),('10000000-0000-4000-8000-000000000002','+64210000112',now());
+insert into public.profiles(id,display_name,sms_updates) values('10000000-0000-4000-8000-000000000002','Customer',true);
+insert into public.businesses(id,owner_id,name,kind,status,suburb,public_lat,public_lng,publish_consent) values('10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000001','Payments shop','barber','approved','Auckland',-36.85,174.76,true);
+insert into public.resources(id,business_id,name) values('10000000-0000-4000-8000-000000000020','10000000-0000-4000-8000-000000000010','Chair');
+insert into public.services(id,business_id,name,minutes,price_cents) values('10000000-0000-4000-8000-000000000030','10000000-0000-4000-8000-000000000010','Haircut',30,3500);
+insert into public.hours select '10000000-0000-4000-8000-000000000010',d,'00:00'::time,'23:59'::time from generate_series(1,7) d;
+insert into public.visits(id,business_id,resource_id,service_id,customer_id,customer_name,service_name,minutes,price_cents,kind,status,starts_at,ends_at)
+values('10000000-0000-4000-8000-000000000040','10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000020','10000000-0000-4000-8000-000000000030','10000000-0000-4000-8000-000000000002','Customer','Haircut',30,3500,'appointment','booked',now()+interval '1 day',now()+interval '1 day 30 minutes');
+insert into private.visit_contacts values('10000000-0000-4000-8000-000000000040','+64210000112',true);
+update public.profiles set sms_updates=false where id='10000000-0000-4000-8000-000000000002';
+select pg_temp.check_true((select not sms_consent from private.visit_contacts),'opting out updates existing visit contact');
+select public.integration_account('10000000-0000-4000-8000-000000000010','acct_test',true);
+select set_config('test.checkout',(public.integration_checkout('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000040')->>'id'),true);
+select pg_temp.check_true((public.integration_checkout('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000040')->>'id')=current_setting('test.checkout'),'repeated checkout requests reuse one payment attempt');
+select public.integration_paid('evt_first',current_setting('test.checkout')::uuid,'pi_first',3500,'nzd');
+select public.integration_paid('evt_first',current_setting('test.checkout')::uuid,'pi_first',3500,'nzd');
+select pg_temp.check_true((select count(*)=1 from private.payments),'webhook replay creates one payment record');
+select public.integration_paid('evt_duplicate',current_setting('test.checkout')::uuid,'pi_duplicate',3500,'nzd');
+select pg_temp.check_true((select count(*)=1 from private.orphan_refunds),'a second payment is queued for refund');
+select pg_temp.check_true((select payment_status='paid' from public.visits),'duplicate payment does not overwrite original receipt');
+update public.visits set status='cancelled',payment_status='refund_pending';
+select pg_temp.check_true(jsonb_array_length(public.integration_refunds())=2,'cancelled payment and duplicate are both refunded');
+select public.integration_refund_event('pi_first','re_first',3500);
+select pg_temp.check_true((select payment_status='refunded' from public.visits),'signed full refund event completes refund status');
+select public.integration_orphan_refunded('pi_duplicate','re_duplicate',true);
+select pg_temp.check_true(jsonb_array_length(public.integration_refunds())=0,'processed refunds are not requested again');
+select public.integration_delete_user('10000000-0000-4000-8000-000000000002');
+select pg_temp.check_true((select customer_id is null and customer_name='Deleted customer' from public.visits),'account deletion anonymises historical visits');
+select pg_temp.check_true((select count(*)=0 from private.visit_contacts),'account deletion removes customer phone snapshots');
+select pg_temp.check_true((select count(*)=1 from private.payments),'financial record survives customer deletion');
+-- Simulate a refund notification arriving before the Checkout event on a new visit.
+insert into public.visits(id,business_id,resource_id,service_id,customer_id,customer_name,service_name,minutes,price_cents,kind,status,starts_at,ends_at)
+values('10000000-0000-4000-8000-000000000041','10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000020','10000000-0000-4000-8000-000000000030',null,'Walk in','Haircut',30,3500,'queue','completed',now()-interval '1 hour',now()-interval '30 minutes');
+insert into private.checkout_sessions(id,visit_id,amount) values('10000000-0000-4000-8000-000000000050','10000000-0000-4000-8000-000000000041',3500);
+select public.integration_refund_event('pi_out_of_order','re_out_of_order',3500);
+select public.integration_paid('evt_out_of_order','10000000-0000-4000-8000-000000000050','pi_out_of_order',3500,'nzd');
+select pg_temp.check_true((select payment_status='refunded' from public.visits where id='10000000-0000-4000-8000-000000000041'),'refund arriving before payment stays refunded');
+rollback;

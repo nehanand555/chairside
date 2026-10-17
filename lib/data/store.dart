@@ -1,0 +1,173 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'backend.dart';
+
+class AppStore extends ChangeNotifier {
+  AppStore(this.backend) {
+    _auth = backend?.authChanges.listen((_) {
+      unawaited(refreshAccount());
+    });
+    if (signedIn) unawaited(refreshAccount());
+  }
+  final Backend? backend;
+  StreamSubscription<void>? _auth;
+  Json profile = {};
+  Json account = {};
+  List<Json> visits = [];
+  List<String> favorites = [];
+  bool moreVisits = false;
+  String? error;
+  bool busy = false;
+  bool _disposed = false;
+  int _revision = 0;
+  int _visitPages = 1;
+  String? _lastUser;
+  bool get configured => backend != null;
+  bool get signedIn => backend?.userId != null;
+  bool get unlocked => account['aal2'] == true;
+  bool get isAdmin => account['is_admin'] == true;
+  String? get businessId => account['business_id'] as String?;
+  void changed() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void clearError() {
+    error = null;
+    changed();
+  }
+
+  Future<bool> run(Future<void> Function() action) async {
+    if (busy) return false;
+    busy = true;
+    error = null;
+    changed();
+    try {
+      await action();
+      return true;
+    } catch (e) {
+      error = friendlyError(e);
+      return false;
+    } finally {
+      busy = false;
+      changed();
+    }
+  }
+
+  Future<void> refreshAccount() async {
+    final revision = ++_revision;
+    if (_lastUser != backend?.userId) {
+      _lastUser = backend?.userId;
+      _visitPages = 1;
+      profile = {}; account = {}; visits = []; favorites = []; moreVisits = false;
+      changed();
+    }
+    if (!signedIn) {
+      profile = {};
+      account = {};
+      visits = [];
+      favorites = [];
+      moreVisits = false;
+      backend?.stopWatching();
+      changed();
+      return;
+    }
+    try {
+      final context = await backend!.rpc('account_context') as Map;
+      final profiles =
+          await backend!.rows('profiles', filters: {'id': backend!.userId});
+      final saved = await backend!
+          .rows('favorites', filters: {'customer_id': backend!.userId});
+      if (_disposed || revision != _revision) return;
+      account = Json.from(context);
+      profile = profiles.isEmpty ? {} : profiles.first;
+      favorites = saved.map((r) => r['business_id'] as String).toList();
+      backend!.watchVisits(() {
+        unawaited(refreshVisits());
+      });
+      await refreshVisits();
+    } catch (e) {
+      if (revision == _revision) {
+        error = friendlyError(e);
+        changed();
+      }
+    }
+  }
+
+  Future<void> refreshVisits() async {
+    if (!signedIn) return;
+    final user = backend!.userId;
+    try {
+      await backend!.rpc('refresh_queues');
+      final result = <Json>[];
+      int count = 0;
+      for (var page = 0; page < _visitPages; page++) {
+        final rows = List<Json>.from(await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
+        result.addAll(rows); count = rows.length;
+        if (count < 200) break;
+      }
+      if (!_disposed && backend!.userId == user) {
+        visits = {for (final v in result) v['id']: v}.values.toList();
+        moreVisits = count == 200;
+        changed();
+      }
+    } catch (e) {
+      error = friendlyError(e);
+      changed();
+    }
+  }
+
+  Future<void> loadMoreVisits() async {
+    final result = List<Json>.from(
+        await backend!.rpc('my_visits', {'p_offset': _visitPages * 200}) as List);
+    _visitPages++;
+    final known = visits.map((v) => v['id']).toSet();
+    visits.addAll(result.where((v) => !known.contains(v['id'])));
+    moreVisits = result.length == 200;
+    changed();
+  }
+
+  Future<void> saveProfile(String name, bool sms, bool marketing) async {
+    if (name.trim().isEmpty) throw Exception('Enter your name');
+    await backend!.save('profiles', {
+      'id': backend!.userId,
+      'display_name': name.trim(),
+      'sms_updates': sms,
+      'marketing_consent': marketing
+    });
+    await refreshAccount();
+  }
+
+  Future<void> favorite(String id) async {
+    if (!signedIn) throw Exception('Sign in to save a favourite');
+    final filters = {'customer_id': backend!.userId, 'business_id': id};
+    if (favorites.contains(id)) {
+      await backend!.remove('favorites', filters);
+    } else {
+      await backend!.save('favorites', filters);
+    }
+    await refreshAccount();
+  }
+
+  Future<void> changeVisit(String id, String action) async {
+    await backend!.rpc('change_visit', {'p_visit': id, 'p_action': action});
+    await refreshVisits();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _auth?.cancel();
+    backend?.stopWatching();
+    super.dispose();
+  }
+}
+
+String friendlyError(Object e) {
+  if (e is AuthException) return e.message;
+  if (e is PostgrestException) return e.message;
+  final text = e.toString().replaceFirst('Exception: ', '');
+  if (text.contains('SocketException') || text.contains('ClientException'))
+    return 'Connection lost. Check your internet and try again.';
+  return text;
+}

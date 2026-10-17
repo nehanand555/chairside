@@ -1,0 +1,67 @@
+name: Deploy configured services
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        options: [backend, web]
+        description: Service to deploy after configuration
+      environment:
+        type: choice
+        options: [staging, production]
+        default: staging
+permissions:
+  contents: read
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+  deploy:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        if: inputs.target == 'backend'
+        with:
+          version: latest
+      - name: Deploy database and functions
+        if: inputs.target == 'backend'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: |
+          test -n "$PROJECT_REF"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          supabase link --project-ref "$PROJECT_REF"
+          supabase db push
+          supabase functions deploy --project-ref "$PROJECT_REF"
+      - uses: subosito/flutter-action@v2
+        if: inputs.target == 'web'
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - name: Build configured web application
+        if: inputs.target == 'web'
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          GOOGLE_MAPS_WEB_KEY: ${{ vars.GOOGLE_MAPS_WEB_KEY }}
+          SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+        run: |
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_PUBLISHABLE_KEY"
+          test -n "$SUPPORT_EMAIL"
+          python3 tool/bootstrap.py
+          flutter pub get --enforce-lockfile
+          flutter build web --release --dart-define-from-file=build-config.json
+      - uses: cloudflare/wrangler-action@v3
+        if: inputs.target == 'web'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/web --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }} --branch=main

@@ -1,0 +1,40 @@
+project_id = "chairside"
+
+[api]
+enabled = true
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+enable_signup = true
+minimum_password_length = 12
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+template = "Your Chairside verification code is {{ .Code }}"
+max_frequency = "60s"
+
+[auth.mfa]
+max_enrolled_factors = 3
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+# Functions validate user tokens themselves; publishable API keys are not JWTs.
+[functions.discover]
+verify_jwt = false
+[functions.payments]
+verify_jwt = false
+[functions.stripe-webhook]
+verify_jwt = false
+[functions.notifications]
+verify_jwt = false
+[functions.delete-account]
+verify_jwt = false

@@ -8,3 +8,4 @@ linter:
   rules:
     - avoid_print
     - use_build_context_synchronously
+

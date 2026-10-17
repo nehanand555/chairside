@@ -1,0 +1,74 @@
+name: Product checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - name: Generate platform configuration
+        run: python3 tool/bootstrap.py
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format lib test
+      - run: flutter analyze
+      - run: flutter test --reporter expanded
+      - run: flutter build web --release --dart-define-from-file=build-config.json
+      - name: Dependency snapshot
+        if: always()
+        run: python3 -c "import base64,pathlib; print('CHAIRSIDE_LOCK='+base64.b64encode(pathlib.Path('pubspec.lock').read_bytes()).decode())"
+      - name: Formatted source snapshot
+        if: always()
+        run: python3 -c "import base64,json,pathlib; print('CHAIRSIDE_SOURCES='+base64.b64encode(json.dumps({str(p):p.read_text() for root in ['lib','test'] for p in pathlib.Path(root).rglob('*.dart')}).encode()).decode())"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-unconfigured
+          path: build/web
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chairside
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: chairside
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/bootstrap.sql
+      - run: for migration in supabase/migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f "$migration"; done
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/core.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/integrations.sql
+      - run: python3 supabase/tests/concurrency.py
+  functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check supabase/functions/*/index.ts
+      - run: deno test supabase/functions/_shared/*_test.ts
