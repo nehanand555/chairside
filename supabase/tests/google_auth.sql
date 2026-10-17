@@ -56,6 +56,8 @@ select pg_temp.check_true(not exists(select 1 from private.visit_contacts where 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
 select set_config('google.empty_visit',public.create_visit(current_setting('google.shop')::uuid,current_setting('google.service')::uuid,current_setting('google.resource')::uuid,'appointment',current_setting('google.start')::timestamptz)::text,true);
+select pg_temp.must_fail($q$select public.change_visit(current_setting('google.empty_visit')::uuid,'cancel')$q$,'authenticator');
+select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal2"}',true);
 select public.change_visit(current_setting('google.empty_visit')::uuid,'cancel');
 reset role;
 select pg_temp.check_true(not exists(select 1 from private.visit_contacts where visit_id=current_setting('google.empty_visit')::uuid),'empty Auth phone does not become an invalid plus-only contact');
