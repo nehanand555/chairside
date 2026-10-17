@@ -11,7 +11,8 @@ Deno.serve(async req => {
   try {
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;
-      if (session.payment_status === "paid" && session.metadata?.chairside_session) {
+      if (!event.account && session.payment_status === "paid" && session.metadata?.chairside_session) {
+        if (!await rpc<boolean>(service(), "integration_match_checkout", { p_id: session.metadata.chairside_session, p_stripe: session.id })) throw new Error("Unrecognised checkout session");
         const intent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
         if (!intent) throw new Error("Missing payment intent");
         await rpc(service(), "integration_paid", { p_event: event.id, p_session: session.metadata.chairside_session, p_intent: intent, p_amount: session.amount_total, p_currency: session.currency });

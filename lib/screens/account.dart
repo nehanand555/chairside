@@ -181,13 +181,8 @@ class MfaPanel extends StatefulWidget {
 
 class _MfaPanelState extends State<MfaPanel> {
   final code = TextEditingController();
-  late Future<List<Json>> factors;
+  Future<List<Json>>? factors;
   Json? enrollment;
-  @override
-  void initState() {
-    super.initState();
-    factors = widget.store.backend!.factors();
-  }
 
   @override
   void dispose() {
@@ -202,7 +197,7 @@ class _MfaPanelState extends State<MfaPanel> {
       return const Notice(
           'Business access is unlocked for this session. Keep your authenticator app available for future sign-ins.');
     return AsyncPanel<List<Json>>(
-        future: factors,
+        future: factors ??= s.backend!.factors(),
         retry: () => setState(() => factors = s.backend!.factors()),
         builder: (items) {
           final verified =

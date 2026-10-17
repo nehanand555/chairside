@@ -351,7 +351,8 @@ begin
     customer:=null; customer_name:=trim(p_walk_in->>'name'); phone:=nullif(p_walk_in->>'phone',''); sms:=coalesce((p_walk_in->>'sms_consent')::boolean,false);
   else
     select display_name,sms_updates into customer_name,sms from public.profiles where id=u;
-    select au.phone into phone from auth.users au where au.id=u;
+    -- Supabase Auth normalises stored phone numbers without the leading plus.
+    select '+'||ltrim(au.phone,'+') into phone from auth.users au where au.id=u;
     if coalesce(customer_name,'')='' then raise exception 'Add your name in Account first'; end if;
   end if;
   if p_kind='appointment' then
@@ -366,7 +367,7 @@ begin
   if phone is not null then insert into private.visit_contacts values(vid,phone,coalesce(sms,false)); end if;
   if p_kind='queue' then perform private.reflow_queue(p_resource); end if;
   insert into private.notification_outbox(visit_id,kind) values(vid,'confirmation');
-  if p_kind='appointment' then insert into private.notification_outbox(visit_id,kind,due_at) values(vid,'reminder',greatest(now(),p_start-interval '1 hour')); end if;
+  if p_kind='appointment' and p_start>now()+interval '90 minutes' then insert into private.notification_outbox(visit_id,kind,due_at) values(vid,'reminder',p_start-interval '1 hour'); end if;
   return vid;
 exception when unique_violation then raise exception 'You already have an active visit, or that slot was just taken. Refresh and try again';
   when exclusion_violation then raise exception 'That slot was just taken. Choose another time';
@@ -427,6 +428,7 @@ begin
   if p_status='approved' and (not exists(select 1 from public.services where business_id=p_business and active) or not exists(select 1 from public.hours where business_id=p_business)) then raise exception 'Provider must add services and opening hours before approval'; end if;
   update public.businesses set status=p_status,review_note=p_note,queue_open=case when p_status='approved' then queue_open else false end where id=p_business and status<>'closed';
   if not found then raise exception 'Business not found'; end if;
+  if p_status<>'approved' then update private.payment_accounts set charges_enabled=false where business_id=p_business; end if;
   insert into private.audit(actor_id,action,subject_id,details) values(auth.uid(),'admin_review',p_business,jsonb_build_object('status',p_status,'note',p_note));
 end $$;
 create function public.resolve_report(p_report uuid) returns void language plpgsql security definer set search_path='' as $$

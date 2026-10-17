@@ -197,7 +197,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 label: const Text('Search this map area'))),
       if (!mapAvailable)
         const Notice(
-            'Map view will appear when the map service is activated. You can browse the list below.'),
+            'Map view is unavailable. You can browse businesses in the list below.'),
       if (warning != null)
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),

@@ -8,7 +8,7 @@ begin
 end $$;
 insert into auth.users(id,phone,phone_confirmed_at) values
 ('00000000-0000-4000-8000-000000000001','+64210000001',now()),
-('00000000-0000-4000-8000-000000000002','+64210000002',now()),
+('00000000-0000-4000-8000-000000000002','64210000002',now()),
 ('00000000-0000-4000-8000-000000000003','+64210000003',now()),
 ('00000000-0000-4000-8000-000000000004','+64210000004',now()),
 ('00000000-0000-4000-8000-000000000005','+64210000005',now());
@@ -60,6 +60,7 @@ select pg_temp.must_fail($q$select public.operator_business(current_setting('tes
 reset role;
 select pg_temp.check_true((select public_lat=-36.85 and public_lng=174.76 from public.businesses where id=current_setting('test.home')::uuid),'home public coordinates are approximate');
 select pg_temp.check_true((select lat=-36.848512 from private.business_locations where business_id=current_setting('test.home')::uuid),'exact coordinates exist only in private location storage');
+select pg_temp.check_true((select phone='+64210000002' from private.visit_contacts where visit_id=current_setting('test.visit')::uuid),'Auth phone storage is converted to SMS E.164 format');
 select pg_temp.check_true(not has_function_privilege('authenticated','public.integration_paid(text,uuid,text,integer,text)','execute'),'customers cannot mark payments paid');
 select pg_temp.check_true(not has_table_privilege('authenticated','private.admins','insert'),'users cannot self-grant admin');
 -- Queue flow is tested in today's session; at midnight boundary test closure rejection instead.
@@ -77,6 +78,8 @@ begin
     q1:=public.create_visit(bid,sid,rid,'queue');
     perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","aal":"aal1"}',true);
     q2:=public.create_visit(bid,sid,rid,'queue');
+    perform pg_temp.check_true((public.queue_estimates(bid,sid)->0->>'waiting')::integer=2,'public queue estimate includes the people waiting');
+    perform pg_temp.check_true(position('customer_id' in public.queue_estimates(bid,sid)::text)=0 and position('customer_name' in public.queue_estimates(bid,sid)::text)=0,'public queue estimates contain no customer identifiers');
     perform pg_temp.check_true((select a.starts_at<b.starts_at from public.visits a,public.visits b where a.id=q1 and b.id=q2),'queue estimates follow insertion order');
     perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","aal":"aal2"}',true);
     perform pg_temp.must_fail(format('select public.change_visit(%L,''start'')',q2),'first person');

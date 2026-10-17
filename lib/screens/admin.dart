@@ -4,7 +4,7 @@ import '../data/store.dart';
 import 'account.dart';
 import 'app.dart';
 import 'common.dart';
-import 'visits.dart';
+import 'admin_visits.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key, required this.store});
@@ -110,16 +110,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                                             store: s,
                                                             title: b['name']
                                                                 as String,
-                                                            child: ListenableBuilder(
-                                                                listenable: s,
-                                                                builder: (context, _) => PageBody(
-                                                                    children: s
-                                                                        .visits
-                                                                        .where((v) =>
-                                                                            v['business_id'] ==
-                                                                            b['id'])
-                                                                        .map((v) => VisitCard(store: s, visit: v, operator: true))
-                                                                        .toList()))))),
+                                                            child: AdminBusinessVisits(store: s, business: b['id'] as String)))),
                                                 child: const Text('Visits & refunds'))
                                           ])
                                     ]))),

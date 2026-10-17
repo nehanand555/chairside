@@ -52,12 +52,13 @@ class TestBackend extends Backend {
       case 'business_detail':
       case 'operator_business':
         return business;
+      case 'queue_estimates': return <Json>[{'resource_id':'r1','name':'Chair 1','waiting':0,'wait_minutes':1}];
       case 'available_slots':
         return <Json>[];
       case 'refresh_queues':
         return null;
       case 'my_visits':
-        return visits.map(Json.from).toList();
+        return visits.skip(params['p_offset'] as int? ?? 0).take(200).map(Json.from).toList();
       case 'create_visit':
         expect(params['p_kind'], 'queue');
         visits.add({
@@ -212,6 +213,19 @@ void main() {
       store.dispose();
     }
     await tester.binding.setSurfaceSize(null);
+  });
+  test('loaded history survives live refreshes', () async {
+    final backend = TestBackend();
+    backend.visits.addAll(List.generate(205, (i) => <String, dynamic>{'id': 'v$i', 'status': 'completed'}));
+    final store = AppStore(backend);
+    await store.refreshAccount();
+    expect(store.visits.length, 200);
+    await store.loadMoreVisits();
+    expect(store.visits.length, 205);
+    await store.refreshVisits();
+    expect(store.visits.length, 205);
+    expect(store.moreVisits, false);
+    store.dispose();
   });
   testWidgets('missing service configuration never shows fake listings',
       (tester) async {

@@ -25,6 +25,7 @@ class _BookingScreenState extends State<BookingScreen> {
   late Future<Json> details;
   late Future<List<String>> photos;
   Future<List<Json>>? slots;
+  Future<List<Json>>? estimates;
   String? service, resource, created;
   Json? selected;
   bool queue = false;
@@ -40,7 +41,11 @@ class _BookingScreenState extends State<BookingScreen> {
   void reload() {
     details = widget.store.backend!.rpc('business_detail',
         {'p_business': widget.businessId}).then((v) => Json.from(v as Map));
-    photos = widget.store.backend!.photos(widget.businessId);
+    photos = widget.store.backend!.photos(widget.businessId).catchError((_) => <String>[]);
+  }
+
+  void loadEstimates() {
+    if (service != null) estimates = widget.store.backend!.rpc('queue_estimates', {'p_business': widget.businessId, 'p_service': service}).then((v) => List<Json>.from(v as List));
   }
 
   void loadSlots() {
@@ -86,7 +91,6 @@ class _BookingScreenState extends State<BookingScreen> {
       if (mounted)
         setState(() {
           created = id as String;
-          loadSlots();
         });
     });
   }
@@ -163,7 +167,8 @@ class _BookingScreenState extends State<BookingScreen> {
                           visit: visit,
                           onlinePayments: b['online_payments'] == true)
                     ],
-                    if (visit == null)
+                    if (created != null && visit == null) const Notice('Your place was saved. Open My visits and refresh for the latest details.'),
+                    if (created == null)
                       Panel(
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -191,6 +196,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                   onChanged: (value) => setState(() {
                                         service = value;
                                         loadSlots();
+                                        if (queue) loadEstimates();
                                       })),
                             const SizedBox(height: 16),
                             if (b['kind'] != 'home' && b['queue_open'] == true)
@@ -203,11 +209,11 @@ class _BookingScreenState extends State<BookingScreen> {
                                 ChoiceChip(
                                     label: const Text('Join live queue'),
                                     selected: queue,
-                                    onSelected: (_) =>
-                                        setState(() => queue = true))
+                                    onSelected: (_) => setState(() { queue = true; loadEstimates(); }))
                               ]),
                             const SizedBox(height: 16),
                             if (queue) ...[
+                              if (estimates != null) AsyncPanel<List<Json>>(future: estimates!, retry: () => setState(loadEstimates), builder: (items) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [for (final e in items) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(e['wait_minutes'] == null ? '${e['name']}: no more queue space today' : '${e['name']}: about ${e['wait_minutes']} min • ${e['waiting']} waiting', style: const TextStyle(fontWeight: FontWeight.bold)))])),
                               const Text(
                                   'We’ll reserve your place behind the people already waiting. Estimates move as the barber works. Come back to My visits to see updates.'),
                               const SizedBox(height: 12),

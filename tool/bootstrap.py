@@ -66,9 +66,10 @@ def configure(platform="web"):
     key = os.getenv("GOOGLE_MAPS_WEB_KEY", "")
     if key:
         from urllib.parse import quote
-        html = html.replace("</head>", f'<script data-chairside-maps src="https://maps.googleapis.com/maps/api/js?key={quote(key, safe="")}"></script>\n</head>')
+        html = html.replace("</head>", f'<script data-chairside-maps src="https://maps.googleapis.com/maps/api/js?key={quote(key, safe="")}&v=quarterly"></script>\n</head>')
     html = html.replace("<title>chairside</title>", "<title>Chairside — find your next chair</title>")
     web.write_text(html)
+    (ROOT / "web/_headers").write_text("/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: geolocation=(self), camera=(), microphone=()\n  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'\n/index.html\n  Cache-Control: no-cache\n")
     defines = {key: os.getenv(key, "") for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_WEB_KEY", "SUPPORT_EMAIL")}
     defines["MAPS_ENABLED"] = bool(os.getenv({"web": "GOOGLE_MAPS_WEB_KEY", "android": "GOOGLE_MAPS_ANDROID_KEY", "ios": "GOOGLE_MAPS_IOS_KEY", "ios-simulator": "GOOGLE_MAPS_IOS_KEY"}[platform]))
     (ROOT / "build-config.json").write_text(json.dumps(defines))

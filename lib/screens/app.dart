@@ -25,17 +25,19 @@ class _ChairsideAppState extends State<ChairsideApp>
     with WidgetsBindingObserver {
   int index = 0;
   Timer? _poll;
+  bool _active = true;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _poll = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (widget.store.signedIn) unawaited(widget.store.refreshVisits());
+      if (_active && widget.store.signedIn && !widget.store.busy) unawaited(widget.store.refreshVisits());
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _active = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.resumed)
       unawaited(widget.store.refreshAccount());
   }
@@ -240,7 +242,4 @@ Future<void> showLegal(BuildContext context) => showModalBottomSheet<void>(
                     'mailto:${const String.fromEnvironment('SUPPORT_EMAIL')}'),
                 child: const Text('Contact Chairside support')),
           const SizedBox(height: 20),
-          const Text(
-              'Operator details and final privacy/booking terms must be configured before public launch.',
-              style: TextStyle(fontSize: 12)),
         ])));

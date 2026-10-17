@@ -31,6 +31,7 @@ class SupabaseBackend extends Backend {
   SupabaseBackend(this.client);
   final SupabaseClient client;
   RealtimeChannel? _channel;
+  Timer? _changes;
   @override
   String? get userId => client.auth.currentUser?.id;
   @override
@@ -104,8 +105,8 @@ class SupabaseBackend extends Backend {
   void watchVisits(void Function() changed) {
     stopWatching();
     if (userId == null) return;
-    _channel = client.channel('my-visits').onPostgresChanges(event: PostgresChangeEvent.all, schema: 'public', table: 'visits', callback: (_) => changed()).subscribe();
+    _channel = client.channel('my-visits').onPostgresChanges(event: PostgresChangeEvent.all, schema: 'public', table: 'visits', callback: (_) { _changes?.cancel(); _changes = Timer(const Duration(milliseconds: 200), changed); }).subscribe();
   }
   @override
-  void stopWatching() { final channel = _channel; if (channel != null) { unawaited(client.removeChannel(channel)); } _channel = null; }
+  void stopWatching() { _changes?.cancel(); final channel = _channel; if (channel != null) { unawaited(client.removeChannel(channel)); } _channel = null; }
 }

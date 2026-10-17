@@ -23,7 +23,7 @@ jobs:
           cache: true
       - name: Generate platform configuration
         run: python3 tool/bootstrap.py
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: dart format lib test
       - run: flutter analyze
       - run: flutter test --reporter expanded

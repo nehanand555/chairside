@@ -89,7 +89,7 @@ class VisitCard extends StatelessWidget {
           '${v['kind'] == 'queue' ? 'Estimated ' : ''}${nzTime(v['starts_at'])} • ${v['minutes']} min'),
       const SizedBox(height: 8),
       Text(
-          '${money(v['price_cents'])} NZD • ${(v['payment_status'] as String).replaceAll('_', ' ')}'),
+          '${money(v['price_cents'])} NZD • ${v['payment_status'] == 'unpaid' ? 'Online payment not recorded' : (v['payment_status'] as String).replaceAll('_', ' ')}'),
       if (v['status'] == 'waiting')
         const Text(
             'Keep an eye on this screen. The time is an estimate, and the business may be running late.',

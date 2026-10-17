@@ -206,7 +206,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
   void reload() {
     business = widget.store.backend!.rpc('operator_business',
         {'p_business': widget.id}).then((v) => Json.from(v as Map));
-    photos = widget.store.backend!.photos(widget.id);
+    photos = widget.store.backend!.photos(widget.id).catchError((_) => <String>[]);
   }
 
   Future<void> configure(String action, Json data) async {
@@ -309,6 +309,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                           .reversed
                           .map((v) =>
                               VisitCard(store: s, visit: v, operator: true)),
+                    if ((section == 0 || section == 2) && s.moreVisits) ActionButton(s, 'Load more visits', s.loadMoreVisits),
                     if (section == 1) ...[
                       Panel(
                           child: Column(

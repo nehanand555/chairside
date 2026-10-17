@@ -21,6 +21,8 @@ class AppStore extends ChangeNotifier {
   bool busy = false;
   bool _disposed = false;
   int _revision = 0;
+  int _visitPages = 1;
+  String? _lastUser;
   bool get configured => backend != null;
   bool get signedIn => backend?.userId != null;
   bool get unlocked => account['aal2'] == true;
@@ -54,11 +56,18 @@ class AppStore extends ChangeNotifier {
 
   Future<void> refreshAccount() async {
     final revision = ++_revision;
+    if (_lastUser != backend?.userId) {
+      _lastUser = backend?.userId;
+      _visitPages = 1;
+      profile = {}; account = {}; visits = []; favorites = []; moreVisits = false;
+      changed();
+    }
     if (!signedIn) {
       profile = {};
       account = {};
       visits = [];
       favorites = [];
+      moreVisits = false;
       backend?.stopWatching();
       changed();
       return;
@@ -90,10 +99,16 @@ class AppStore extends ChangeNotifier {
     final user = backend!.userId;
     try {
       await backend!.rpc('refresh_queues');
-      final result = List<Json>.from(await backend!.rpc('my_visits') as List);
+      final result = <Json>[];
+      int count = 0;
+      for (var page = 0; page < _visitPages; page++) {
+        final rows = List<Json>.from(await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
+        result.addAll(rows); count = rows.length;
+        if (count < 200) break;
+      }
       if (!_disposed && backend!.userId == user) {
-        visits = result;
-        moreVisits = result.length == 200;
+        visits = {for (final v in result) v['id']: v}.values.toList();
+        moreVisits = count == 200;
         changed();
       }
     } catch (e) {
@@ -104,7 +119,8 @@ class AppStore extends ChangeNotifier {
 
   Future<void> loadMoreVisits() async {
     final result = List<Json>.from(
-        await backend!.rpc('my_visits', {'p_offset': visits.length}) as List);
+        await backend!.rpc('my_visits', {'p_offset': _visitPages * 200}) as List);
+    _visitPages++;
     final known = visits.map((v) => v['id']).toSet();
     visits.addAll(result.where((v) => !known.contains(v['id'])));
     moreVisits = result.length == 200;

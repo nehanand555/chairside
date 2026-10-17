@@ -35,7 +35,7 @@ Deno.serve(endpoint(async req => {
       if (text && places[0] && !matches[0]) { lat = places[0].lat; lng = places[0].lng; }
       if (text && !places.length) warning = "No public listings found for that area. Try a nearby town.";
     } catch { warning = "Public map listings are temporarily unavailable. Chairside businesses are still shown."; }
-  } else warning = "Public map listings are not activated yet. Showing Chairside businesses.";
+  } else warning = "Showing Chairside businesses. Public directory listings are unavailable.";
   if (area.query && !key && !matches.length) throw new HttpError(404, "No Chairside businesses match that town or name. Try a nearby town or use your location.");
   const businesses = await rpc<Record<string, unknown>[]>(service(), "discover_businesses", { p_lat: lat, p_lng: lng, p_radius_km: 25 });
   const ids = new Set(businesses.map(b => b.place_id));

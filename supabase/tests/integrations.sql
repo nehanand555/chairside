@@ -30,4 +30,11 @@ select public.integration_delete_user('10000000-0000-4000-8000-000000000002');
 select pg_temp.check_true((select customer_id is null and customer_name='Deleted customer' from public.visits),'account deletion anonymises historical visits');
 select pg_temp.check_true((select count(*)=0 from private.visit_contacts),'account deletion removes customer phone snapshots');
 select pg_temp.check_true((select count(*)=1 from private.payments),'financial record survives customer deletion');
+-- Simulate a refund notification arriving before the Checkout event on a new visit.
+insert into public.visits(id,business_id,resource_id,service_id,customer_id,customer_name,service_name,minutes,price_cents,kind,status,starts_at,ends_at)
+values('10000000-0000-4000-8000-000000000041','10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000020','10000000-0000-4000-8000-000000000030',null,'Walk in','Haircut',30,3500,'queue','completed',now()-interval '1 hour',now()-interval '30 minutes');
+insert into private.checkout_sessions(id,visit_id,amount) values('10000000-0000-4000-8000-000000000050','10000000-0000-4000-8000-000000000041',3500);
+select public.integration_refund_event('pi_out_of_order','re_out_of_order',3500);
+select public.integration_paid('evt_out_of_order','10000000-0000-4000-8000-000000000050','pi_out_of_order',3500,'nzd');
+select pg_temp.check_true((select payment_status='refunded' from public.visits where id='10000000-0000-4000-8000-000000000041'),'refund arriving before payment stays refunded');
 rollback;
