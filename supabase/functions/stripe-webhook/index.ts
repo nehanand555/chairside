@@ -3,10 +3,13 @@ import { processRefunds, stripe, Stripe } from "../_shared/stripe.ts";
 
 Deno.serve(async req => {
   if (req.method !== "POST") return new Response("Use POST", { status: 405 });
-  let event: Stripe.Event;
-  try {
-    event = await stripe().webhooks.constructEventAsync(await req.text(), req.headers.get("stripe-signature") ?? "", env("STRIPE_WEBHOOK_SECRET"), undefined, Stripe.createSubtleCryptoProvider());
-  } catch { return new Response("Invalid signature", { status: 400 }); }
+  let verified: Stripe.Event | undefined;
+  const raw = await req.text();
+  for (const secret of [env("STRIPE_WEBHOOK_SECRET"), Deno.env.get("STRIPE_CONNECT_WEBHOOK_SECRET")].filter((s): s is string => Boolean(s))) {
+    try { verified = await stripe().webhooks.constructEventAsync(raw, req.headers.get("stripe-signature") ?? "", secret, undefined, Stripe.createSubtleCryptoProvider()); break; } catch { /* Try the separate Connect endpoint secret. */ }
+  }
+  if (!verified) return new Response("Invalid signature", { status: 400 });
+  const event = verified;
   try {
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;

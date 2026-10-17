@@ -14,6 +14,7 @@ class AppStore extends ChangeNotifier {
   Json account = {};
   List<Json> visits = [];
   List<String> favorites = [];
+  bool moreVisits = false;
   String? error;
   bool busy = false;
   bool _disposed = false;
@@ -53,9 +54,15 @@ class AppStore extends ChangeNotifier {
     if (!signedIn) return;
     final user = backend!.userId;
     try {
-      final result = await backend!.rows('visits', order: 'created_at', limit: 500);
-      if (!_disposed && backend!.userId == user) { visits = result; changed(); }
+      await backend!.rpc('refresh_queues');
+      final result = List<Json>.from(await backend!.rpc('my_visits') as List);
+      if (!_disposed && backend!.userId == user) { visits = result; moreVisits = result.length == 200; changed(); }
     } catch (e) { error = friendlyError(e); changed(); }
+  }
+  Future<void> loadMoreVisits() async {
+    final result = List<Json>.from(await backend!.rpc('my_visits', {'p_offset': visits.length}) as List);
+    final known = visits.map((v) => v['id']).toSet();
+    visits.addAll(result.where((v) => !known.contains(v['id']))); moreVisits = result.length == 200; changed();
   }
   Future<void> saveProfile(String name, bool sms, bool marketing) async {
     if (name.trim().isEmpty) throw Exception('Enter your name');

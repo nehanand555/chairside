@@ -33,7 +33,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final id = ++request;
     setState(() { loading = true; error = null; });
     try {
-      final data = await widget.store.backend!.invoke('discover', {'lat': center.latitude, 'lng': center.longitude, 'query': text ? search.text : ''});
+      final data = await widget.store.backend!.invoke('discover', {'lat': center.latitude, 'lng': center.longitude, 'query': text ? search.text : '', 'include_public': mapAvailable});
       if (!mounted || request != id) return;
       final c = data['center'] as Map;
       setState(() { center = LatLng((c['lat'] as num).toDouble(), (c['lng'] as num).toDouble()); businesses = List<Json>.from(data['businesses'] as List); places = List<Json>.from(data['places'] as List); warning = data['warning'] as String?; });

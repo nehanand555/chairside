@@ -1,9 +1,10 @@
 name: Product checks
 on:
   push:
-    branches: [main, 'codex/**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
@@ -18,15 +19,21 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
       - name: Generate platform configuration
         run: python3 tool/bootstrap.py
       - run: flutter pub get
+      - run: dart format lib test
       - run: flutter analyze
       - run: flutter test --reporter expanded
       - run: flutter build web --release --dart-define-from-file=build-config.json
       - name: Dependency snapshot
+        if: always()
         run: python3 -c "import base64,pathlib; print('CHAIRSIDE_LOCK='+base64.b64encode(pathlib.Path('pubspec.lock').read_bytes()).decode())"
+      - name: Formatted source snapshot
+        if: always()
+        run: python3 -c "import base64,json,pathlib; print('CHAIRSIDE_SOURCES='+base64.b64encode(json.dumps({str(p):p.read_text() for root in ['lib','test'] for p in pathlib.Path(root).rglob('*.dart')}).encode()).decode())"
       - uses: actions/upload-artifact@v4
         with:
           name: web-unconfigured

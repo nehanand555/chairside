@@ -20,6 +20,8 @@ class TestBackend extends Backend {
       case 'account_context': return {'is_admin':false,'aal2':userId=='owner','business_id':userId=='owner'?'p1':null};
       case 'business_detail': case 'operator_business': return business;
       case 'available_slots': return <Json>[];
+      case 'refresh_queues': return null;
+      case 'my_visits': return visits.map(Json.from).toList();
       case 'create_visit':
         expect(params['p_kind'],'queue');
         visits.add({'id':'v1','business_id':'p1','resource_id':'r1','customer_id':'customer','customer_name':'Customer','service_name':'Haircut','minutes':30,'price_cents':3500,'kind':'queue','status':'waiting','starts_at':'2026-10-18T00:00:00Z','payment_status':'unpaid','created_at':'2026-10-17T23:00:00Z'});

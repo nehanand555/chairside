@@ -1,0 +1,57 @@
+name: Build app packages
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [web, android, ios-simulator]
+        default: web
+        description: Package to build (iOS device signing is configured separately)
+permissions:
+  contents: read
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+  build:
+    needs: checks
+    runs-on: ${{ inputs.platform == 'ios-simulator' && 'macos-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 45
+    environment: staging
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      GOOGLE_MAPS_WEB_KEY: ${{ vars.GOOGLE_MAPS_WEB_KEY }}
+      GOOGLE_MAPS_ANDROID_KEY: ${{ vars.GOOGLE_MAPS_ANDROID_KEY }}
+      GOOGLE_MAPS_IOS_KEY: ${{ vars.GOOGLE_MAPS_IOS_KEY }}
+      SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v4
+        if: inputs.platform == 'android'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: python3 tool/bootstrap.py
+      - run: flutter pub get --enforce-lockfile
+      - name: Build web
+        if: inputs.platform == 'web'
+        run: flutter build web --release --dart-define-from-file=build-config.json
+      - name: Build installable Android test APK
+        if: inputs.platform == 'android'
+        run: flutter build apk --debug --dart-define-from-file=build-config.json
+      - name: Build iOS simulator application
+        if: inputs.platform == 'ios-simulator'
+        run: flutter build ios --simulator --debug --dart-define-from-file=build-config.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chairside-${{ inputs.platform }}
+          path: |
+            build/web
+            build/app/outputs/flutter-apk/*.apk
+            build/ios/iphonesimulator/*.app
+          if-no-files-found: error

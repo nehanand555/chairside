@@ -5,6 +5,7 @@ import { messageFor } from "../_shared/messages.ts";
 Deno.serve(async req => {
   if (req.method !== "POST" || req.headers.get("x-worker-secret") !== env("WORKER_SECRET")) return new Response("Unauthorized", { status: 401 });
   const db = service();
+  await rpc(db, "integration_tick");
   let refunds = 0;
   if (Deno.env.get("STRIPE_SECRET_KEY")) refunds = await processRefunds();
   // Leave pending messages untouched until the SMS provider is configured.

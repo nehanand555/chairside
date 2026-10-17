@@ -15,7 +15,7 @@ Future<void> main() async {
   String? startupError;
   if (url.isNotEmpty && key.isNotEmpty) {
     try {
-      await Supabase.initialize(url: url, anonKey: key);
+      await Supabase.initialize(url: url, publishableKey: key);
       backend = SupabaseBackend(Supabase.instance.client);
     } catch (_) {
       startupError = 'Chairside could not connect. Check your connection and reopen the app.';

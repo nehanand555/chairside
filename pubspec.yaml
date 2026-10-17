@@ -9,13 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  supabase_flutter: ^2.10.2
-  google_maps_flutter: ^2.18.2
-  geolocator: ^14.0.2
-  url_launcher: ^6.3.2
-  image_picker: ^1.2.0
-  intl: ^0.20.2
-  timezone: ^0.10.1
+  supabase_flutter: 2.18.3
+  google_maps_flutter: 2.19.0
+  geolocator: 14.1.1
+  url_launcher: 6.3.3
+  image_picker: 1.2.4
+  intl: 0.20.3
+  timezone: 0.10.1
 
 dev_dependencies:
   flutter_test:

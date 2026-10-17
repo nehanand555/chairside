@@ -13,13 +13,13 @@ class AdminScreen extends StatefulWidget {
   State<AdminScreen> createState()=>_AdminScreenState();
 }
 class _AdminScreenState extends State<AdminScreen>{
-  Future<Json>? data; bool all=false;
-  void reload(){ data=widget.store.backend!.rpc('admin_overview').then((v)=>Json.from(v as Map)); }
+  Future<Json>? data; Future<Json>? health; bool all=false;
+  void reload(){ data=widget.store.backend!.rpc('admin_overview').then((v)=>Json.from(v as Map)); health=widget.store.backend!.rpc('admin_health').then((v)=>Json.from(v as Map)); }
   @override
   Widget build(BuildContext context){
     final s=widget.store;
     if(s.unlocked && data==null) reload();
-    return OperatorGate(store:s,child:PageBody(children:[const PageHeading('Platform administration','Review businesses, investigate reports and help customers.'),if(data!=null) AsyncPanel<Json>(future:data!,retry:()=>setState(reload),builder:(overview){
+    return OperatorGate(store:s,child:PageBody(children:[const PageHeading('Platform administration','Review businesses, investigate reports and help customers.'),if(health!=null)AsyncPanel<Json>(future:health!,builder:(h)=>Notice('SMS needing review: ${h['failed_sms']} • Overdue texts: ${h['pending_sms']} • Pending refunds: ${h['pending_refunds']}')),if(data!=null) AsyncPanel<Json>(future:data!,retry:()=>setState(reload),builder:(overview){
       final businesses=List<Json>.from(overview['businesses'] as List), reports=List<Json>.from(overview['reports'] as List);
       return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Wrap(spacing:8,children:[FilterChip(label:const Text('Show all businesses'),selected:all,onSelected:(v)=>setState(()=>all=v)),OutlinedButton.icon(onPressed:()=>setState(reload),icon:const Icon(Icons.refresh),label:const Text('Refresh'))]),const SizedBox(height:16),
         ...businesses.where((b)=>all || b['status']=='pending').map((b)=>Panel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${b['name']} • ${b['status']}',style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold)),Text('${b['kind']} • ${b['suburb']}'),Text((b['location'] as Map)['address'] as String),Text('Owner phone: ${b['owner_phone'] ?? 'Not available'}'),if(b['place_id']!=null) SelectableText('Google claim: ${b['place_id']}'),const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,children:[for(final status in ['approved','rejected','suspended']) OutlinedButton(onPressed:s.busy?null:()=>review(context,b,status),child:Text(status=='approved'?'Approve':status=='rejected'?'Reject':'Suspend')),TextButton(onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>DetailScaffold(store:s,title:b['name'] as String,child:ListenableBuilder(listenable:s,builder:(context,_)=>PageBody(children:s.visits.where((v)=>v['business_id']==b['id']).map((v)=>VisitCard(store:s,visit:v,operator:true)).toList()))))),child:const Text('Visits & refunds'))])]))),
