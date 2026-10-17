@@ -5,7 +5,9 @@ import 'backend.dart';
 
 class AppStore extends ChangeNotifier {
   AppStore(this.backend) {
-    _auth = backend?.authChanges.listen((_) { unawaited(refreshAccount()); });
+    _auth = backend?.authChanges.listen((_) {
+      unawaited(refreshAccount());
+    });
     if (signedIn) unawaited(refreshAccount());
   }
   final Backend? backend;
@@ -24,69 +26,132 @@ class AppStore extends ChangeNotifier {
   bool get unlocked => account['aal2'] == true;
   bool get isAdmin => account['is_admin'] == true;
   String? get businessId => account['business_id'] as String?;
-  void changed() { if (!_disposed) notifyListeners(); }
-  void clearError() { error = null; changed(); }
+  void changed() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void clearError() {
+    error = null;
+    changed();
+  }
+
   Future<bool> run(Future<void> Function() action) async {
     if (busy) return false;
-    busy = true; error = null; changed();
-    try { await action(); return true; }
-    catch (e) { error = friendlyError(e); return false; }
-    finally { busy = false; changed(); }
+    busy = true;
+    error = null;
+    changed();
+    try {
+      await action();
+      return true;
+    } catch (e) {
+      error = friendlyError(e);
+      return false;
+    } finally {
+      busy = false;
+      changed();
+    }
   }
+
   Future<void> refreshAccount() async {
     final revision = ++_revision;
     if (!signedIn) {
-      profile = {}; account = {}; visits = []; favorites = [];
-      backend?.stopWatching(); changed(); return;
+      profile = {};
+      account = {};
+      visits = [];
+      favorites = [];
+      backend?.stopWatching();
+      changed();
+      return;
     }
     try {
       final context = await backend!.rpc('account_context') as Map;
-      final profiles = await backend!.rows('profiles', filters: {'id': backend!.userId});
-      final saved = await backend!.rows('favorites', filters: {'customer_id': backend!.userId});
+      final profiles =
+          await backend!.rows('profiles', filters: {'id': backend!.userId});
+      final saved = await backend!
+          .rows('favorites', filters: {'customer_id': backend!.userId});
       if (_disposed || revision != _revision) return;
-      account = Json.from(context); profile = profiles.isEmpty ? {} : profiles.first;
+      account = Json.from(context);
+      profile = profiles.isEmpty ? {} : profiles.first;
       favorites = saved.map((r) => r['business_id'] as String).toList();
-      backend!.watchVisits(() { unawaited(refreshVisits()); });
+      backend!.watchVisits(() {
+        unawaited(refreshVisits());
+      });
       await refreshVisits();
-    } catch (e) { if (revision == _revision) { error = friendlyError(e); changed(); } }
+    } catch (e) {
+      if (revision == _revision) {
+        error = friendlyError(e);
+        changed();
+      }
+    }
   }
+
   Future<void> refreshVisits() async {
     if (!signedIn) return;
     final user = backend!.userId;
     try {
       await backend!.rpc('refresh_queues');
       final result = List<Json>.from(await backend!.rpc('my_visits') as List);
-      if (!_disposed && backend!.userId == user) { visits = result; moreVisits = result.length == 200; changed(); }
-    } catch (e) { error = friendlyError(e); changed(); }
+      if (!_disposed && backend!.userId == user) {
+        visits = result;
+        moreVisits = result.length == 200;
+        changed();
+      }
+    } catch (e) {
+      error = friendlyError(e);
+      changed();
+    }
   }
+
   Future<void> loadMoreVisits() async {
-    final result = List<Json>.from(await backend!.rpc('my_visits', {'p_offset': visits.length}) as List);
+    final result = List<Json>.from(
+        await backend!.rpc('my_visits', {'p_offset': visits.length}) as List);
     final known = visits.map((v) => v['id']).toSet();
-    visits.addAll(result.where((v) => !known.contains(v['id']))); moreVisits = result.length == 200; changed();
+    visits.addAll(result.where((v) => !known.contains(v['id'])));
+    moreVisits = result.length == 200;
+    changed();
   }
+
   Future<void> saveProfile(String name, bool sms, bool marketing) async {
     if (name.trim().isEmpty) throw Exception('Enter your name');
-    await backend!.save('profiles', {'id': backend!.userId, 'display_name': name.trim(), 'sms_updates': sms, 'marketing_consent': marketing});
+    await backend!.save('profiles', {
+      'id': backend!.userId,
+      'display_name': name.trim(),
+      'sms_updates': sms,
+      'marketing_consent': marketing
+    });
     await refreshAccount();
   }
+
   Future<void> favorite(String id) async {
     if (!signedIn) throw Exception('Sign in to save a favourite');
     final filters = {'customer_id': backend!.userId, 'business_id': id};
-    if (favorites.contains(id)) { await backend!.remove('favorites', filters); } else { await backend!.save('favorites', filters); }
+    if (favorites.contains(id)) {
+      await backend!.remove('favorites', filters);
+    } else {
+      await backend!.save('favorites', filters);
+    }
     await refreshAccount();
   }
+
   Future<void> changeVisit(String id, String action) async {
     await backend!.rpc('change_visit', {'p_visit': id, 'p_action': action});
     await refreshVisits();
   }
+
   @override
-  void dispose() { _disposed = true; _auth?.cancel(); backend?.stopWatching(); super.dispose(); }
+  void dispose() {
+    _disposed = true;
+    _auth?.cancel();
+    backend?.stopWatching();
+    super.dispose();
+  }
 }
 
 String friendlyError(Object e) {
   if (e is AuthException) return e.message;
   if (e is PostgrestException) return e.message;
   final text = e.toString().replaceFirst('Exception: ', '');
-  if (text.contains('SocketException') || text.contains('ClientException')) return 'Connection lost. Check your internet and try again.';
+  if (text.contains('SocketException') || text.contains('ClientException'))
+    return 'Connection lost. Check your internet and try again.';
   return text;
 }

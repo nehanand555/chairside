@@ -71,7 +71,7 @@ class SupabaseBackend extends Backend {
   @override
   Future<List<Json>> factors() async {
     final result = await client.auth.mfa.listFactors();
-    return result.totp.map((f) => <String, dynamic>{'id': f.id, 'status': f.status.name}).toList();
+    return result.all.where((f) => f.factorType == FactorType.totp).map((f) => <String, dynamic>{'id': f.id, 'status': f.status.name}).toList();
   }
   @override
   Future<Json> enrollFactor() async {

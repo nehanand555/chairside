@@ -36,7 +36,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - run: python3 tool/bootstrap.py
+      - run: python3 tool/bootstrap.py --platform=${{ inputs.platform }}
       - run: flutter pub get --enforce-lockfile
       - name: Build web
         if: inputs.platform == 'web'

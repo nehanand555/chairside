@@ -60,6 +60,8 @@ jobs:
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/bootstrap.sql
       - run: for migration in supabase/migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f "$migration"; done
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/core.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/integrations.sql
+      - run: python3 supabase/tests/concurrency.py
   functions:
     runs-on: ubuntu-latest
     timeout-minutes: 10

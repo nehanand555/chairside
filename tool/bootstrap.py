@@ -2,6 +2,7 @@
 
 Run from the repository root. Secret server keys never belong in this process.
 """
+import argparse
 import json
 import os
 from pathlib import Path
@@ -15,7 +16,7 @@ from xml.etree import ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def configure():
+def configure(platform="web"):
     with tempfile.TemporaryDirectory(prefix="chairside-platforms-") as temp:
         shell = Path(temp) / "chairside"
         subprocess.run(["flutter", "create", "--empty", "--platforms=android,ios,web", "--org=nz.chairside", "--project-name=chairside", str(shell)], check=True)
@@ -69,9 +70,11 @@ def configure():
     html = html.replace("<title>chairside</title>", "<title>Chairside — find your next chair</title>")
     web.write_text(html)
     defines = {key: os.getenv(key, "") for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_WEB_KEY", "SUPPORT_EMAIL")}
-    defines["MAPS_ENABLED"] = any(os.getenv(key) for key in ("GOOGLE_MAPS_WEB_KEY", "GOOGLE_MAPS_ANDROID_KEY", "GOOGLE_MAPS_IOS_KEY"))
+    defines["MAPS_ENABLED"] = bool(os.getenv({"web": "GOOGLE_MAPS_WEB_KEY", "android": "GOOGLE_MAPS_ANDROID_KEY", "ios": "GOOGLE_MAPS_IOS_KEY", "ios-simulator": "GOOGLE_MAPS_IOS_KEY"}[platform]))
     (ROOT / "build-config.json").write_text(json.dumps(defines))
 
 
 if __name__ == "__main__":
-    configure()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--platform", choices=["web", "android", "ios", "ios-simulator"], default="web")
+    configure(parser.parse_args().platform)

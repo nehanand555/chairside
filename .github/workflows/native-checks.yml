@@ -1,0 +1,49 @@
+name: Native build checks
+on:
+  pull_request:
+    paths: ['lib/**', 'pubspec.*', 'tool/bootstrap.py', '.github/workflows/native-checks.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: android
+          - os: macos-latest
+            platform: ios
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v4
+        if: matrix.platform == 'android'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: python3 tool/bootstrap.py --platform=${{ matrix.platform }}
+      - run: flutter pub get
+      - name: Android compile
+        if: matrix.platform == 'android'
+        run: flutter build apk --debug --dart-define-from-file=build-config.json
+      - name: iOS simulator compile
+        if: matrix.platform == 'ios'
+        run: flutter build ios --simulator --debug --dart-define-from-file=build-config.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}-unconfigured
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/ios/iphonesimulator/*.app
+          if-no-files-found: error

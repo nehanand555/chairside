@@ -18,9 +18,12 @@ Future<void> main() async {
       await Supabase.initialize(url: url, publishableKey: key);
       backend = SupabaseBackend(Supabase.instance.client);
     } catch (_) {
-      startupError = 'Chairside could not connect. Check your connection and reopen the app.';
+      startupError =
+          'Chairside could not connect. Check your connection and reopen the app.';
     }
   }
-  runApp(ChairsideApp(store: AppStore(backend), startupError: startupError, mapsEnabled: const bool.fromEnvironment('MAPS_ENABLED')));
+  runApp(ChairsideApp(
+      store: AppStore(backend),
+      startupError: startupError,
+      mapsEnabled: const bool.fromEnvironment('MAPS_ENABLED')));
 }
-
