@@ -1,7 +1,7 @@
 name: chairside
-description: A Flutter prototype for discovering local hair professionals and managing bookings and queues.
+description: Chairside — nearby hair professionals, appointments and live queues in New Zealand.
 publish_to: none
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -9,6 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  supabase_flutter: ^2.10.2
+  google_maps_flutter: ^2.18.2
+  geolocator: ^14.0.2
+  url_launcher: ^6.3.2
+  image_picker: ^1.2.0
+  intl: ^0.20.2
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:
@@ -16,3 +23,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
