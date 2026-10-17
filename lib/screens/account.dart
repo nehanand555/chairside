@@ -52,7 +52,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ]);
     if (loadedUser != s.backend!.userId && s.profile.isNotEmpty) {
       loadedUser = s.backend!.userId;
-      name.text = s.profile['display_name'] ?? '';
+      if (name.text.isEmpty) name.text = s.displayName;
       sms = s.profile['sms_updates'] == true;
       marketing = s.profile['marketing_consent'] == true;
     }

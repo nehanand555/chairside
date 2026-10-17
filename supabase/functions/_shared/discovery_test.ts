@@ -1,4 +1,4 @@
-import { normalizePlace, validateArea } from "./discovery.ts";
+import { normalizePlace, placesRequest, validateArea } from "./discovery.ts";
 import { messageFor } from "./messages.ts";
 function equal(actual: unknown, expected: unknown) { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`); }
 Deno.test("public map results have no invented booking fields", () => {
@@ -14,4 +14,18 @@ Deno.test("no stale reminder after cancellation or completion", () => {
   equal(messageFor({ kind: "reminder", status: "cancelled", business: "Shop", starts_at: "2026-10-18T00:00:00Z" }), null);
   equal(messageFor({ kind: "next", status: "completed", business: "Shop", starts_at: "2026-10-18T00:00:00Z" }), null);
   equal(messageFor({ kind: "next", status: "waiting", business: "Shop", starts_at: "2026-10-18T00:00:00Z" })?.includes("estimate"), true);
+});
+
+Deno.test("postcode and suburb searches reach Google without requiring a local member", () => {
+  const postcode = placesRequest(validateArea({ lat: -36.85, lng: 174.76, query: " 5014 " }));
+  equal(postcode.method, "searchText");
+  equal(postcode.body.textQuery, "barbers and hairdressers in 5014, New Zealand");
+  equal(postcode.body.regionCode, "NZ");
+  equal(placesRequest(validateArea({ lat: -41.28, lng: 174.77, query: "Lower Hutt" })).method, "searchText");
+});
+Deno.test("nearby search uses the supplied GPS center and hair business types", () => {
+  const nearby = placesRequest({ lat: -41.28, lng: 174.77, query: "" });
+  equal(nearby.method, "searchNearby");
+  equal(nearby.body.locationRestriction?.circle.center, { latitude: -41.28, longitude: 174.77 });
+  equal(nearby.body.includedTypes, ["barber_shop", "hair_salon"]);
 });

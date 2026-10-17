@@ -8,10 +8,12 @@ typedef Json = Map<String, dynamic>;
 /// Transport boundary: widgets can be exercised without live accounts or API keys.
 abstract class Backend {
   String? get userId;
+  String? get suggestedName => null;
   Stream<void> get authChanges;
   Future<dynamic> rpc(String name, [Json params = const {}]);
   Future<List<Json>> rows(String table, {Json filters = const {}, String? order, int limit = 100});
   Future<void> save(String table, Json values);
+  Future<void> initializeProfile(String user, String displayName);
   Future<void> remove(String table, Json filters);
   Future<Json> invoke(String name, Json data);
   Future<void> signInWithGoogle();
@@ -36,6 +38,17 @@ class SupabaseBackend extends Backend {
   @override
   String? get userId => client.auth.currentUser?.id;
   @override
+  String? get suggestedName {
+    final metadata = client.auth.currentUser?.userMetadata;
+    for (final field in ['full_name', 'name']) {
+      final value = metadata?[field];
+      if (value is String && value.trim().isNotEmpty) {
+        return String.fromCharCodes(value.trim().runes.take(80));
+      }
+    }
+    return null;
+  }
+  @override
   Stream<void> get authChanges => client.auth.onAuthStateChange.map((_) {});
   @override
   Future<dynamic> rpc(String name, [Json params = const {}]) => client.rpc(name, params: params);
@@ -48,6 +61,13 @@ class SupabaseBackend extends Backend {
   }
   @override
   Future<void> save(String table, Json values) async { await client.from(table).upsert(values); }
+  @override
+  Future<void> initializeProfile(String user, String displayName) async {
+    if (userId != user) return;
+    // A simultaneous profile save wins. Never reset names or consent preferences.
+    await client.from('profiles').upsert({'id': user, 'display_name': displayName}, onConflict: 'id', ignoreDuplicates: true);
+    await client.from('profiles').update({'display_name': displayName}).eq('id', user).eq('display_name', '');
+  }
   @override
   Future<void> remove(String table, Json filters) async {
     var query = client.from(table).delete();

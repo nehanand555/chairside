@@ -26,6 +26,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   String? error, warning;
   bool loading = true, onlyFavorites = false;
   int request = 0;
+  bool textSearch = false;
   bool get mapAvailable =>
       widget.mapsEnabled &&
       (!kIsWeb ||
@@ -44,18 +45,23 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     super.dispose();
   }
 
-  Future<void> load({bool text = false}) async {
+  Future<void> load({bool? text}) async {
+    if (text != null) textSearch = text;
+    final query = textSearch ? search.text : '';
     final id = ++request;
     setState(() {
       loading = true;
       error = null;
+      warning = null;
+      businesses = [];
+      places = [];
     });
     try {
       final data = await widget.store.backend!.invoke('discover', {
         'lat': center.latitude,
         'lng': center.longitude,
-        'query': text ? search.text : '',
-        'include_public': mapAvailable
+        'query': query,
+        'include_public': true
       });
       if (!mounted || request != id) return;
       final c = data['center'] as Map;
@@ -96,7 +102,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         throw Exception(
             'Chairside currently serves New Zealand. Search for a New Zealand suburb.');
       center = LatLng(position.latitude, position.longitude);
-      await load();
+      search.clear();
+      await load(text: false);
     });
   }
 
@@ -120,7 +127,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     controller: search,
                     onSubmitted: (_) => load(text: true),
                     decoration: const InputDecoration(
-                        hintText: 'Search suburb or town',
+                        hintText: 'Search suburb, town or postcode',
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder()))),
             FilledButton(
@@ -192,7 +199,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-                onPressed: loading ? null : () => load(),
+                onPressed: loading ? null : () => load(text: false),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Search this map area'))),
       if (!mapAvailable)
@@ -202,6 +209,35 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(warning!, style: const TextStyle(fontSize: 12))),
+      const SizedBox(height: 16),
+      if (!onlyFavorites && places.isNotEmpty) ...[
+        const SizedBox(height: 18),
+        Text('Nearby barbers and salons',
+            style: Theme.of(context).textTheme.titleLarge),
+        const Text(
+            'Google Maps listings. Booking through Chairside is not available.'),
+        const SizedBox(height: 12),
+        ...places.map((p) => Panel(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(p['name'] as String,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(p['address'] as String),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                      onPressed: () => showPublicListing(context, s, p),
+                      child: const Text('View public listing'))
+                ]))),
+        const GoogleAttribution(),
+        for (final p in places)
+          for (final a in (p['attributions'] as List? ?? []))
+            if ((a['provider'] ?? '').toString().isNotEmpty)
+              TextButton(
+                  onPressed: () => openLink(a['providerUri'] as String),
+                  child: Text(a['provider'] as String))
+      ],
       const SizedBox(height: 16),
       Text('Book with Chairside',
           style: Theme.of(context)
@@ -227,35 +263,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               s.run(() => s.favorite(b['id'] as String));
             }
           })),
-      if (!onlyFavorites && places.isNotEmpty) ...[
-        const SizedBox(height: 18),
-        Text('More places nearby',
-            style: Theme.of(context).textTheme.titleLarge),
-        const Text(
-            'Google Maps listings. Booking through Chairside is not available.'),
-        const SizedBox(height: 12),
-        ...places.map((p) => Panel(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Text(p['name'] as String,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text(p['address'] as String),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                      onPressed: () => showPublicListing(context, s, p),
-                      child: const Text('View public listing'))
-                ]))),
-        const Text('Google Maps',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        for (final p in places)
-          for (final a in (p['attributions'] as List? ?? []))
-            if ((a['provider'] ?? '').toString().isNotEmpty)
-              TextButton(
-                  onPressed: () => openLink(a['providerUri'] as String),
-                  child: Text(a['provider'] as String))
-      ],
       const SizedBox(height: 24),
       const Text(
           'Run a shop or home studio? Join from the Business tab — you don’t need to be on Google Maps.'),
@@ -340,5 +347,20 @@ Future<void> showPublicListing(
               const SizedBox(height: 12),
               const Text(
                   'Own this business? In the Business tab, include this Google Place ID when applying. Ownership is reviewed before booking is enabled.'),
-              SelectableText(place['place_id'] as String)
+              SelectableText(place['place_id'] as String),
+              const GoogleAttribution(),
+              for (final a in (place['attributions'] as List? ?? []))
+                if ((a['provider'] ?? '').toString().isNotEmpty)
+                  TextButton(onPressed: () => openLink(a['providerUri'] as String), child: Text(a['provider'] as String)),
             ])));
+
+/// Compact source attribution for Google result cards and listing sheets.
+class GoogleAttribution extends StatelessWidget {
+  const GoogleAttribution({super.key});
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
+    child: Text('Google Maps', maxLines: 1,
+      style: TextStyle(fontFamily: 'Roboto', fontSize: 14, fontStyle: FontStyle.normal, fontWeight: FontWeight.w400, letterSpacing: 0, color: Color(0xff5e5e5e))),
+  );
+}

@@ -28,6 +28,11 @@ class AppStore extends ChangeNotifier {
   String? _lastUser;
   bool get configured => backend != null;
   bool get signedIn => backend?.userId != null;
+  String get displayName {
+    if (!signedIn) return '';
+    final saved = (profile['display_name'] as String? ?? '').trim();
+    return saved.isNotEmpty ? saved : backend?.suggestedName ?? '';
+  }
   bool get unlocked => account['aal2'] == true;
   bool get isAdmin => account['is_admin'] == true;
   String? get businessId => account['business_id'] as String?;
@@ -76,15 +81,22 @@ class AppStore extends ChangeNotifier {
       return;
     }
     try {
+      final user = backend!.userId!;
+      final suggestedName = backend!.suggestedName;
       final context = await backend!.rpc('account_context') as Map;
-      final profiles =
-          await backend!.rows('profiles', filters: {'id': backend!.userId});
+      var profiles = await backend!.rows('profiles', filters: {'id': user});
+      if (_disposed || revision != _revision || backend!.userId != user) return;
+      if ((profiles.isEmpty || (profiles.first['display_name'] as String? ?? '').isEmpty) && suggestedName != null && suggestedName.isNotEmpty) {
+        await backend!.initializeProfile(user, suggestedName);
+        profiles = await backend!.rows('profiles', filters: {'id': user});
+      }
       final saved = await backend!
-          .rows('favorites', filters: {'customer_id': backend!.userId});
-      if (_disposed || revision != _revision) return;
+          .rows('favorites', filters: {'customer_id': user});
+      if (_disposed || revision != _revision || backend!.userId != user) return;
       account = Json.from(context);
       profile = profiles.isEmpty ? {} : profiles.first;
       favorites = saved.map((r) => r['business_id'] as String).toList();
+      changed();
       backend!.watchVisits(() {
         unawaited(refreshVisits());
       });
