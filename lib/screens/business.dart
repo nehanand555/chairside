@@ -14,11 +14,37 @@ class BusinessScreen extends StatelessWidget {
   const BusinessScreen({super.key, required this.store});
   final AppStore store;
   @override
-  Widget build(BuildContext context) => OperatorGate(
+  Widget build(BuildContext context) {
+    if (!store.signedIn) {
+      return OperatorGate(store: store, child: const SizedBox.shrink());
+    }
+    if (store.businessId == null) {
+      return BusinessApplication(store: store);
+    }
+    if (store.account['business_status'] != 'approved') {
+      final status = store.account['business_status'] as String? ?? 'pending';
+      final note = (store.account['business_review_note'] as String? ?? '').trim();
+      return PageBody(width: 700, children: [
+        PageHeading(
+          status == 'pending' ? 'Application under review' : 'Business application: $status',
+          'Your business will appear as a verified SpicySelf listing only after approval.',
+        ),
+        Notice(status == 'pending'
+            ? 'Your application has been submitted. Our team will review your registration and contact details.'
+            : 'Your business is not currently approved. Contact SpicySelf support if you need a review.'),
+        if (note.isNotEmpty) Panel(child: Text('Review note: $note')),
+        OutlinedButton.icon(
+          onPressed: store.busy ? null : () => store.run(store.refreshAccount),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Check application status'),
+        ),
+      ]);
+    }
+    return OperatorGate(
       store: store,
-      child: store.businessId == null
-          ? BusinessApplication(store: store)
-          : BusinessDashboard(store: store, id: store.businessId!));
+      child: BusinessDashboard(store: store, id: store.businessId!),
+    );
+  }
 }
 
 class BusinessApplication extends StatefulWidget {
@@ -31,6 +57,10 @@ class BusinessApplication extends StatefulWidget {
 class _BusinessApplicationState extends State<BusinessApplication> {
   final form = GlobalKey<FormState>();
   final name = TextEditingController(),
+      registrationNumber = TextEditingController(),
+      contactName = TextEditingController(),
+      contactEmail = TextEditingController(),
+      contactPhone = TextEditingController(),
       description = TextEditingController(),
       address = TextEditingController(),
       suburb = TextEditingController(),
@@ -42,7 +72,7 @@ class _BusinessApplicationState extends State<BusinessApplication> {
   LatLng pin = const LatLng(-36.8485, 174.7633);
   @override
   void dispose() {
-    for (final c in [name, description, address, suburb, placeId, lat, lng]) {
+    for (final c in [name, registrationNumber, contactName, contactEmail, contactPhone, description, address, suburb, placeId, lat, lng]) {
       c.dispose();
     }
     super.dispose();
@@ -68,7 +98,15 @@ class _BusinessApplicationState extends State<BusinessApplication> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                FormFieldBox(name, 'Business name'),
+                FormFieldBox(name, 'Registered business / trading name'),
+                FormFieldBox(registrationNumber, 'NZBN or business registration number'),
+                FormFieldBox(contactName, 'Contact person full name'),
+                FormFieldBox(contactEmail, 'Business contact email',
+                    keyboard: TextInputType.emailAddress),
+                FormFieldBox(contactPhone, 'Business contact phone',
+                    keyboard: TextInputType.phone),
+                const Text('Your registration number and contact details are used for verification and are not shown on your public listing.'),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                     initialValue: kind,
                     decoration: const InputDecoration(
@@ -157,16 +195,26 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                         'Publish my business name, services, photos and public map location after approval.')),
                 const SizedBox(height: 12),
                 const Text(
-                    'An admin will review the business and any Google listing claim. Add services and opening hours after applying. Home studios offer appointments only. Applying here does not register your business with Google.'),
+                    'Our team reviews your registration and ownership details before your business becomes a verified listing. After approval you can set up services, opening hours and bookings. Applying does not register your business with Google.'),
                 const SizedBox(height: 16),
-                ActionButton(s, 'Apply to join Chairside', () async {
+                ActionButton(s, 'Submit business application', () async {
                   if (!form.currentState!.validate()) return;
                   if (!consent || !declaration)
                     throw Exception(
                         'Please confirm business authority and publication consent');
-                  await s.backend!.rpc('apply_business', {
+                  if (contactEmail.text.trim().isEmpty ||
+                      !contactEmail.text.contains('@') ||
+                      contactPhone.text.trim().length < 7 ||
+                      registrationNumber.text.trim().length < 2) {
+                    throw Exception('Enter valid registration and contact details.');
+                  }
+                  final applicationId = await s.backend!.rpc('apply_business', {
                     'p_data': {
                       'name': name.text.trim(),
+                      'registration_number': registrationNumber.text.trim(),
+                      'contact_name': contactName.text.trim(),
+                      'contact_email': contactEmail.text.trim(),
+                      'contact_phone': contactPhone.text.trim(),
                       'description': description.text.trim(),
                       'kind': kind,
                       'address': address.text.trim(),
@@ -179,6 +227,15 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                     }
                   });
                   await s.refreshAccount();
+                  // Email is a best-effort notification; the application is
+                  // already stored for review even if email delivery fails.
+                  try {
+                    await s.backend!.invoke('business-application-notify', {
+                      'business_id': applicationId
+                    });
+                  } catch (_) {
+                    // The admin review queue remains the source of truth.
+                  }
                 }, icon: Icons.storefront_outlined),
               ]))),
     ]);
