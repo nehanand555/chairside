@@ -354,7 +354,7 @@ void main() {
       await tester.pumpWidget(
           SpicySelfApp(key: ValueKey(size), store: store, mapsEnabled: false));
       await tester.pumpAndSettle();
-      expect(find.text('Find your next chair.'), findsOneWidget);
+      expect(find.text('Find your next look.'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       store.dispose();
