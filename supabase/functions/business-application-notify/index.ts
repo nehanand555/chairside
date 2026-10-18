@@ -1,4 +1,4 @@
-import { authenticated, body, endpoint, env, HttpError, rpc, uuid } from "../_shared/http.ts";
+import { authenticated, body, endpoint, HttpError, rpc, uuid } from "../_shared/http.ts";
 
 // Optional email delivery: set RESEND_API_KEY, RESEND_FROM_EMAIL and
 // APPLICATION_REVIEW_EMAIL in Supabase Edge Function secrets.
@@ -40,6 +40,7 @@ Deno.serve(endpoint(async (req) => {
     }),
   });
   if (!response.ok) throw new HttpError(503,
-    "Application saved, but review email could not be sent. It is available in the admin queue.");
+    "Application saved, but Resend rejected the email. Check your verified sender and allowed recipient in Resend.");
+  await rpc(client, "complete_business_application_notification", { p_business: businessId });
   return { queued_for_admin: true, email_sent: true };
 }));
