@@ -33,7 +33,7 @@ def configure(platform="web"):
         if not any(p.get(f"{{{ns}}}name") == value for p in root.findall("uses-permission")):
             ET.SubElement(root, "uses-permission", {f"{{{ns}}}name": value})
     application = root.find("application")
-    application.set(f"{{{ns}}}label", "Chairside")
+    application.set(f"{{{ns}}}label", "SpicySelf")
     for meta in list(application.findall("meta-data")):
         if meta.get(f"{{{ns}}}name") == "com.google.android.geo.API_KEY":
             application.remove(meta)
@@ -58,7 +58,7 @@ def configure(platform="web"):
     info.update(CFBundleDisplayName="Chairside", NSLocationWhenInUseUsageDescription="Find hair professionals near you, only when you choose Near me.", NSPhotoLibraryUsageDescription="Choose photos to publish on your business portfolio.", GMapsKey=os.getenv("GOOGLE_MAPS_IOS_KEY", ""))
     url_types = info.setdefault("CFBundleURLTypes", [])
     if not any("nz.chairside.chairside" in entry.get("CFBundleURLSchemes", []) for entry in url_types):
-        url_types.append({"CFBundleTypeRole": "Editor", "CFBundleURLName": "Chairside sign-in", "CFBundleURLSchemes": ["nz.chairside.chairside"]})
+        url_types.append({"CFBundleTypeRole": "Editor", "CFBundleURLName": "SpicySelf sign-in", "CFBundleURLSchemes": ["nz.chairside.chairside"]})
     info["FlutterDeepLinkingEnabled"] = False
     with plist.open("wb") as f:
         plistlib.dump(info, f)
@@ -84,7 +84,7 @@ def configure(platform="web"):
     if key:
         from urllib.parse import quote
         html = html.replace("</head>", f'<script data-chairside-maps src="https://maps.googleapis.com/maps/api/js?key={quote(key, safe="")}&v=quarterly"></script>\n</head>')
-    html = html.replace("<title>chairside</title>", "<title>Chairside — find your next chair</title>")
+    html = html.replace("<title>spicyself</title>", "<title>SpicySelf — find your next look</title>")
     web.write_text(html)
     (ROOT / "web/_headers").write_text("/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: geolocation=(self), camera=(), microphone=()\n  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'\n/index.html\n  Cache-Control: no-cache\n")
     defines = {key: os.getenv(key, "") for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_WEB_KEY", "SUPPORT_EMAIL")}
