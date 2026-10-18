@@ -8,8 +8,8 @@ import 'common.dart';
 import 'discover.dart';
 import 'visits.dart';
 
-class ChairsideApp extends StatefulWidget {
-  const ChairsideApp(
+class SpicySelfApp extends StatefulWidget {
+  const SpicySelfApp(
       {super.key,
       required this.store,
       this.startupError,
@@ -18,10 +18,10 @@ class ChairsideApp extends StatefulWidget {
   final String? startupError;
   final bool mapsEnabled;
   @override
-  State<ChairsideApp> createState() => _ChairsideAppState();
+  State<SpicySelfApp> createState() => _SpicySelfAppState();
 }
 
-class _ChairsideAppState extends State<ChairsideApp>
+class _SpicySelfAppState extends State<SpicySelfApp>
     with WidgetsBindingObserver {
   int index = 0;
   Timer? _poll;
@@ -51,7 +51,7 @@ class _ChairsideAppState extends State<ChairsideApp>
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'Chairside',
+        title: 'SpicySelf',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
             useMaterial3: true,
@@ -75,12 +75,12 @@ class _ChairsideAppState extends State<ChairsideApp>
               final s = widget.store;
               if (!s.configured)
                 return Scaffold(
-                    appBar: AppBar(title: const Text('Chairside')),
+                    appBar: AppBar(title: const Text('SpicySelf')),
                     body: PageBody(children: [
-                      const PageHeading('Your next great haircut.',
-                          'Nearby professionals. A time that works for you.'),
+                      const PageHeading('Find your next look.',
+                          'Discover local hair, nails, tattoos and beauty professionals.'),
                       Notice(widget.startupError ??
-                          'Chairside is being connected to its live services. Please check back soon.'),
+                          'SpicySelf is being connected to its live services. Please check back soon.'),
                       const Text(
                           'No personal information is collected on this screen.')
                     ]));
@@ -109,7 +109,7 @@ class _ChairsideAppState extends State<ChairsideApp>
                         Icon(Icons.content_cut, size: 24),
                         SizedBox(width: 10),
                         Flexible(
-                            child: Text('chairside',
+                            child: Text('spicyself',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -229,15 +229,15 @@ Future<void> showLegal(BuildContext context) => showModalBottomSheet<void>(
     builder: (context) => SizedBox(
         height: MediaQuery.sizeOf(context).height * .8,
         child: PageBody(children: [
-          const PageHeading('About Chairside',
+          const PageHeading('About SpicySelf',
               'Hair professionals across Aotearoa New Zealand.'),
           const Text(
-              'Chairside connects customers with independent businesses. Public Google listings are directory results; those businesses have not necessarily joined Chairside. Booking and live queues are available only for approved Chairside members. Approval is a platform review and does not replace any required council permissions.'),
+              'SpicySelf connects customers with independent businesses. Public Google listings are directory results; those businesses have not necessarily joined SpicySelf. Booking and live queues are available only for approved SpicySelf members. Approval is a platform review and does not replace any required council permissions.'),
           const SizedBox(height: 20),
           const Text('Bookings & payments',
               style: TextStyle(fontWeight: FontWeight.bold)),
           const Text(
-              'Prices are in NZD and shown before confirmation. Queue times are estimates and can change. You can cancel an upcoming visit in My visits. This release requests a full refund for prepaid visits cancelled before service or marked absent. Refund processing takes additional time. Businesses can also issue a full refund through Chairside. Your statutory rights continue to apply.'),
+              'Prices are in NZD and shown before confirmation. Queue times are estimates and can change. You can cancel an upcoming visit in My visits. This release requests a full refund for prepaid visits cancelled before service or marked absent. Refund processing takes additional time. Businesses can also issue a full refund through SpicySelf. Your statutory rights continue to apply.'),
           const SizedBox(height: 20),
           const Text('Privacy', style: TextStyle(fontWeight: FontWeight.bold)),
           const Text(
@@ -256,6 +256,6 @@ Future<void> showLegal(BuildContext context) => showModalBottomSheet<void>(
             TextButton(
                 onPressed: () => openLink(
                     'mailto:${const String.fromEnvironment('SUPPORT_EMAIL')}'),
-                child: const Text('Contact Chairside support')),
+                child: const Text('Contact SpicySelf support')),
           const SizedBox(height: 20),
         ])));
