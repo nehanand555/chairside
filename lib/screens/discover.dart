@@ -228,11 +228,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   const SizedBox(height: 8),
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     if ((p['website_url'] as String? ?? '').startsWith('https://') ||
-                        (p['website_url'] as String? ?? '').startsWith('http://'))
+                        false)
                       FilledButton.icon(
                           onPressed: () => openLink(p['website_url'] as String),
                           icon: const Icon(Icons.open_in_new),
-                          label: const Text('Website / book')),
+                          label: const Text('Visit website / book')),
                     OutlinedButton(
                         onPressed: () => showPublicListing(context, s, p),
                         child: const Text('View details'))
@@ -349,11 +349,11 @@ Future<void> showPublicListing(
                   'This business has not joined SpicySelf. We do not have verified booking availability, prices or queue times.'),
               const SizedBox(height: 16),
               if ((place['website_url'] as String? ?? '').startsWith('https://') ||
-                  (place['website_url'] as String? ?? '').startsWith('http://')) ...[
+                  false) ...[
                 FilledButton.icon(
                     onPressed: () => openLink(place['website_url'] as String),
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('Website / book externally')),
+                    label: const Text('Visit website / book')),
                 const SizedBox(height: 8),
                 const Text('You will leave SpicySelf. Check the business website for its own booking system.'),
                 const SizedBox(height: 12),
