@@ -9,6 +9,45 @@ import 'app.dart';
 import 'booking.dart';
 import 'common.dart';
 
+
+/// Only expose external HTTPS URLs. A homepage alone is not a booking link.
+String? publicWebsiteUrl(Json place) {
+  final value = place['website_url'];
+  if (value is! String) return null;
+  final uri = Uri.tryParse(value);
+  return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty
+      ? value
+      : null;
+}
+
+/// Booking links are explicit URLs or clearly booking-specific website URLs.
+/// This does not imply that a time slot is available.
+String? publicBookingUrl(Json place) {
+  final explicit = place['booking_url'];
+  if (explicit is String) {
+    final uri = Uri.tryParse(explicit);
+    if (uri != null && uri.scheme == 'https' && uri.host.isNotEmpty) {
+      return explicit;
+    }
+  }
+  final website = publicWebsiteUrl(place);
+  if (website == null) return null;
+  final uri = Uri.parse(website);
+  final path = uri.path.toLowerCase();
+  final host = uri.host.toLowerCase();
+  final isBookingPath = RegExp(
+    r'(^|/)(book|booking|book-now|book-online|appointments|appointment|schedule|reserve|reservations)(/|$|-)',
+  ).hasMatch(path);
+  const bookingHosts = {
+    'booksy.com', 'fresha.com', 'timely.com', 'setmore.com',
+    'square.site', 'squareup.com', 'calendly.com',
+  };
+  final isBookingHost = bookingHosts.any(
+    (domain) => host == domain || host.endsWith('.$domain'),
+  ) && path.length > 1;
+  return isBookingPath || isBookingHost ? website : null;
+}
+
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen(
       {super.key, required this.store, this.mapsEnabled = true});
@@ -215,7 +254,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Text('Nearby barbers and salons',
             style: Theme.of(context).textTheme.titleLarge),
         const Text(
-            'Discover local businesses and visit their websites to book directly. External bookings are managed by the business.'),
+            'Explore local businesses. Book Now appears when a direct booking link is identified; other sites can be opened with Website. External bookings are managed by the business.'),
         const SizedBox(height: 12),
         ...places.map((p) => Panel(
                 child: Column(
@@ -227,12 +266,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   Text(p['address'] as String),
                   const SizedBox(height: 8),
                   Wrap(spacing: 8, runSpacing: 8, children: [
-                    if ((p['website_url'] as String? ?? '').startsWith('https://') ||
-                        false)
+                    if (publicBookingUrl(p) != null)
                       FilledButton.icon(
-                          onPressed: () => openLink(p['website_url'] as String),
+                          onPressed: () => openLink(publicBookingUrl(p)!),
+                          icon: const Icon(Icons.event_available),
+                          label: const Text('Book Now')),
+                    if (publicWebsiteUrl(p) != null)
+                      OutlinedButton.icon(
+                          onPressed: () => openLink(publicWebsiteUrl(p)!),
                           icon: const Icon(Icons.open_in_new),
-                          label: const Text('Visit website / book')),
+                          label: const Text('Website')),
                     OutlinedButton(
                         onPressed: () => showPublicListing(context, s, p),
                         child: const Text('View details'))
@@ -348,14 +391,20 @@ Future<void> showPublicListing(
               const Text(
                   'This business has not joined SpicySelf. We do not have verified booking availability, prices or queue times.'),
               const SizedBox(height: 16),
-              if ((place['website_url'] as String? ?? '').startsWith('https://') ||
-                  false) ...[
+              if (publicBookingUrl(place) != null) ...[
                 FilledButton.icon(
-                    onPressed: () => openLink(place['website_url'] as String),
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Visit website / book')),
+                    onPressed: () => openLink(publicBookingUrl(place)!),
+                    icon: const Icon(Icons.event_available),
+                    label: const Text('Book Now')),
                 const SizedBox(height: 8),
-                const Text('You will leave SpicySelf. Check the business website for its own booking system.'),
+              ],
+              if (publicWebsiteUrl(place) != null) ...[
+                OutlinedButton.icon(
+                    onPressed: () => openLink(publicWebsiteUrl(place)!),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Website')),
+                const SizedBox(height: 8),
+                const Text('External links open the business website or booking provider. Bookings are handled outside SpicySelf; availability is not verified.'),
                 const SizedBox(height: 12),
               ],
               OutlinedButton(
