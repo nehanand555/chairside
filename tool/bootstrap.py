@@ -76,7 +76,7 @@ def configure(platform="web"):
     if podfile.exists():
         podfile.write_text(re.sub(r"#?\s*platform :ios, '[0-9.]+'", "platform :ios, '15.0'", podfile.read_text()))
     project = ROOT / "ios/Runner.xcodeproj/project.pbxproj"
-    project.write_text(re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;", "IPHONEOS_DEPLOYMENT_TARGET = 15.0;", project.read_text()))
+    project.write_text(re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [^;]+;", "IPHONEOS_DEPLOYMENT_TARGET = 15.0;", project.read_text()))
     web = ROOT / "web/index.html"
     html = web.read_text()
     html = re.sub(r'\s*<script[^>]*data-chairside-maps[^>]*></script>', '', html)
