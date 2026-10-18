@@ -3,7 +3,9 @@ import { messageFor } from "./messages.ts";
 function equal(actual: unknown, expected: unknown) { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`); }
 Deno.test("public map results have no invented booking fields", () => {
   const place = normalizePlace({ id: "place", displayName: { text: "A barber" }, location: { latitude: -36.8, longitude: 174.7 } });
-  equal(place?.name, "A barber"); equal("queue_open" in place!, false); equal("price" in place!, false);
+  equal(place?.name, "A barber"); equal("queue_open" in place!, false); equal(place?.website_url, ""); equal("price" in place!, false);
+  const linked = normalizePlace({ id: "linked", location: { latitude: -41.3, longitude: 174.8 }, websiteUri: "https://barber.example/book" });
+  equal(linked?.website_url, "https://barber.example/book");
   equal(normalizePlace({ id: "closed", businessStatus: "CLOSED_PERMANENTLY", location: {} }), null);
 });
 Deno.test("discovery refuses coordinates outside New Zealand", () => {
