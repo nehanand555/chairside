@@ -116,3 +116,32 @@ begin
   ) then raise exception 'Your business must be approved before accessing business features'; end if;
 end $$;
 revoke execute on function private.require_operator(uuid) from public,anon,authenticated;
+
+-- Claim one notification per application using the applicant's authenticated session.
+-- Application contact details are never returned by public discovery RPCs.
+create function public.claim_business_application_notification(p_business uuid) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare
+  result jsonb;
+begin
+  perform private.require_user();
+  update private.business_applications a
+     set notification_sent_at = now()
+    from public.businesses b
+   where a.business_id=p_business and b.id=a.business_id
+     and b.owner_id=auth.uid() and b.status='pending'
+     and a.notification_sent_at is null
+  returning jsonb_build_object(
+    'business_id',a.business_id,
+    'registration_number',a.registration_number,
+    'contact_name',a.contact_name,
+    'contact_email',a.contact_email,
+    'contact_phone',a.contact_phone,
+    'business_name',b.name,
+    'business_kind',b.kind,
+    'suburb',b.suburb
+  ) into result;
+  return result;
+end $$;
+revoke execute on function public.claim_business_application_notification(uuid) from public,anon;
+grant execute on function public.claim_business_application_notification(uuid) to authenticated;
