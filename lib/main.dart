@@ -23,10 +23,10 @@ Future<void> main() async {
       backend = SupabaseBackend(Supabase.instance.client);
     } catch (_) {
       startupError =
-          'Chairside could not connect. Check your connection and reopen the app.';
+          'SpicySelf could not connect. Check your connection and reopen the app.';
     }
   }
-  runApp(ChairsideApp(
+  runApp(SpicySelfApp(
       store: AppStore(backend),
       startupError: startupError,
       mapsEnabled: const bool.fromEnvironment('MAPS_ENABLED')));
