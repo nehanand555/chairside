@@ -100,7 +100,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           position.longitude < 165 ||
           position.longitude > 180)
         throw Exception(
-            'Chairside currently serves New Zealand. Search for a New Zealand suburb.');
+            'SpicySelf currently serves New Zealand. Search for a New Zealand suburb.');
       center = LatLng(position.latitude, position.longitude);
       search.clear();
       await load(text: false);
@@ -114,8 +114,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         ? businesses.where((b) => s.favorites.contains(b['id'])).toList()
         : businesses;
     return PageBody(children: [
-      const PageHeading('Find your next chair.',
-          'Great hair, on your terms. Explore nearby barbers, salons and home studios.'),
+      const PageHeading('Find your next look.',
+          'Find barbers and salons near you. More services coming soon.'),
       Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -178,8 +178,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           infoWindow: InfoWindow(
                               title: b['name'] as String,
                               snippet: b['kind'] == 'home'
-                                  ? 'Chairside • Approximate location'
-                                  : 'Chairside member',
+                                  ? 'SpicySelf • Approximate location'
+                                  : 'SpicySelf member',
                               onTap: () =>
                                   openBusiness(context, s, b['id'] as String))),
                     if (!onlyFavorites)
@@ -215,7 +215,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Text('Nearby barbers and salons',
             style: Theme.of(context).textTheme.titleLarge),
         const Text(
-            'Google Maps listings. Booking through Chairside is not available.'),
+            'Discover local businesses and visit their websites to book directly. External bookings are managed by the business.'),
         const SizedBox(height: 12),
         ...places.map((p) => Panel(
                 child: Column(
@@ -228,7 +228,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   const SizedBox(height: 8),
                   OutlinedButton(
                       onPressed: () => showPublicListing(context, s, p),
-                      child: const Text('View public listing'))
+                      child: const Text('View details & links'))
                 ]))),
         const GoogleAttribution(),
         for (final p in places)
@@ -239,7 +239,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   child: Text(a['provider'] as String))
       ],
       const SizedBox(height: 16),
-      Text('Book with Chairside',
+      Text('Book with SpicySelf',
           style: Theme.of(context)
               .textTheme
               .titleLarge
@@ -251,7 +251,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       if (members.isEmpty && !loading)
         Notice(onlyFavorites
             ? 'No saved businesses in this area. Try another area or turn off Favourites.'
-            : 'No Chairside members in this area yet. Your local hair professional can register from the Business tab.'),
+            : 'No SpicySelf members in this area yet. Your local hair professional can register from the Business tab.'),
       ...members.map((b) => BusinessCard(
           business: b,
           favorite: s.favorites.contains(b['id']),
@@ -338,12 +338,21 @@ Future<void> showPublicListing(
               Text(place['address'] as String),
               const SizedBox(height: 16),
               const Text(
-                  'This business has not joined Chairside. We do not have verified booking availability, prices or queue times.'),
+                  'This business has not joined SpicySelf. We do not have verified booking availability, prices or queue times.'),
               const SizedBox(height: 16),
-              FilledButton(
-                  onPressed: () =>
-                      store.run(() => openLink(place['maps_url'] as String)),
-                  child: const Text('Open in Google Maps')),
+              if ((place['website_url'] as String? ?? '').startsWith('https://') ||
+                  (place['website_url'] as String? ?? '').startsWith('http://')) ...[
+                FilledButton.icon(
+                    onPressed: () => openLink(place['website_url'] as String),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Website / book externally')),
+                const SizedBox(height: 8),
+                const Text('You will leave SpicySelf. Check the business website for its own booking system.'),
+                const SizedBox(height: 12),
+              ],
+              OutlinedButton(
+                  onPressed: () => openLink(place['maps_url'] as String),
+                  child: const Text('View on Google Maps')),
               const SizedBox(height: 12),
               const Text(
                   'Own this business? In the Business tab, include this Google Place ID when applying. Ownership is reviewed before booking is enabled.'),
