@@ -26,9 +26,9 @@ insert into public.profiles(id,display_name,sms_updates) values
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
 select pg_temp.check_true((public.account_context()->>'is_admin')::boolean=false,'Google identity never grants an admin role');
-select pg_temp.must_fail($q$select public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true,"registration_number":"9429041234567","contact_name":"Test Owner","contact_email":"owner@example.test","contact_phone":"+64211234567"})$q$,'business registration number');
+select pg_temp.must_fail($q$select public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true}')$q$,'business registration number');
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal2"}',true);
-select set_config('google.shop',public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true,"registration_number":"9429041234567","contact_name":"Test Owner","contact_email":"owner@example.test","contact_phone":"+64211234567"})::text,true);
+select set_config('google.shop',public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true,"registration_number":"9429041234567","contact_name":"Test Owner","contact_email":"owner@example.test","contact_phone":"+64211234567"}')::text,true);
 select pg_temp.must_fail($q$select public.configure_business(current_setting('google.shop')::uuid,'service','{"name":"Haircut","minutes":30,"price_cents":3500}')$q$,'approved');
 reset role;
 -- Existing private membership + aal2 is still the only way to administer listings.
