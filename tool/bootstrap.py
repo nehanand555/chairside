@@ -55,7 +55,7 @@ def configure(platform="web"):
     plist = ROOT / "ios/Runner/Info.plist"
     with plist.open("rb") as f:
         info = plistlib.load(f)
-    info.update(CFBundleDisplayName="Chairside", NSLocationWhenInUseUsageDescription="Find hair professionals near you, only when you choose Near me.", NSPhotoLibraryUsageDescription="Choose photos to publish on your business portfolio.", GMapsKey=os.getenv("GOOGLE_MAPS_IOS_KEY", ""))
+    info.update(CFBundleDisplayName="SpicySelf", NSLocationWhenInUseUsageDescription="Find hair professionals near you, only when you choose Near me.", NSPhotoLibraryUsageDescription="Choose photos to publish on your business portfolio.", GMapsKey=os.getenv("GOOGLE_MAPS_IOS_KEY", ""))
     url_types = info.setdefault("CFBundleURLTypes", [])
     if not any("nz.chairside.chairside" in entry.get("CFBundleURLSchemes", []) for entry in url_types):
         url_types.append({"CFBundleTypeRole": "Editor", "CFBundleURLName": "SpicySelf sign-in", "CFBundleURLSchemes": ["nz.chairside.chairside"]})
