@@ -64,7 +64,8 @@ class TestBackend extends Backend {
         return {
           'is_admin': false,
           'aal2': userId == 'owner',
-          'business_id': userId == 'owner' ? 'p1' : null
+          'business_id': userId == 'owner' ? 'p1' : null,
+          'business_status': userId == 'owner' ? 'approved' : null
         };
       case 'business_detail':
       case 'operator_business':
