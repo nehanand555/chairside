@@ -1,4 +1,4 @@
-# Chairside
+# SpicySelf
 
 A connected Flutter application for Android, iOS and web, with Supabase as the shared backend. Customers discover New Zealand hair professionals, book appointments or join a live queue. Business owners manage chairs, services, hours, breaks, walk-ins and visits. Admins review applications and handle reports/refunds.
 
@@ -28,7 +28,7 @@ GitHub Actions → **Product checks** runs analysis, UI tests, PostgreSQL permis
 
 PostgreSQL is authoritative: transaction locks, interval constraints, RLS and protected RPCs enforce booking and ownership rules. The UI never assigns an admin role or marks a payment paid. Google sign-in is used for customer accounts without SMS charges; authenticator MFA is required for business/admin operations. Verified legacy phone accounts remain supported in the database. Configure the Google provider using [Google sign-in setup](docs/google-sign-in.md). Home addresses are private; public searches use approximate home coordinates only. Photos are deliberately public.
 
-Google Places directory results are fetched live, kept separate from Chairside member listings, and are not persisted. A Google listing alone never enables booking. Payments use Stripe-hosted Connect/Checkout and signed webhooks; no card details are stored. Optional SMS uses a durable outbox and a scheduled worker; it is not needed for Google sign-in or bookings. See [operations](docs/operations.md) for backups, monitoring and release checks.
+Google Places directory results are fetched live, kept separate from SpicySelf member listings, and are not persisted. Public listings with a website show an outbound Website / book externally link. This is not an in-app booking and availability is not verified; Google listings alone never enable in-app booking. Payments use Stripe-hosted Connect/Checkout and signed webhooks; no card details are stored. Optional SMS uses a durable outbox and a scheduled worker; it is not needed for Google sign-in or bookings. See [operations](docs/operations.md) for backups, monitoring and release checks.
 
 Initial product scope: NZ’s main islands and Stewart Island using Pacific/Auckland time; Chatham/offshore regions are not supported yet. one owner account per business, up to 20 chairs, common weekly opening hours, appointments and same-day queues, full refunds, SMS updates and portfolio photos. Individual employee accounts, push notifications, recurring/overnight schedules, partial refunds, subscriptions and automated business verification are not implemented. Business approval is a manual platform review. No production launch or device/payment-provider certification is implied by passing CI.
 
