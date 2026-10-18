@@ -26,18 +26,19 @@ insert into public.profiles(id,display_name,sms_updates) values
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
 select pg_temp.check_true((public.account_context()->>'is_admin')::boolean=false,'Google identity never grants an admin role');
-select pg_temp.must_fail($q$select public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true}')$q$,'authenticator');
+select pg_temp.must_fail($q$select public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true,"registration_number":"9429041234567","contact_name":"Test Owner","contact_email":"owner@example.test","contact_phone":"+64211234567"})$q$,'business registration number');
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal2"}',true);
-select set_config('google.shop',public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true}')::text,true);
-select public.configure_business(current_setting('google.shop')::uuid,'service','{"name":"Haircut","minutes":30,"price_cents":3500}');
-select public.configure_business(current_setting('google.shop')::uuid,'hours','{"hours":[{"weekday":1,"opens":"00:00","closes":"23:59"},{"weekday":2,"opens":"00:00","closes":"23:59"},{"weekday":3,"opens":"00:00","closes":"23:59"},{"weekday":4,"opens":"00:00","closes":"23:59"},{"weekday":5,"opens":"00:00","closes":"23:59"},{"weekday":6,"opens":"00:00","closes":"23:59"},{"weekday":7,"opens":"00:00","closes":"23:59"}]}');
-select set_config('google.resource',(select id::text from public.resources where business_id=current_setting('google.shop')::uuid),true);
-select set_config('google.service',(select id::text from public.services where business_id=current_setting('google.shop')::uuid),true);
+select set_config('google.shop',public.apply_business('{"name":"Google home studio","kind":"home","suburb":"Auckland","lat":-36.8485,"lng":174.7633,"address":"Private Google address","publish_consent":true,"operating_declaration":true,"registration_number":"9429041234567","contact_name":"Test Owner","contact_email":"owner@example.test","contact_phone":"+64211234567"})::text,true);
+select pg_temp.must_fail($q$select public.configure_business(current_setting('google.shop')::uuid,'service','{"name":"Haircut","minutes":30,"price_cents":3500}')$q$,'approved');
 reset role;
 -- Existing private membership + aal2 is still the only way to administer listings.
 insert into private.admins values('20000000-0000-4000-8000-000000000001');
 set local role authenticated;
 select public.admin_review(current_setting('google.shop')::uuid,'approved','Verified ownership and operating permissions');
+select public.configure_business(current_setting('google.shop')::uuid,'service','{"name":"Haircut","minutes":30,"price_cents":3500}');
+select public.configure_business(current_setting('google.shop')::uuid,'hours','{"hours":[{"weekday":1,"opens":"00:00","closes":"23:59"},{"weekday":2,"opens":"00:00","closes":"23:59"},{"weekday":3,"opens":"00:00","closes":"23:59"},{"weekday":4,"opens":"00:00","closes":"23:59"},{"weekday":5,"opens":"00:00","closes":"23:59"},{"weekday":6,"opens":"00:00","closes":"23:59"},{"weekday":7,"opens":"00:00","closes":"23:59"}]}');
+select set_config('google.resource',(select id::text from public.resources where business_id=current_setting('google.shop')::uuid),true);
+select set_config('google.service',(select id::text from public.services where business_id=current_setting('google.shop')::uuid),true);
 select pg_temp.check_true(public.admin_overview()->'businesses'->0->>'owner_email'='owner@example.test','only authorised admins receive Google owner contact email');
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
 select pg_temp.must_fail('select public.admin_overview()','Admin access denied');
