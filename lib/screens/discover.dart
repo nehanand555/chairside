@@ -226,9 +226,17 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           fontSize: 18, fontWeight: FontWeight.bold)),
                   Text(p['address'] as String),
                   const SizedBox(height: 8),
-                  OutlinedButton(
-                      onPressed: () => showPublicListing(context, s, p),
-                      child: const Text('View details & links'))
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    if ((p['website_url'] as String? ?? '').startsWith('https://') ||
+                        (p['website_url'] as String? ?? '').startsWith('http://'))
+                      FilledButton.icon(
+                          onPressed: () => openLink(p['website_url'] as String),
+                          icon: const Icon(Icons.open_in_new),
+                          label: const Text('Website / book')),
+                    OutlinedButton(
+                        onPressed: () => showPublicListing(context, s, p),
+                        child: const Text('View details'))
+                  ])
                 ]))),
         const GoogleAttribution(),
         for (final p in places)
