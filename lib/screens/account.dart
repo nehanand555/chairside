@@ -26,7 +26,7 @@ class _AccountScreenState extends State<AccountScreen> {
     final s = widget.store;
     if (!s.signedIn)
       return PageBody(width: 520, children: [
-        const PageHeading('Welcome to Chairside',
+        const PageHeading('Welcome to SpicySelf',
             'Continue with your Google account. No SMS code needed.'),
         Panel(
             child: Column(
@@ -183,7 +183,7 @@ class _MfaPanelState extends State<MfaPanel> {
                 const SizedBox(height: 12),
                 if (verified.isEmpty && enrollment == null) ...[
                   const Text(
-                      'Add Chairside to an authenticator such as Google Authenticator or Microsoft Authenticator. Store the setup key securely; you’ll need the app to access business tools.'),
+                      'Add SpicySelf to an authenticator such as Google Authenticator or Microsoft Authenticator. Store the setup key securely; you’ll need the app to access business tools.'),
                   const SizedBox(height: 12),
                   ActionButton(s, 'Set up authenticator', () async {
                     for (final f
@@ -196,7 +196,7 @@ class _MfaPanelState extends State<MfaPanel> {
                 ],
                 if (enrollment != null) ...[
                   const Text(
-                      'In your authenticator choose “Enter setup key”, name it Chairside, and choose time-based codes. Keep this key private.'),
+                      'In your authenticator choose “Enter setup key”, name it SpicySelf, and choose time-based codes. Keep this key private.'),
                   const SizedBox(height: 12),
                   SelectableText(enrollment!['secret'] as String),
                   const SizedBox(height: 12)
