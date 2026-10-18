@@ -1,3 +1,11 @@
+-- Older notification attempts were acknowledged before delivery. Re-enable
+-- manual retry for existing pending applications. This does NOT send any emails.
+update private.business_applications a
+   set notification_sent_at = null
+  from public.businesses b
+ where a.business_id = b.id and b.status = 'pending'
+   and a.notification_sent_at is not null;
+
 -- Do not acknowledge an email until the provider has accepted it.
 -- The previous claim function acknowledged before Resend was called, preventing retries.
 create or replace function public.claim_business_application_notification(p_business uuid) returns jsonb
