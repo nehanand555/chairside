@@ -199,6 +199,20 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                 const SizedBox(height: 16),
                 ActionButton(s, 'Submit business application', () async {
                   if (!form.currentState!.validate()) return;
+                  final businessAddress = address.text.trim();
+                  if (businessAddress.length < 5 ||
+                      businessAddress.length > 300) {
+                    throw Exception(
+                        'Enter a full business address (5–300 characters), including the street number and street name.');
+                  }
+                  final latitude = double.tryParse(lat.text.trim());
+                  final longitude = double.tryParse(lng.text.trim());
+                  if (latitude == null || longitude == null ||
+                      latitude < -48 || latitude > -33 ||
+                      longitude < 165 || longitude > 180) {
+                    throw Exception(
+                        'Set a valid New Zealand map location or enter its latitude and longitude.');
+                  }
                   if (!consent || !declaration)
                     throw Exception(
                         'Please confirm business authority and publication consent');
@@ -217,10 +231,10 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                       'contact_phone': contactPhone.text.trim(),
                       'description': description.text.trim(),
                       'kind': kind,
-                      'address': address.text.trim(),
+                      'address': businessAddress,
                       'suburb': suburb.text.trim(),
-                      'lat': double.parse(lat.text),
-                      'lng': double.parse(lng.text),
+                      'lat': latitude,
+                      'lng': longitude,
                       'place_id': placeId.text.trim(),
                       'publish_consent': consent,
                       'operating_declaration': declaration
