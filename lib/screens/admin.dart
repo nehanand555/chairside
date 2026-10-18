@@ -79,6 +79,11 @@ class _AdminScreenState extends State<AdminScreen> {
                                       Text(
                                           'Owner phone: ${b['owner_phone'] ?? 'Not available'}'),
                                       Text('Owner email: ${b['owner_email'] ?? 'Not available'}'),
+                                      const SizedBox(height: 8),
+                                      Text('Registration number: ${b['registration_number'] ?? 'Not provided'}'),
+                                      Text('Contact person: ${b['contact_name'] ?? 'Not provided'}'),
+                                      Text('Contact email: ${b['contact_email'] ?? 'Not provided'}'),
+                                      Text('Contact phone: ${b['contact_phone'] ?? 'Not provided'}'),
                                       if (b['place_id'] != null)
                                         SelectableText(
                                             'Google claim: ${b['place_id']}'),
@@ -139,7 +144,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                   }, icon: Icons.check)
                                 ]))),
                         const Notice(
-                            'Approval requires an actual ownership and business review. Check home-business operating permissions and verify Google listing claims before approving. All decisions are audited.'),
+                            'Verify the registration number against the appropriate business register, confirm the contact and operating address, and review Google listing claims before approving. Only approved businesses can use business tools. Decisions are audited.'),
                       ]);
                 })
         ]));
