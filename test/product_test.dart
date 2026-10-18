@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:chairside/data/backend.dart';
 import 'package:chairside/data/store.dart';
 import 'package:chairside/screens/app.dart';
+import 'package:chairside/screens/discover.dart';
 import 'package:chairside/screens/common.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -170,6 +171,33 @@ Future<void> tapVisible(WidgetTester tester, Finder finder) async {
 
 void main() {
   setUpAll(tz.initializeTimeZones);
+  test('public listings show separate, safe booking and website links', () {
+    final homepage = <String, dynamic>{
+      'website_url': 'https://example.com/',
+    };
+    expect(publicWebsiteUrl(homepage), 'https://example.com/');
+    expect(publicBookingUrl(homepage), isNull);
+
+    final direct = <String, dynamic>{
+      'website_url': 'https://example.com/book-now',
+    };
+    expect(publicBookingUrl(direct), 'https://example.com/book-now');
+    expect(publicWebsiteUrl(direct), 'https://example.com/book-now');
+
+    final external = <String, dynamic>{
+      'website_url': 'https://example.com/',
+      'booking_url': 'https://booksy.com/en-nz/12345',
+    };
+    expect(publicBookingUrl(external), 'https://booksy.com/en-nz/12345');
+
+    final unsafe = <String, dynamic>{
+      'website_url': 'javascript:alert(1)',
+      'booking_url': 'http://insecure.example/book',
+    };
+    expect(publicWebsiteUrl(unsafe), isNull);
+    expect(publicBookingUrl(unsafe), isNull);
+  });
+
   test('NZ phone input and money use consistent formats', () {
     expect(normalizePhone('021 123 4567'), '+64211234567');
     expect(normalizePhone('+64 (21) 123-4567'), '+64211234567');
