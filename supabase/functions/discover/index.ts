@@ -23,7 +23,7 @@ Deno.serve(endpoint(async req => {
     try {
       const response = await fetch(`https://places.googleapis.com/v1/places:${request.method}`, {
         method: "POST", signal: AbortSignal.timeout(10000),
-        headers: { "content-type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.businessStatus,places.attributions" },
+        headers: { "content-type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.websiteUri,places.businessStatus,places.attributions" },
         body: JSON.stringify(request.body),
       });
       if (!response.ok) throw new Error("Places unavailable");
@@ -31,8 +31,8 @@ Deno.serve(endpoint(async req => {
       places = (json.places ?? []).map((p: Place) => normalizePlace(p)).filter((p: ReturnType<typeof normalizePlace>) => p && p.lat >= -48 && p.lat <= -33 && p.lng >= 165 && p.lng <= 180);
       if (text && places[0] && !matches[0]) { lat = places[0].lat; lng = places[0].lng; }
       if (text && !places.length) warning = "No public listings found for that area. Try a nearby town.";
-    } catch { warning = "Public map listings are temporarily unavailable. Chairside businesses are still shown."; }
-  } else warning = "Google Maps listings are not connected yet. Only registered Chairside businesses are shown.";
+    } catch { warning = "Public map listings are temporarily unavailable. SpicySelf businesses are still shown."; }
+  } else warning = "Google Maps listings are not connected yet. Only registered SpicySelf businesses are shown.";
   const businesses = await rpc<Record<string, unknown>[]>(service(), "discover_businesses", { p_lat: lat, p_lng: lng, p_radius_km: 25 });
   const ids = new Set(businesses.map(b => b.place_id));
   return { center: { lat, lng }, businesses, places: places.filter(p => p && !ids.has(p.place_id)), warning };
