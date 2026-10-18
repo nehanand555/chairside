@@ -10,6 +10,19 @@ import 'account.dart';
 import 'common.dart';
 import 'visits.dart';
 
+Future<void> sendApplicationNotification(AppStore store, String businessId) async {
+  final result = await store.backend!.invoke('business-application-notify', {
+    'business_id': businessId,
+  });
+  if (result['email_sent'] == true || result['already_processed'] == true) return;
+  if (result['configuration_required'] == true) {
+    throw Exception(
+      'Application saved, but the email sender is not fully configured in Supabase.',
+    );
+  }
+  throw Exception('Application saved, but the review email has not been sent. Try again.');
+}
+
 class BusinessScreen extends StatelessWidget {
   const BusinessScreen({super.key, required this.store});
   final AppStore store;
@@ -33,6 +46,15 @@ class BusinessScreen extends StatelessWidget {
             ? 'Your application has been submitted. Our team will review your registration and contact details.'
             : 'Your business is not currently approved. Contact SpicySelf support if you need a review.'),
         if (note.isNotEmpty) Panel(child: Text('Review note: $note')),
+        if (status == 'pending')
+          OutlinedButton.icon(
+            onPressed: store.busy
+                ? null
+                : () => store.run(
+                    () => sendApplicationNotification(store, store.businessId!)),
+            icon: const Icon(Icons.mail_outline),
+            label: const Text('Retry review email'),
+          ),
         OutlinedButton.icon(
           onPressed: store.busy ? null : () => store.run(store.refreshAccount),
           icon: const Icon(Icons.refresh),
@@ -241,15 +263,9 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                     }
                   });
                   await s.refreshAccount();
-                  // Email is a best-effort notification; the application is
-                  // already stored for review even if email delivery fails.
-                  try {
-                    await s.backend!.invoke('business-application-notify', {
-                      'business_id': applicationId
-                    });
-                  } catch (_) {
-                    // The admin review queue remains the source of truth.
-                  }
+                  // The application is stored even if the notification fails.
+                  // Show a clear message and allow retry from the pending screen.
+                  await sendApplicationNotification(s, applicationId as String);
                 }, icon: Icons.storefront_outlined),
               ]))),
     ]);
