@@ -362,6 +362,14 @@ class BusinessCard extends StatelessWidget {
               tooltip: favorite ? 'Remove favourite' : 'Save favourite')
         ]),
         const SizedBox(height: 12),
+        if (business['status'] == 'approved')
+          const Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.verified, size: 17, color: Colors.green),
+            SizedBox(width: 6),
+            Text('Verified SpicySelf business',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+          ]),
+        const SizedBox(height: 8),
         Text(business['kind'] == 'home'
             ? 'Home studio • appointments • approximate map pin'
             : business['queue_open'] == true
