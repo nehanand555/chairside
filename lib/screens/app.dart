@@ -128,13 +128,22 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                         alignment: Alignment.centerLeft,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: TextButton.icon(
-                            key: const ValueKey('account-greeting'),
-                            onPressed: () => setState(() => index = 3),
-                            icon: const Icon(Icons.person_outline),
-                            label: Text(
-                              s.displayName.isEmpty ? 'Complete your account' : 'Hi, ${s.displayName}',
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: TextButton(
+                              key: const ValueKey('account-greeting'),
+                              onPressed: () => setState(() => index = 3),
+                              child: Row(children: [
+                                const Icon(Icons.person_outline),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    s.displayName.isEmpty ? 'Complete your account' : 'Hi, ${s.displayName}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ]),
                             ),
                           ),
                         ),
