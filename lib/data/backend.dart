@@ -88,7 +88,7 @@ class SupabaseBackend extends Backend {
   Future<void> signInWithGoogle() async {
     final launched = await client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: kIsWeb ? '${Uri.base.origin}/' : 'nz.chairside.chairside://login-callback/',
+      redirectTo: kIsWeb ? '${Uri.base.origin}/' : 'nz.nehanand.spicyself://login-callback/',
       authScreenLaunchMode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
     );
     if (!launched) throw Exception('Could not open Google sign-in. Please try again.');

@@ -14,12 +14,14 @@ import tempfile
 from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
+APP_ID = "nz.nehanand.spicyself"
+LEGACY_APP_ID = "nz.chairside.chairside"
 
 
 def configure(platform="web"):
     with tempfile.TemporaryDirectory(prefix="chairside-platforms-") as temp:
         shell = Path(temp) / "chairside"
-        subprocess.run(["flutter", "create", "--empty", "--platforms=android,ios,web", "--org=nz.chairside", "--project-name=chairside", str(shell)], check=True)
+        subprocess.run(["flutter", "create", "--empty", "--platforms=android,ios,web", "--org=nz.nehanand", "--project-name=chairside", str(shell)], check=True)
         for shell_platform in ("android", "ios", "web"):
             if not (ROOT / shell_platform).exists():
                 shutil.copytree(shell / shell_platform, ROOT / shell_platform)
@@ -45,20 +47,20 @@ def configure(platform="web"):
         deep_link_meta = ET.SubElement(activity, "meta-data")
     deep_link_meta.set(f"{{{ns}}}name", "flutter_deeplinking_enabled")
     deep_link_meta.set(f"{{{ns}}}value", "false")
-    if not any(d.get(f"{{{ns}}}scheme") == "nz.chairside.chairside" for d in activity.findall("intent-filter/data")):
+    if not any(d.get(f"{{{ns}}}scheme") == APP_ID for d in activity.findall("intent-filter/data")):
         intent = ET.SubElement(activity, "intent-filter")
         ET.SubElement(intent, "action", {f"{{{ns}}}name": "android.intent.action.VIEW"})
         for category in ("DEFAULT", "BROWSABLE"):
             ET.SubElement(intent, "category", {f"{{{ns}}}name": f"android.intent.category.{category}"})
-        ET.SubElement(intent, "data", {f"{{{ns}}}scheme": "nz.chairside.chairside", f"{{{ns}}}host": "login-callback", f"{{{ns}}}path": "/"})
+        ET.SubElement(intent, "data", {f"{{{ns}}}scheme": APP_ID, f"{{{ns}}}host": "login-callback", f"{{{ns}}}path": "/"})
     doc.write(manifest, encoding="utf-8", xml_declaration=True)
     plist = ROOT / "ios/Runner/Info.plist"
     with plist.open("rb") as f:
         info = plistlib.load(f)
     info.update(CFBundleDisplayName="SpicySelf", NSLocationWhenInUseUsageDescription="Find hair professionals near you, only when you choose Near me.", NSPhotoLibraryUsageDescription="Choose photos to publish on your business portfolio.", GMapsKey=os.getenv("GOOGLE_MAPS_IOS_KEY", ""))
     url_types = info.setdefault("CFBundleURLTypes", [])
-    if not any("nz.chairside.chairside" in entry.get("CFBundleURLSchemes", []) for entry in url_types):
-        url_types.append({"CFBundleTypeRole": "Editor", "CFBundleURLName": "SpicySelf sign-in", "CFBundleURLSchemes": ["nz.chairside.chairside"]})
+    if not any(APP_ID in entry.get("CFBundleURLSchemes", []) for entry in url_types):
+        url_types.append({"CFBundleTypeRole": "Editor", "CFBundleURLName": "SpicySelf sign-in", "CFBundleURLSchemes": [APP_ID]})
     info["FlutterDeepLinkingEnabled"] = False
     with plist.open("wb") as f:
         plistlib.dump(info, f)
@@ -76,7 +78,19 @@ def configure(platform="web"):
     if podfile.exists():
         podfile.write_text(re.sub(r"#?\s*platform :ios, '[0-9.]+'", "platform :ios, '15.0'", podfile.read_text()))
     project = ROOT / "ios/Runner.xcodeproj/project.pbxproj"
-    project.write_text(re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [^;]+;", "IPHONEOS_DEPLOYMENT_TARGET = 15.0;", project.read_text()))
+    project_text = re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [^;]+;", "IPHONEOS_DEPLOYMENT_TARGET = 15.0;", project.read_text())
+    for old_id in (LEGACY_APP_ID, "nz.nehanand.chairside"):
+        project_text = project_text.replace(old_id, APP_ID)
+    project.write_text(project_text)
+    # Set the Android application ID, while retaining Flutter's generated native namespace.
+    for gradle_name in ("build.gradle.kts", "build.gradle"):
+        gradle = ROOT / "android/app" / gradle_name
+        if gradle.exists():
+            gradle_text = gradle.read_text()
+            for old_id in (LEGACY_APP_ID, "nz.nehanand.chairside"):
+                gradle_text = gradle_text.replace(f'applicationId = "{old_id}"', f'applicationId = "{APP_ID}"')
+                gradle_text = gradle_text.replace(f'applicationId "{old_id}"', f'applicationId "{APP_ID}"')
+            gradle.write_text(gradle_text)
     web = ROOT / "web/index.html"
     html = web.read_text()
     html = re.sub(r'\s*<script[^>]*data-chairside-maps[^>]*></script>', '', html)

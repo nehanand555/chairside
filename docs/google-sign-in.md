@@ -9,7 +9,7 @@ Merge the Google login change into `main`. In GitHub Actions run **Deploy config
 ## 2. Create a Google OAuth client
 
 1. Open https://console.cloud.google.com/ and select or create a project named **Chairside**. Google sign-in alone does not require enabling paid Maps APIs.
-2. Open **Google Auth Platform**. Complete **Branding** with app name Chairside, your support email and developer contact email. Use your own contact details.
+2. Open **Google Auth Platform**. Complete **Branding** with app name SpicySelf, your support email and developer contact email. Use your own contact details.
 3. Set **Audience** to **External**. While the app is in Testing, add your own and your partner's Google account addresses as test users.
 4. Under **Data Access**, request only `openid`, `https://www.googleapis.com/auth/userinfo.email` and `https://www.googleapis.com/auth/userinfo.profile`. These identify the account; they do not request Gmail, Drive or contacts access.
 5. Under **Clients**, create an OAuth client of type **Web application**, named **Chairside Supabase**. This backend OAuth client handles browser-based login for web, Android and iOS.
@@ -21,7 +21,7 @@ Merge the Google login change into `main`. In GitHub Actions run **Deploy config
 
 1. Open your project → **Authentication → Sign In / Providers → Google**.
 2. Enable Google and enter the Google **Client ID** and **Client Secret**. Save.
-3. In **Authentication → URL Configuration**, set **Site URL** to the deployed app's HTTPS root URL. Under **Redirect URLs**, allow that exact root URL, with trailing slash, and `nz.chairside.chairside://login-callback/`. For local web testing add `http://localhost:3000/`. Avoid wildcard production callbacks.
+3. In **Authentication → URL Configuration**, set **Site URL** to the deployed app's HTTPS root URL. Under **Redirect URLs**, allow that exact root URL, with trailing slash, and `nz.nehanand.spicyself://login-callback/`. For local web testing add `http://localhost:3000/`. Avoid wildcard production callbacks.
 4. Leave the Phone provider disabled if SMS is not configured. App login uses Google; database support for older verified-phone accounts does not enable SMS by itself.
 5. Ensure app-authenticator TOTP enrollment and verification are enabled. These protect business/admin functions independently of Google sign-in.
 
