@@ -11,7 +11,11 @@ def validate_project(project):
     if project.get("production_branch") != "main":
         raise ValueError("Set the Cloudflare Pages production branch to main.")
     source = project.get("source")
-    if source and source.get("config", {}).get("production_deployments_enabled") is not False:
+    if source is not None and (
+        not isinstance(source, dict)
+        or not isinstance(source.get("config"), dict)
+        or source["config"].get("production_deployments_enabled") is not False
+    ):
         raise ValueError(
             "Disable automatic production branch deployments in Cloudflare Pages "
             "before deploying through GitHub Actions."

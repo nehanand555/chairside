@@ -25,3 +25,8 @@ class PagesDeploymentTests(unittest.TestCase):
             self.assertIn("GOOGLE_MAPS_WEB_KEY", str(error.exception))
             self.assertIn("CLOUDFLARE_API_TOKEN", str(error.exception))
             self.assertNotIn("dummy-value", str(error.exception))
+
+    def test_incomplete_git_source_configuration_blocks_deployment(self):
+        for source in ({}, {"config": None}, "unknown"):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                check.validate_project({"production_branch": "main", "source": source})
