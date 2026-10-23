@@ -13,6 +13,37 @@ Google sign-in and Google Maps/Places use different credentials. Signing in succ
 
 Keep the existing Supabase `ALLOWED_ORIGINS=https://chairside-staging.pages.dev` and a long random `RATE_LIMIT_SALT` configured. Credentials never belong in a screenshot or chat. Mobile map SDKs need their own enabled APIs and platform-restricted keys later; web keys should not be reused for native apps.
 
+## Cloudflare Pages build configuration
+
+For builds run by Cloudflare Pages, add `GOOGLE_MAPS_WEB_KEY` as a build
+environment variable for Production and, if needed, Preview. Supply your
+browser key there, rather than committing it to source. Keep the existing
+`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `SUPPORT_EMAIL` build variables.
+
+With the repository's pinned Flutter SDK available on PATH, use this build
+command from the repository root:
+
+```sh
+python3 tool/bootstrap.py --platform=web && flutter pub get --enforce-lockfile && flutter build web --release --dart-define-from-file=build-config.json --output=build/web
+```
+
+Set the Pages build output directory to `build/web`. Ensure the build environment
+installs the Flutter version specified in README before this command runs.
+
+Bootstrap reads `GOOGLE_MAPS_WEB_KEY` from the build environment and writes it
+into the Maps JavaScript API loader in generated `web/index.html`. It also
+writes `GOOGLE_MAPS_WEB_KEY` and `MAPS_ENABLED` into generated `build-config.json`;
+Flutter consumes those values with `--dart-define-from-file` to enable the map
+UI. Both generated files are Git-ignored. A Dart define alone does not load the
+Maps JavaScript SDK. These are build-time settings: rebuild and redeploy after
+changing them. The browser key is visible in the deployed page, so restrict it
+to Maps JavaScript API and your actual website referrers.
+
+The existing `Deploy configured services` GitHub workflow already performs these
+steps before uploading to Pages. For that Direct Upload route, set
+`GOOGLE_MAPS_WEB_KEY` in the selected **GitHub environment**, not just Cloudflare;
+Cloudflare variables cannot change assets already built by GitHub Actions.
+
 ## Expected results
 
 - **Near me** asks for browser/device location permission and uses that center for a Google Nearby Search of barbers and salons. Location services/permission must be allowed; a suburb or postcode search remains available when location is off.

@@ -22,7 +22,7 @@ The bootstrap script generates the Android/iOS/web platform shells and adds map/
 
 GitHub Actions → **Product checks** runs analysis, UI tests, PostgreSQL permission/booking tests and server-function checks. **Build app packages** produces a web bundle, Android test APK or iOS simulator app. iPhone installation and store releases need your Apple/Google developer accounts and signing configuration; a simulator build is not an App Store release.
 
-**Deploy configured services** is manual, runs checks first, and uses the selected GitHub environment. It deploys Supabase migrations/functions or a configured Cloudflare Pages web project. Production is not deployed automatically on merge. Protect the `production` environment with required reviewers.
+**Deploy configured services** automatically deploys the web app to `chairside-staging` after pushes to `main`, using the `staging` GitHub environment after checks pass. Backend and production deployments remain manual and use the selected GitHub environment. Disable Cloudflare’s automatic production branch builds before enabling this workflow; see [activation](docs/activation.md#automatic-staging-web-deployment). It deploys Supabase migrations/functions or a configured Cloudflare Pages web project. Production is not deployed automatically on merge. Protect the `production` environment with required reviewers.
 
 ## Local iOS Maps key
 

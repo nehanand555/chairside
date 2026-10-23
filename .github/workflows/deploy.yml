@@ -1,15 +1,20 @@
 name: Deploy configured services
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       target:
         type: choice
         options: [backend, web]
+        default: web
+        required: true
         description: Service to deploy after configuration
       environment:
         type: choice
         options: [staging, production]
         default: staging
+        required: true
 permissions:
   contents: read
 jobs:
@@ -19,7 +24,10 @@ jobs:
     needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    environment: ${{ inputs.environment }}
+    environment: ${{ github.event_name == 'push' && 'staging' || inputs.environment }}
+    concurrency:
+      group: deploy-${{ github.event_name == 'push' && 'staging' || inputs.environment }}-${{ github.event_name == 'push' && 'web' || inputs.target }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v2
@@ -39,14 +47,26 @@ jobs:
           supabase link --project-ref "$PROJECT_REF"
           supabase db push
           supabase functions deploy --project-ref "$PROJECT_REF"
+      - name: Validate web configuration and Cloudflare deployment ownership
+        if: github.event_name == 'push' || inputs.target == 'web'
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          GOOGLE_MAPS_WEB_KEY: ${{ vars.GOOGLE_MAPS_WEB_KEY }}
+          SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          DEPLOY_ENVIRONMENT: ${{ github.event_name == 'push' && 'staging' || inputs.environment }}
+        run: python3 tool/check_pages_deployment.py
       - uses: subosito/flutter-action@v2
-        if: inputs.target == 'web'
+        if: github.event_name == 'push' || inputs.target == 'web'
         with:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
       - name: Build configured web application
-        if: inputs.target == 'web'
+        if: github.event_name == 'push' || inputs.target == 'web'
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
@@ -56,11 +76,12 @@ jobs:
           test -n "$SUPABASE_URL"
           test -n "$SUPABASE_PUBLISHABLE_KEY"
           test -n "$SUPPORT_EMAIL"
-          python3 tool/bootstrap.py
+          test -n "$GOOGLE_MAPS_WEB_KEY"
+          python3 tool/bootstrap.py --platform=web
           flutter pub get --enforce-lockfile
-          flutter build web --release --dart-define-from-file=build-config.json
+          flutter build web --release --dart-define-from-file=build-config.json --output=build/web
       - uses: cloudflare/wrangler-action@v3
-        if: inputs.target == 'web'
+        if: github.event_name == 'push' || inputs.target == 'web'
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

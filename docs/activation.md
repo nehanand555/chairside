@@ -15,3 +15,36 @@ Use a separate staging project with test payments first. All server secrets belo
 The webhook accepts a primary `STRIPE_WEBHOOK_SECRET` and optional `STRIPE_CONNECT_WEBHOOK_SECRET` for a separately configured connected-account endpoint. Never share signing secrets between unrelated services.
 
 No keys are supplied in this repository. The Supabase URL/publishable key and restricted map client keys are public application configuration; service-role, Stripe, Twilio, worker and deployment credentials must stay server-side.
+
+## Automatic staging web deployment
+
+`Deploy configured services` builds and deploys the web app after pushes to
+`main`, using the existing GitHub `staging` environment and Pages project
+`chairside-staging`. Product checks must pass first. Backend and production
+deployment remain manual through the same workflow.
+
+Before enabling the workflow on main:
+
+1. In Cloudflare Pages → chairside-staging → Settings → Builds & deployments,
+   keep the production branch as `main` and disable automatic production branch
+   deployments. This prevents Cloudflare Git integration and Actions from both
+   deploying the same push. Preview branch builds can remain enabled.
+2. In GitHub → Settings → Environments → staging, set these **variables**:
+   `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GOOGLE_MAPS_WEB_KEY`,
+   `SUPPORT_EMAIL`, and `CLOUDFLARE_PAGES_PROJECT=chairside-staging`.
+3. In that environment, set these **secrets**: `CLOUDFLARE_ACCOUNT_ID` and
+   `CLOUDFLARE_API_TOKEN`. The token needs Cloudflare Pages Edit access for the
+   account (including reading the project configuration for the preflight).
+4. Ensure staging environment rules allow `main`; required reviewers or wait
+   timers will still apply if configured.
+
+Preflight reports missing configuration names without logging their values and
+refuses to upload if competing Cloudflare production Git builds are enabled.
+Disable those builds before the push that introduces this workflow; a preflight
+cannot cancel a Cloudflare deployment already triggered by that push.
+The build generates both the Maps JavaScript loader and Flutter Dart defines
+from the GitHub environment. Cloudflare build variables are not used by this
+GitHub-built upload. Local iOS configuration is not used or changed.
+
+Cloudflare instructions:
+https://developers.cloudflare.com/pages/configuration/branch-build-controls/

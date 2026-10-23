@@ -28,6 +28,22 @@ class BootstrapTests(unittest.TestCase):
         (shell / 'web').mkdir()
         (shell / 'web/index.html').write_text('<html><head></head></html>')
 
+    def test_web_maps_loader_and_defines_use_build_environment(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with patch.object(bootstrap, 'ROOT', root), patch.object(
+                bootstrap.subprocess, 'run', side_effect=self.create_shell
+            ), patch.dict(os.environ, {'GOOGLE_MAPS_WEB_KEY': 'dummy-web-value',
+                                       'GOOGLE_MAPS_IOS_KEY': ''}):
+                bootstrap.configure('web')
+                bootstrap.configure('web')
+            html = (root / 'web/index.html').read_text()
+            self.assertEqual(html.count('data-chairside-maps'), 1)
+            self.assertIn('https://maps.googleapis.com/maps/api/js?key=dummy-web-value', html)
+            config = json.loads((root / 'build-config.json').read_text())
+            self.assertEqual(config['GOOGLE_MAPS_WEB_KEY'], 'dummy-web-value')
+            self.assertTrue(config['MAPS_ENABLED'])
+
     def test_native_callback_handlers_and_platform_keys(self):
         for platform in ('android', 'ios', 'ios-simulator', 'web'):
             with self.subTest(platform=platform), tempfile.TemporaryDirectory() as temp:
