@@ -1,0 +1,2 @@
+// Copy to ios/Flutter/Maps.local.xcconfig and paste your Maps SDK for iOS key.
+GOOGLE_MAPS_IOS_KEY =

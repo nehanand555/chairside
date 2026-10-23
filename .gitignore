@@ -16,3 +16,6 @@ build-config.json
 *.mobileprovision
 supabase/.temp/
 __pycache__/
+
+# Local iOS Maps SDK configuration (also covered by ios/).
+ios/Flutter/Maps.local.xcconfig

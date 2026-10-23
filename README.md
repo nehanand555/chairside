@@ -24,6 +24,28 @@ GitHub Actions → **Product checks** runs analysis, UI tests, PostgreSQL permis
 
 **Deploy configured services** is manual, runs checks first, and uses the selected GitHub environment. It deploys Supabase migrations/functions or a configured Cloudflare Pages web project. Production is not deployed automatically on merge. Protect the `production` environment with required reviewers.
 
+## Local iOS Maps key
+
+After bootstrap, paste your Maps SDK for iOS API key into
+`ios/Flutter/Maps.local.xcconfig`:
+
+```xcconfig
+GOOGLE_MAPS_IOS_KEY = YOUR_IOS_MAPS_API_KEY
+```
+
+This local file is Git-ignored. A blank template is available at
+`config/ios-maps.xcconfig.example`. Debug, Release and Profile include this file;
+`Info.plist` resolves `GMapsKey` from its build setting before AppDelegate calls
+`GMSServices.provideAPIKey`. Rebuild the app after editing the key; hot reload
+cannot update native configuration. Bootstrap preserves the local file unless
+`GOOGLE_MAPS_IOS_KEY` is explicitly supplied in the environment.
+
+For an iOS build with maps visible, keep your existing Supabase configuration in
+`build-config.json` and set its `MAPS_ENABLED` value to `true`, then run
+`flutter run --dart-define-from-file=build-config.json`. Enable this only after
+providing the native key. Use a key enabled for Maps SDK for iOS and restricted
+to the iOS bundle identifier `nz.nehanand.spicyself`.
+
 ## Data and security
 
 PostgreSQL is authoritative: transaction locks, interval constraints, RLS and protected RPCs enforce booking and ownership rules. The UI never assigns an admin role or marks a payment paid. Google sign-in is used for customer accounts without SMS charges; authenticator MFA is required for business/admin operations. Verified legacy phone accounts remain supported in the database. Configure the Google provider using [Google sign-in setup](docs/google-sign-in.md). Home addresses are private; public searches use approximate home coordinates only. Photos are deliberately public.

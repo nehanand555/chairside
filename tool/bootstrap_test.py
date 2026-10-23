@@ -53,6 +53,17 @@ class BootstrapTests(unittest.TestCase):
                 self.assertEqual(len(info['CFBundleURLTypes']), 1)
                 self.assertEqual(info['CFBundleURLTypes'][0]['CFBundleURLSchemes'], ['nz.nehanand.spicyself'])
                 self.assertFalse(info['FlutterDeepLinkingEnabled'])
+                self.assertEqual(info['GMapsKey'], '$(GOOGLE_MAPS_IOS_KEY)')
+                local = root / 'ios/Flutter/Maps.local.xcconfig'
+                self.assertEqual(local.read_text(), 'GOOGLE_MAPS_IOS_KEY = ios-key\n')
+                for mode in ('Debug', 'Release'):
+                    text = (root / f'ios/Flutter/{mode}.xcconfig').read_text()
+                    self.assertEqual(text.count('#include "Maps.local.xcconfig"'), 1)
+                with patch.object(bootstrap, 'ROOT', root), patch.dict(
+                    os.environ, {'GOOGLE_MAPS_IOS_KEY': ''}
+                ):
+                    bootstrap.configure_ios_maps()
+                self.assertEqual(local.read_text(), 'GOOGLE_MAPS_IOS_KEY = ios-key\n')
                 self.assertIn('PRODUCT_BUNDLE_IDENTIFIER = nz.nehanand.spicyself;', (root / 'ios/Runner.xcodeproj/project.pbxproj').read_text())
                 config = json.loads((root / 'build-config.json').read_text())
                 self.assertEqual(config['MAPS_ENABLED'], platform != 'web')

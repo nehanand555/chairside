@@ -18,6 +18,26 @@ APP_ID = "nz.nehanand.spicyself"
 LEGACY_APP_ID = "nz.chairside.chairside"
 
 
+def configure_ios_maps():
+    """Keep the native Maps key in a local file shared by all build modes."""
+    flutter = ROOT / "ios/Flutter"
+    flutter.mkdir(parents=True, exist_ok=True)
+    local = flutter / "Maps.local.xcconfig"
+    key = os.getenv("GOOGLE_MAPS_IOS_KEY", "").strip()
+    if key:
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", key):
+            raise ValueError("GOOGLE_MAPS_IOS_KEY contains invalid characters")
+        local.write_text(f"GOOGLE_MAPS_IOS_KEY = {key}\n")
+    elif not local.exists():
+        local.write_text("// Paste your Maps SDK for iOS key after the equals sign.\nGOOGLE_MAPS_IOS_KEY =\n")
+    for name in ("Debug.xcconfig", "Release.xcconfig"):
+        config = flutter / name
+        text = config.read_text() if config.exists() else ""
+        include = '#include "Maps.local.xcconfig"'
+        if include not in text:
+            config.write_text(text.rstrip() + "\n" + include + "\n")
+
+
 def configure(platform="web"):
     with tempfile.TemporaryDirectory(prefix="chairside-platforms-") as temp:
         shell = Path(temp) / "chairside"
@@ -57,13 +77,14 @@ def configure(platform="web"):
     plist = ROOT / "ios/Runner/Info.plist"
     with plist.open("rb") as f:
         info = plistlib.load(f)
-    info.update(CFBundleDisplayName="SpicySelf", NSLocationWhenInUseUsageDescription="Find hair professionals near you, only when you choose Near me.", NSPhotoLibraryUsageDescription="Choose photos to publish on your business portfolio.", GMapsKey=os.getenv("GOOGLE_MAPS_IOS_KEY", ""))
+    info.update(CFBundleDisplayName="SpicySelf", NSLocationWhenInUseUsageDescription="Find hair professionals near you, only when you choose Near me.", NSPhotoLibraryUsageDescription="Choose photos to publish on your business portfolio.", GMapsKey="$(GOOGLE_MAPS_IOS_KEY)")
     url_types = info.setdefault("CFBundleURLTypes", [])
     if not any(APP_ID in entry.get("CFBundleURLSchemes", []) for entry in url_types):
         url_types.append({"CFBundleTypeRole": "Editor", "CFBundleURLName": "SpicySelf sign-in", "CFBundleURLSchemes": [APP_ID]})
     info["FlutterDeepLinkingEnabled"] = False
     with plist.open("wb") as f:
         plistlib.dump(info, f)
+    configure_ios_maps()
     delegate = ROOT / "ios/Runner/AppDelegate.swift"
     swift = delegate.read_text()
     if "import GoogleMaps" not in swift:
