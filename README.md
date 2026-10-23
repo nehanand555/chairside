@@ -18,7 +18,7 @@ flutter pub get --enforce-lockfile
 flutter run -d chrome --web-port=3000 --dart-define-from-file=build-config.json
 ```
 
-The bootstrap script generates the Android/iOS/web platform shells and adds map/location/photo settings and Google OAuth return links. It never replaces application code or tests. Platform shells and generated client configuration are ignored by Git. Run the script again when public keys change. Choose a permanent bundle ID in `tool/bootstrap.py` before app-store registration; the initial ID is `nz.chairside.chairside`.
+The bootstrap script generates the Android/iOS/web platform shells and adds map/location/photo settings and Google OAuth return links. It never replaces application code or tests. Platform shells and generated client configuration are ignored by Git. Run the script again when public keys change. The generated iOS bundle identifier and Android application ID are `nz.nehanand.spicyself`. Re-run bootstrap to update existing platform shells; select your personal team in Xcode for device signing.
 
 GitHub Actions → **Product checks** runs analysis, UI tests, PostgreSQL permission/booking tests and server-function checks. **Build app packages** produces a web bundle, Android test APK or iOS simulator app. iPhone installation and store releases need your Apple/Google developer accounts and signing configuration; a simulator build is not an App Store release.
 
