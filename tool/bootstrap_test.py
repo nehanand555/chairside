@@ -24,7 +24,7 @@ class BootstrapTests(unittest.TestCase):
         (shell / 'ios/Runner/AppDelegate.swift').write_text(
             'override func application(_ application: UIApplication) -> Bool { return true }')
         (shell / 'ios/Runner.xcodeproj').mkdir()
-        (shell / 'ios/Runner.xcodeproj/project.pbxproj').write_text('IPHONEOS_DEPLOYMENT_TARGET = 13.0;')
+        (shell / 'ios/Runner.xcodeproj/project.pbxproj').write_text('IPHONEOS_DEPLOYMENT_TARGET = 13.0; PRODUCT_BUNDLE_IDENTIFIER = nz.chairside.chairside;')
         (shell / 'web').mkdir()
         (shell / 'web/index.html').write_text('<html><head></head></html>')
 
@@ -43,7 +43,7 @@ class BootstrapTests(unittest.TestCase):
                 manifest = ET.parse(root / 'android/app/src/main/AndroidManifest.xml')
                 data = manifest.findall('.//intent-filter/data')
                 self.assertEqual(len(data), 1)
-                self.assertEqual(data[0].get('{%s}scheme' % ns['a']), 'nz.chairside.chairside')
+                self.assertEqual(data[0].get('{%s}scheme' % ns['a']), 'nz.nehanand.spicyself')
                 self.assertEqual(data[0].get('{%s}host' % ns['a']), 'login-callback')
                 self.assertEqual(data[0].get('{%s}path' % ns['a']), '/')
                 meta = manifest.find('.//activity/meta-data')
@@ -51,8 +51,9 @@ class BootstrapTests(unittest.TestCase):
                 self.assertEqual(meta.get('{%s}value' % ns['a']), 'false')
                 info = plistlib.loads((root / 'ios/Runner/Info.plist').read_bytes())
                 self.assertEqual(len(info['CFBundleURLTypes']), 1)
-                self.assertEqual(info['CFBundleURLTypes'][0]['CFBundleURLSchemes'], ['nz.chairside.chairside'])
+                self.assertEqual(info['CFBundleURLTypes'][0]['CFBundleURLSchemes'], ['nz.nehanand.spicyself'])
                 self.assertFalse(info['FlutterDeepLinkingEnabled'])
+                self.assertIn('PRODUCT_BUNDLE_IDENTIFIER = nz.nehanand.spicyself;', (root / 'ios/Runner.xcodeproj/project.pbxproj').read_text())
                 config = json.loads((root / 'build-config.json').read_text())
                 self.assertEqual(config['MAPS_ENABLED'], platform != 'web')
 
