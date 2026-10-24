@@ -355,7 +355,7 @@ void main() {
     await app.refreshAccount();
     await tester.pumpAndSettle();
     await tapVisible(tester, find.text('Account').last);
-    await tapVisible(tester, find.widgetWithText(FilledButton, 'Open business'));
+    await tapVisible(tester, find.widgetWithText(OutlinedButton, 'Open business'));
     await tester.pumpAndSettle();
     await tapVisible(tester, find.widgetWithText(FilledButton, 'Start'));
     expect(backend.visits.single['status'], 'serving');
