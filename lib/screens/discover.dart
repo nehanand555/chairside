@@ -68,6 +68,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   bool loading = true, onlyFavorites = false;
   int request = 0;
   bool textSearch = false;
+  String? category;
+  Json? selectedMember, selectedPlace;
   bool get mapAvailable =>
       widget.mapsEnabled &&
       (!kIsWeb ||
@@ -96,6 +98,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       warning = null;
       businesses = [];
       places = [];
+      selectedMember = null; selectedPlace = null;
     });
     try {
       final data = await widget.store.backend!.invoke('discover', {
@@ -151,176 +154,154 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.store;
-    final members = onlyFavorites
-        ? businesses.where((b) => s.favorites.contains(b['id'])).toList()
-        : businesses;
+    final members = businesses.where((b) =>
+        (!onlyFavorites || s.favorites.contains(b['id'])) &&
+        (category == null || b['kind'] == category)).toList();
+    final publicResults = onlyFavorites || category != null ? <Json>[] : places;
     return PageBody(children: [
-      const PageHeading('Find your next look.',
-          'Find barbers and salons near you. More services coming soon.'),
-      Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-                width: 290,
-                child: TextField(
-                    controller: search,
-                    onSubmitted: (_) => load(text: true),
-                    decoration: const InputDecoration(
-                        hintText: 'Search suburb, town or postcode',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder()))),
-            FilledButton(
-                onPressed: loading ? null : () => load(text: true),
-                child: const Text('Search')),
-            OutlinedButton.icon(
-                onPressed: loading ? null : locate,
-                icon: const Icon(Icons.my_location),
-                label: const Text('Near me')),
-            FilterChip(
-                label: const Text('Favourites'),
-                selected: onlyFavorites,
-                onSelected: (v) {
-                  if (!s.signedIn) {
-                    openAccount(context, s);
-                  } else {
-                    setState(() => onlyFavorites = v);
-                  }
-                })
-          ]),
-      const SizedBox(height: 18),
-      if (loading) const LinearProgressIndicator(),
-      if (error != null)
-        Notice(error!,
-            action: TextButton(
-                onPressed: () => load(), child: const Text('Try again'))),
-      if (mapAvailable && widget.mapMode)
-        ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: SizedBox(
-                height: MediaQuery.sizeOf(context).width < 600 ? 320 : 410,
-                child: GoogleMap(
-                  initialCameraPosition:
-                      CameraPosition(target: center, zoom: 12),
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  mapToolbarEnabled: false,
-                  onMapCreated: (c) => controller = c,
-                  onCameraMove: (position) => center = position.target,
-                  markers: {
-                    for (final b in members)
-                      Marker(
-                          markerId: MarkerId('member-${b['id']}'),
-                          position: LatLng((b['lat'] as num).toDouble(),
-                              (b['lng'] as num).toDouble()),
-                          icon: BitmapDescriptor.defaultMarkerWithHue(
-                              BitmapDescriptor.hueGreen),
-                          infoWindow: InfoWindow(
-                              title: b['name'] as String,
-                              snippet: b['kind'] == 'home'
-                                  ? 'SpicySelf • Approximate location'
-                                  : 'SpicySelf member',
-                              onTap: () =>
-                                  openBusiness(context, s, b['id'] as String))),
-                    if (!onlyFavorites)
-                      for (final p in places)
-                        Marker(
-                            markerId: MarkerId(p['place_id'] as String),
-                            position: LatLng((p['lat'] as num).toDouble(),
-                                (p['lng'] as num).toDouble()),
-                            infoWindow: InfoWindow(
-                                title: p['name'] as String,
-                                snippet: 'Public Google listing',
-                                onTap: () => showPublicListing(context, s, p)))
-                  },
-                ))),
-      const SizedBox(height: 8),
-      if (mapAvailable && widget.mapMode)
-        Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-                onPressed: loading ? null : () => load(text: false),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Search this map area'))),
-      if (!mapAvailable && widget.mapMode)
-        const Notice(
-            'Map view is unavailable. You can browse businesses in the list below.'),
-      if (warning != null)
-        Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(warning!, style: const TextStyle(fontSize: 12))),
-      const SizedBox(height: 16),
-      if (!onlyFavorites && places.isNotEmpty) ...[
-        const SizedBox(height: 18),
-        Text('Nearby barbers and salons',
-            style: Theme.of(context).textTheme.titleLarge),
-        const Text(
-            'Explore local businesses. Book Now appears when a direct booking link is identified; other sites can be opened with Website. External bookings are managed by the business.'),
+      PageHeading(widget.mapMode ? 'A little closer to your next look.' : 'Find your next look.',
+          widget.mapMode ? 'Explore the map. Find a place that feels like you.' : 'Good hair. Your kind of place. Discover local barbers, salons and home studios.'),
+      Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        TextField(controller: search, maxLength: 100,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (_) => load(text: true),
+          decoration: const InputDecoration(hintText: 'Search suburb, town or postcode',
+              counterText: '', prefixIcon: Icon(Icons.search), labelText: 'Where are you looking?')),
         const SizedBox(height: 12),
-        ...places.map((p) => Panel(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Text(p['name'] as String,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text(p['address'] as String),
-                  const SizedBox(height: 8),
-                  Wrap(spacing: 8, runSpacing: 8, children: [
-                    if (publicBookingUrl(p) != null)
-                      FilledButton.icon(
-                          onPressed: () => openLink(publicBookingUrl(p)!),
-                          icon: const Icon(Icons.event_available),
-                          label: const Text('Book Now')),
-                    if (publicWebsiteUrl(p) != null)
-                      OutlinedButton.icon(
-                          onPressed: () => openLink(publicWebsiteUrl(p)!),
-                          icon: const Icon(Icons.open_in_new),
-                          label: const Text('Website')),
-                    OutlinedButton(
-                        onPressed: () => showPublicListing(context, s, p),
-                        child: const Text('View details'))
-                  ])
-                ]))),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.icon(onPressed: loading ? null : () => load(text: true),
+              icon: const Icon(Icons.search), label: const Text('Search')),
+          OutlinedButton.icon(onPressed: loading ? null : locate,
+              icon: const Icon(Icons.my_location), label: const Text('Near me')),
+          if (!widget.mapMode && widget.onOpenMap != null)
+            TextButton.icon(onPressed: widget.onOpenMap,
+                icon: const Icon(Icons.map_outlined), label: const Text('Open map')),
+        ]),
+      ])),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final item in const [(null, 'All'), ('barber', 'Barbers'), ('salon', 'Hair Salons'), ('home', 'Home Studios')])
+          ChoiceChip(label: Text(item.$2), selected: category == item.$1,
+              onSelected: (_) => setState(() { category = item.$1; selectedMember = null; selectedPlace = null; })),
+        FilterChip(label: const Text('Favourites'), avatar: const Icon(Icons.favorite_border, size: 18),
+          selected: onlyFavorites, onSelected: (v) {
+            if (!s.signedIn) { openAccount(context, s); }
+            else { setState(() { onlyFavorites = v; selectedMember = null; selectedPlace = null; }); }
+          }),
+      ]),
+      const SizedBox(height: 16),
+      if (loading) const DiscoverySkeleton(),
+      if (error != null) Notice(error!, action: TextButton(onPressed: () => load(), child: const Text('Try again'))),
+      if (widget.mapMode && mapAvailable) ...[
+        ClipRRect(borderRadius: BorderRadius.circular(24), child: SizedBox(
+          height: MediaQuery.sizeOf(context).width < 600 ? 320 : 440,
+          child: GoogleMap(initialCameraPosition: CameraPosition(target: center, zoom: 12),
+            myLocationButtonEnabled: false, zoomControlsEnabled: false, mapToolbarEnabled: false,
+            onMapCreated: (c) => controller = c,
+            onCameraMove: (position) => center = position.target,
+            markers: {
+              for (final b in members) Marker(markerId: MarkerId('member-${b['id']}'),
+                position: LatLng((b['lat'] as num).toDouble(), (b['lng'] as num).toDouble()),
+                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                onTap: () => setState(() { selectedMember = b; selectedPlace = null; }),
+                infoWindow: InfoWindow(title: b['name'] as String,
+                    snippet: b['kind'] == 'home' ? 'SpicySelf • Approximate location' : 'SpicySelf member')),
+              for (final p in publicResults) Marker(markerId: MarkerId(p['place_id'] as String),
+                position: LatLng((p['lat'] as num).toDouble(), (p['lng'] as num).toDouble()),
+                onTap: () => setState(() { selectedPlace = p; selectedMember = null; }),
+                infoWindow: InfoWindow(title: p['name'] as String, snippet: 'Public Google listing')),
+            },
+          ),
+        )),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          TextButton.icon(onPressed: loading ? null : () => load(text: false),
+              icon: const Icon(Icons.refresh), label: const Text('Search this map area')),
+          TextButton.icon(onPressed: loading ? null : locate,
+              icon: const Icon(Icons.my_location), label: const Text('Recenter')),
+        ]),
+        if (selectedMember != null) memberCard(selectedMember!),
+        if (selectedPlace != null) PublicBusinessCard(place: selectedPlace!, store: s),
+      ],
+      if (widget.mapMode && !mapAvailable)
+        const Notice('Map view is unavailable. You can browse businesses in the list below.'),
+      if (warning != null) Padding(padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(warning!, style: Theme.of(context).textTheme.bodySmall)),
+      SectionHeader(onlyFavorites ? 'Your saved places' : 'Book with SpicySelf',
+          subtitle: 'Local members. Real services. Your next appointment.'),
+      if (members.isEmpty && !loading) Notice(onlyFavorites
+          ? 'No saved businesses in this area. Try another area or turn off Favourites.'
+          : 'No members match this area and category yet. Try a nearby suburb or choose All.'),
+      ResponsiveCards(children: members.map(memberCard).toList()),
+      if (publicResults.isNotEmpty) ...[
+        const SectionHeader('Around the neighbourhood'),
+        const Text('Public Google listings are directory results. In-app bookings are available only with SpicySelf members.'),
+        const SizedBox(height: 16),
+        ResponsiveCards(children: publicResults.map((p) => PublicBusinessCard(place: p, store: s)).toList()),
         const GoogleAttribution(),
-        for (final p in places)
+        for (final p in publicResults)
           for (final a in (p['attributions'] as List? ?? []))
             if ((a['provider'] ?? '').toString().isNotEmpty)
-              TextButton(
-                  onPressed: () => openLink(a['providerUri'] as String),
-                  child: Text(a['provider'] as String))
+              TextButton(onPressed: () => openLink(a['providerUri'] as String), child: Text(a['provider'] as String)),
       ],
-      const SizedBox(height: 16),
-      Text('Book with SpicySelf',
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.bold)),
-      const SizedBox(height: 6),
-      const Text(
-          'Approved members • live availability • no crowded waiting room'),
-      const SizedBox(height: 16),
-      if (members.isEmpty && !loading)
-        Notice(onlyFavorites
-            ? 'No saved businesses in this area. Try another area or turn off Favourites.'
-            : 'No SpicySelf members in this area yet. Your local hair professional can register from the Business tab.'),
-      ...members.map((b) => BusinessCard(
-          business: b,
-          favorite: s.favorites.contains(b['id']),
-          onOpen: () => openBusiness(context, s, b['id'] as String),
-          onFavorite: () {
-            if (!s.signedIn) {
-              openAccount(context, s);
-            } else {
-              s.run(() => s.favorite(b['id'] as String));
-            }
-          })),
+      if (category != null && !onlyFavorites)
+        const Text('Category filters show SpicySelf members. Choose All to also browse public Google listings.'),
       const SizedBox(height: 24),
-      const Text(
-          'Run a shop or home studio? Join from the Business tab — you don’t need to be on Google Maps.'),
+      Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const StatusPill('SpicySelf for Business', icon: Icons.storefront_outlined),
+        const SizedBox(height: 16),
+        Text('Your craft. Your community.', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        const Text('Run a shop or home studio? Apply from Profile to get discovered. You don’t need a Google Maps listing.'),
+        const SizedBox(height: 8),
+        TextButton(onPressed: () => openBusinessWorkspace(context, s), child: const Text('Meet SpicySelf for Business')),
+      ])),
     ]);
   }
+
+  Widget memberCard(Json b) => BusinessCard(business: b,
+      favorite: widget.store.favorites.contains(b['id']),
+      onOpen: () => openBusiness(context, widget.store, b['id'] as String),
+      onFavorite: () {
+        if (!widget.store.signedIn) { openAccount(context, widget.store); }
+        else { widget.store.run(() => widget.store.favorite(b['id'] as String)); }
+      });
+
+}
+
+class ResponsiveCards extends StatelessWidget {
+  const ResponsiveCards({super.key, required this.children});
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
+    final columns = constraints.maxWidth >= 720 ? 2 : 1;
+    final width = (constraints.maxWidth - (columns - 1) * 16) / columns;
+    return Wrap(spacing: 16, runSpacing: 0, children: [
+      for (final child in children) SizedBox(width: width, child: child),
+    ]);
+  });
+}
+
+class PublicBusinessCard extends StatelessWidget {
+  const PublicBusinessCard({super.key, required this.place, required this.store});
+  final Json place;
+  final AppStore store;
+  @override
+  Widget build(BuildContext context) => Panel(child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const StatusPill('Public Google listing', icon: Icons.public),
+      const SizedBox(height: 16),
+      Text(place['name'] as String, style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: 8), Text(place['address'] as String),
+      const SizedBox(height: 16),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        if (publicBookingUrl(place) != null) OutlinedButton.icon(
+            onPressed: () => openLink(publicBookingUrl(place)!),
+            icon: const Icon(Icons.open_in_new), label: const Text('Book externally')),
+        if (publicWebsiteUrl(place) != null) OutlinedButton.icon(
+            onPressed: () => openLink(publicWebsiteUrl(place)!),
+            icon: const Icon(Icons.language), label: const Text('Website')),
+        TextButton(onPressed: () => showPublicListing(context, store, place), child: const Text('View details')),
+      ]),
+    ]));
 }
 
 class BusinessCard extends StatelessWidget {
@@ -337,6 +318,8 @@ class BusinessCard extends StatelessWidget {
   Widget build(BuildContext context) => Panel(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        BrandPlaceholder(home: business['kind'] == 'home'),
+        const SizedBox(height: 16),
         Row(children: [
           Container(
               padding: const EdgeInsets.all(12),
@@ -355,8 +338,7 @@ class BusinessCard extends StatelessWidget {
                 Text(business['name'] as String,
                     style: const TextStyle(
                         fontSize: 19, fontWeight: FontWeight.bold)),
-                Text(
-                    '${business['suburb']} • ${(business['distance_km'] as num? ?? 0).toStringAsFixed(1)} km')
+                Text('${business['suburb']}${business['distance_km'] is num ? ' • ${(business['distance_km'] as num).toStringAsFixed(1)} km' : ''}')
               ])),
           IconButton(
               onPressed: onFavorite,
@@ -364,23 +346,16 @@ class BusinessCard extends StatelessWidget {
               tooltip: favorite ? 'Remove favourite' : 'Save favourite')
         ]),
         const SizedBox(height: 12),
-        if (business['status'] == 'approved')
-          const Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 6,
-            children: [
-              Icon(Icons.verified, size: 17, color: Colors.green),
-              Text('Verified SpicySelf business',
-                  softWrap: true,
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-            ],
-          ),
+        // The discover endpoint returns approved members only; older responses
+        // omit status. An explicit non-approved status never gets a badge.
+        if (business['status'] == null || business['status'] == 'approved')
+          const StatusPill('Verified SpicySelf business', icon: Icons.verified_outlined),
         const SizedBox(height: 8),
         Text(business['kind'] == 'home'
-            ? 'Home studio • appointments • approximate map pin'
+            ? 'Home studio • approximate map pin'
             : business['queue_open'] == true
                 ? 'Appointments + live queue'
-                : 'Appointments • queue paused'),
+                : 'Explore services and available times'),
         const SizedBox(height: 12),
         FilledButton(
             key: ValueKey('view-${business['id']}'),
@@ -409,7 +384,7 @@ Future<void> showPublicListing(
                 FilledButton.icon(
                     onPressed: () => openLink(publicBookingUrl(place)!),
                     icon: const Icon(Icons.event_available),
-                    label: const Text('Book Now')),
+                    label: const Text('Book externally')),
                 const SizedBox(height: 8),
               ],
               if (publicWebsiteUrl(place) != null) ...[
@@ -426,7 +401,7 @@ Future<void> showPublicListing(
                   child: const Text('View on Google Maps')),
               const SizedBox(height: 12),
               const Text(
-                  'Own this business? In the Business tab, include this Google Place ID when applying. Ownership is reviewed before booking is enabled.'),
+                  'Own this business? From Profile, include this Google Place ID when applying. Ownership is reviewed before booking is enabled.'),
               SelectableText(place['place_id'] as String),
               const GoogleAttribution(),
               for (final a in (place['attributions'] as List? ?? []))
