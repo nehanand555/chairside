@@ -354,7 +354,9 @@ void main() {
     backend.userId = 'owner';
     await app.refreshAccount();
     await tester.pumpAndSettle();
-    await tapVisible(tester, find.text('Account').last);
+    // Use the stable account shortcut instead of an ambiguous text label.
+    await tapVisible(tester, find.byKey(const ValueKey('account-greeting')));
+    expect(find.text('Your account'), findsOneWidget);
     await tapVisible(tester, find.widgetWithText(OutlinedButton, 'Open business'));
     await tester.pumpAndSettle();
     expect(app.businessId, 'p1');
