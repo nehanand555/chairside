@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/backend.dart';
 import '../data/store.dart';
 import 'app.dart';
+import 'admin.dart';
 import 'common.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -66,7 +67,7 @@ class _AccountScreenState extends State<AccountScreen> {
         FormFieldBox(name, 'Your name'),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text('Check My visits for booking confirmations and live queue updates.'),
+          child: Text('Check My Bookings for booking confirmations and live queue updates.'),
         ),
         if (s.backend!.hasVerifiedPhone) SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -90,7 +91,7 @@ class _AccountScreenState extends State<AccountScreen> {
       Panel(child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s.businessId == null ? 'List your business' : 'Your business',
+          Text('SpicySelf for Business',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(s.businessId == null
@@ -113,6 +114,15 @@ class _AccountScreenState extends State<AccountScreen> {
             label: Text(s.businessId == null ? 'List your business' : 'Open business'),
           ),
         ],
+      )),
+      if (s.isAdmin) Panel(child: ListTile(
+        leading: const Icon(Icons.admin_panel_settings_outlined),
+        title: const Text('Administration'),
+        subtitle: const Text('Protected review and operations console'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => DetailScaffold(store: s, title: 'Administration',
+            child: ListenableBuilder(listenable: s, builder: (context, child) => AdminScreen(store: s))))),
       )),
       if (s.businessId != null || s.isAdmin) MfaPanel(store: s),
       OutlinedButton(

@@ -29,6 +29,9 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.store;
+    if (!s.isAdmin) return const PageBody(children: [
+      PageHeading('Restricted access', 'This console is available to authorised administrators only.'),
+    ]);
     if (s.unlocked && data == null) reload();
     return OperatorGate(
         store: s,

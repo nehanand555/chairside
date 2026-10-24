@@ -213,7 +213,7 @@ void main() {
     final store = AppStore(backend);
     await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Account').last);
+    await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     expect(find.text('Phone number'), findsNothing);
     expect(find.text('Text me a code'), findsNothing);
@@ -250,7 +250,7 @@ void main() {
     final store = AppStore(backend);
     await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Account').last);
+    await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     await tapVisible(tester, find.byType(CheckboxListTile));
     await tapVisible(tester, find.text('Continue with Google'));
@@ -374,7 +374,7 @@ void main() {
     backend.userId = 'customer';
     await app.refreshAccount();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('My visits').last);
+    await tester.tap(find.text('My Bookings').last);
     await tester.pumpAndSettle();
     expect(find.text('completed'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());

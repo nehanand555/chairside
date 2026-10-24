@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/store.dart';
 import 'account.dart';
-import 'admin.dart';
 import 'business.dart';
 import 'common.dart';
 import 'discover.dart';
@@ -53,22 +52,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
   Widget build(BuildContext context) => MaterialApp(
         title: 'SpicySelf',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-                seedColor: ink, primary: ink, secondary: lime, surface: cream),
-            scaffoldBackgroundColor: cream,
-            appBarTheme:
-                const AppBarTheme(backgroundColor: cream, foregroundColor: ink),
-            filledButtonTheme: FilledButtonThemeData(
-                style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 17))),
-            cardTheme: const CardThemeData(
-                elevation: 0,
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(20))))),
+        theme: spicyTheme(),
         home: ListenableBuilder(
             listenable: widget.store,
             builder: (context, _) {
@@ -84,18 +68,22 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                       const Text(
                           'No personal information is collected on this screen.')
                     ]));
-              final destinations = <(String, IconData)>[
-                ('Explore', Icons.map_outlined),
-                ('My visits', Icons.event_outlined),
-                ('Account', Icons.person_outline),
-                if (s.isAdmin) ('Admin', Icons.admin_panel_settings_outlined)
+              const destinations = <(String, IconData)>[
+                ('Explore', Icons.explore_outlined),
+                ('Map', Icons.map_outlined),
+                ('My Bookings', Icons.calendar_month_outlined),
+                ('Profile', Icons.person_outline),
               ];
-              final selected = index < destinations.length ? index : 0;
+              final selected = index;
               final pages = <Widget>[
-                DiscoverScreen(store: s, mapsEnabled: widget.mapsEnabled),
+                DiscoverScreen(
+                    store: s,
+                    mapsEnabled: widget.mapsEnabled,
+                    mapMode: index == 1,
+                    onOpenMap: () => setState(() => index = 1)),
                 VisitsScreen(store: s),
-                AccountScreen(key: ValueKey(s.backend!.userId), store: s, onBusinessTap: () => openBusinessWorkspace(context, s)),
-                if (s.isAdmin) AdminScreen(key: ValueKey(s.unlocked), store: s)
+                AccountScreen(key: ValueKey(s.backend!.userId), store: s,
+                    onBusinessTap: () => openBusinessWorkspace(context, s)),
               ];
               return LayoutBuilder(builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 850;
@@ -118,7 +106,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                             width: double.infinity,
                             child: TextButton(
                               key: const ValueKey('account-greeting'),
-                              onPressed: () => setState(() => index = 2),
+                              onPressed: () => setState(() => index = 3),
                               child: Row(children: [
                                 const Icon(Icons.person_outline),
                                 const SizedBox(width: 8),
@@ -148,19 +136,19 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                                     icon: Icon(d.$2), label: Text(d.$1)))
                                 .toList()),
                       Expanded(
-                          child: IndexedStack(index: selected, children: pages))
+                          child: IndexedStack(index: selected < 2 ? 0 : selected - 1, children: pages))
                     ]))
                   ]),
                   bottomNavigationBar: wide
                       ? null
-                      : NavigationBar(
+                      : SafeArea(top: false, child: NavigationBar(
                           selectedIndex: selected,
                           onDestinationSelected: (v) =>
                               setState(() => index = v),
                           destinations: destinations
                               .map((d) => NavigationDestination(
                                   icon: Icon(d.$2), label: d.$1))
-                              .toList()),
+                              .toList())),
                 );
               });
             }),
@@ -239,13 +227,13 @@ Future<void> showLegal(BuildContext context) => showModalBottomSheet<void>(
           const Text('Bookings & payments',
               style: TextStyle(fontWeight: FontWeight.bold)),
           const Text(
-              'Prices are in NZD and shown before confirmation. Queue times are estimates and can change. You can cancel an upcoming visit in My visits. This release requests a full refund for prepaid visits cancelled before service or marked absent. Refund processing takes additional time. Businesses can also issue a full refund through SpicySelf. Your statutory rights continue to apply.'),
+              'Prices are in NZD and shown before confirmation. Queue times are estimates and can change. You can cancel an upcoming visit in My Bookings. This release requests a full refund for prepaid visits cancelled before service or marked absent. Refund processing takes additional time. Businesses can also issue a full refund through SpicySelf. Your statutory rights continue to apply.'),
           const SizedBox(height: 20),
           const Text('Privacy', style: TextStyle(fontWeight: FontWeight.bold)),
           const Text(
-              'You can browse without an account. We use your Google account to sign you in and your name for bookings. We never receive your Google password. Location permission is optional; your device location is used for a nearby search and is not saved as your home address. Your business can see your booking name and service. Booking and queue updates are available in My visits. Optional SMS updates require a verified phone number, your consent and an enabled SMS service. Card details are handled by Stripe. Home studio addresses are shown only to confirmed upcoming customers and authorised operators. Public photos and listing details are visible to everyone.'),
+              'You can browse without an account. We use your Google account to sign you in and your name for bookings. We never receive your Google password. Location permission is optional; your device location is used for a nearby search and is not saved as your home address. Your business can see your booking name and service. Booking and queue updates are available in My Bookings. Optional SMS updates require a verified phone number, your consent and an enabled SMS service. Card details are handled by Stripe. Home studio addresses are shown only to confirmed upcoming customers and authorised operators. Public photos and listing details are visible to everyone.'),
           const Text(
-              'Data is processed by our hosting, maps, authentication, payment and SMS providers, which may process data outside New Zealand. Delete your account from Account after visits and pending refunds are finished; minimal financial records may be retained. Contact support to request access or correction. Google Maps Platform terms and Google’s privacy policy apply to map services.'),
+              'Data is processed by our hosting, maps, authentication, payment and SMS providers, which may process data outside New Zealand. Delete your account from Profile after visits and pending refunds are finished; minimal financial records may be retained. Contact support to request access or correction. Google Maps Platform terms and Google’s privacy policy apply to map services.'),
           const SizedBox(height: 12),
           TextButton(
               onPressed: () => openLink('https://policies.google.com/privacy'),

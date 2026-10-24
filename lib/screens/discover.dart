@@ -50,9 +50,11 @@ String? publicBookingUrl(Json place) {
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen(
-      {super.key, required this.store, this.mapsEnabled = true});
+      {super.key, required this.store, this.mapsEnabled = true, this.mapMode = false, this.onOpenMap});
   final AppStore store;
   final bool mapsEnabled;
+  final bool mapMode;
+  final VoidCallback? onOpenMap;
   @override
   State<DiscoverScreen> createState() => _DiscoverScreenState();
 }
@@ -193,7 +195,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         Notice(error!,
             action: TextButton(
                 onPressed: () => load(), child: const Text('Try again'))),
-      if (mapAvailable)
+      if (mapAvailable && widget.mapMode)
         ClipRRect(
             borderRadius: BorderRadius.circular(22),
             child: SizedBox(
@@ -234,14 +236,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   },
                 ))),
       const SizedBox(height: 8),
-      if (mapAvailable)
+      if (mapAvailable && widget.mapMode)
         Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
                 onPressed: loading ? null : () => load(text: false),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Search this map area'))),
-      if (!mapAvailable)
+      if (!mapAvailable && widget.mapMode)
         const Notice(
             'Map view is unavailable. You can browse businesses in the list below.'),
       if (warning != null)
