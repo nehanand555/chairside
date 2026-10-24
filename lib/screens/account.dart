@@ -100,7 +100,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   : 'View your application status and review notifications.'),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: widget.onBusinessTap ?? () => openBusiness(context, s),
+            onPressed: widget.onBusinessTap ?? () => openBusinessWorkspace(context, s),
             icon: const Icon(Icons.storefront_outlined),
             label: Text(s.businessId == null ? 'List your business' : 'Open business'),
           ),
