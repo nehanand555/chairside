@@ -364,7 +364,13 @@ void main() {
     expect(find.text('Harbour Cuts'), findsWidgets);
     await tapVisible(tester, find.widgetWithText(FilledButton, 'Start'));
     expect(backend.visits.single['status'], 'serving');
+    expect(find.widgetWithText(FilledButton, 'Start'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Finish'), findsOneWidget);
     await tapVisible(tester, find.widgetWithText(FilledButton, 'Finish'));
+    expect(backend.visits.single['status'], 'completed');
+    // The business workspace is a separate route above the customer tabs.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     backend.userId = 'customer';
     await app.refreshAccount();
     await tester.pumpAndSettle();

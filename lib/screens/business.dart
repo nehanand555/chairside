@@ -27,7 +27,11 @@ class BusinessScreen extends StatelessWidget {
   const BusinessScreen({super.key, required this.store});
   final AppStore store;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+      listenable: store,
+      builder: (context, _) => buildWorkspace(context));
+
+  Widget buildWorkspace(BuildContext context) {
     if (!store.signedIn) {
       return OperatorGate(store: store, child: const SizedBox.shrink());
     }
