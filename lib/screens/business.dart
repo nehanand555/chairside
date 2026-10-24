@@ -430,6 +430,17 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                   .toList()
                 ..sort((a, b) => (a['starts_at'] as String)
                     .compareTo(b['starts_at'] as String));
+              final activeServices = services.where((v) => v['active'] == true).length;
+              final activeChairs = resources.where((v) => v['active'] == true).length;
+              final hasHours = (b['hours'] as List).isNotEmpty;
+              final setupSteps = <(String, bool)>[
+                ('Add at least one active service with a price', activeServices > 0),
+                ('Set your weekly opening hours', hasHours),
+                ('Add an active chair or professional', activeChairs > 0),
+              ];
+              final setupComplete = setupSteps.where((step) => step.$2).length;
+              final completedVisits = visits.where((v) => v['status'] == 'completed').length;
+              final cancelledVisits = visits.where((v) => v['status'] == 'cancelled').length;
               final active = visits
                   .where((v) =>
                       ['waiting', 'booked', 'serving'].contains(v['status']) &&
@@ -463,6 +474,34 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                                 'serving'
                               ].contains(v['status']) && dayKey(tz.TZDateTime.from(DateTime.parse(v['starts_at'] as String), tz.getLocation('Pacific/Auckland'))) == dayKey(nzNow())).length} appointments today',
                           icon: Icons.today_outlined),
+                    ]),
+                    const SizedBox(height: 16),
+                    if (setupComplete < setupSteps.length)
+                      Panel(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Finish setting up your business ($setupComplete/${setupSteps.length})',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 8),
+                          const Text('Complete these steps so customers can see accurate services and availability.'),
+                          const SizedBox(height: 8),
+                          for (final step in setupSteps)
+                            ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(step.$2 ? Icons.check_circle_outline : Icons.radio_button_unchecked),
+                              title: Text(step.$1),
+                            ),
+                          OutlinedButton.icon(
+                            onPressed: () => setState(() => section = 1),
+                            icon: const Icon(Icons.settings_outlined),
+                            label: const Text('Complete business setup'),
+                          ),
+                        ],
+                      )),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      StatusPill('$completedVisits completed visits', icon: Icons.check_circle_outline),
+                      StatusPill('$cancelledVisits cancelled visits', icon: Icons.event_busy_outlined),
                     ]),
                     const SizedBox(height: 16),
                     Wrap(spacing: 8, runSpacing: 8, children: [
