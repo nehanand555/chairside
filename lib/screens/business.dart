@@ -74,10 +74,9 @@ class BusinessScreen extends StatelessWidget {
         if (status == 'pending') ...[
           OutlinedButton.icon(
             onPressed: store.busy ? null : () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => DetailScaffold(
-                store: store,
-                title: 'Edit application',
-                child: PendingApplicationEditor(store: store),
+              MaterialPageRoute<void>(builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Edit application')),
+                body: PendingApplicationEditor(store: store),
               )),
             ),
             icon: const Icon(Icons.edit_outlined),
