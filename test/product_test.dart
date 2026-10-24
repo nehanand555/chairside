@@ -357,6 +357,9 @@ void main() {
     await tapVisible(tester, find.text('Account').last);
     await tapVisible(tester, find.widgetWithText(OutlinedButton, 'Open business'));
     await tester.pumpAndSettle();
+    expect(app.businessId, 'p1');
+    expect(app.visits.single['status'], 'waiting');
+    expect(find.text('Harbour Cuts'), findsWidgets);
     await tapVisible(tester, find.widgetWithText(FilledButton, 'Start'));
     expect(backend.visits.single['status'], 'serving');
     await tapVisible(tester, find.widgetWithText(FilledButton, 'Finish'));
