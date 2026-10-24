@@ -87,7 +87,6 @@ class _SpicySelfAppState extends State<SpicySelfApp>
               final destinations = <(String, IconData)>[
                 ('Explore', Icons.map_outlined),
                 ('My visits', Icons.event_outlined),
-                ('Business', Icons.storefront_outlined),
                 ('Account', Icons.person_outline),
                 if (s.isAdmin) ('Admin', Icons.admin_panel_settings_outlined)
               ];
@@ -95,9 +94,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
               final pages = <Widget>[
                 DiscoverScreen(store: s, mapsEnabled: widget.mapsEnabled),
                 VisitsScreen(store: s),
-                BusinessScreen(
-                    key: ValueKey('${s.businessId}-${s.unlocked}'), store: s),
-                AccountScreen(key: ValueKey(s.backend!.userId), store: s),
+                AccountScreen(key: ValueKey(s.backend!.userId), store: s, onBusinessTap: () => openBusiness(context, s)),
                 if (s.isAdmin) AdminScreen(key: ValueKey(s.unlocked), store: s)
               ];
               return LayoutBuilder(builder: (context, constraints) {
@@ -121,7 +118,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                             width: double.infinity,
                             child: TextButton(
                               key: const ValueKey('account-greeting'),
-                              onPressed: () => setState(() => index = 3),
+                              onPressed: () => setState(() => index = 2),
                               child: Row(children: [
                                 const Icon(Icons.person_outline),
                                 const SizedBox(width: 8),
@@ -212,6 +209,13 @@ class DetailScaffold extends StatelessWidget {
             Expanded(child: child)
           ])));
 }
+
+Future<void> openBusiness(BuildContext context, AppStore store) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => DetailScaffold(
+            store: store,
+            title: 'SpicySelf for business',
+            child: BusinessScreen(store: store))));
 
 Future<void> openAccount(BuildContext context, AppStore store) =>
     Navigator.of(context).push(MaterialPageRoute<void>(
