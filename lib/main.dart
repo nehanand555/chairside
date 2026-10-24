@@ -18,7 +18,8 @@ Future<void> main() async {
       await Supabase.initialize(
         url: url,
         publishableKey: key,
-        authOptions: const FlutterAuthClientOptions(authFlowType: AuthFlowType.pkce),
+        authOptions:
+            const FlutterAuthClientOptions(authFlowType: AuthFlowType.pkce),
       );
       backend = SupabaseBackend(Supabase.instance.client);
     } catch (_) {

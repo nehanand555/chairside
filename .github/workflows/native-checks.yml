@@ -1,7 +1,7 @@
 name: Native build checks
 on:
   pull_request:
-    paths: ['lib/**', 'pubspec.*', 'tool/bootstrap.py', '.github/workflows/native-checks.yml']
+    paths: ['lib/**', 'pubspec.*', 'tool/**', 'assets/branding/**', '.github/workflows/native-checks.yml']
   workflow_dispatch:
 permissions:
   contents: read

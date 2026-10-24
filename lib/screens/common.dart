@@ -8,36 +8,85 @@ const ink = Color(0xff153e37);
 const cream = Color(0xfffaf9f0);
 const lime = Color(0xffdcf4a5);
 
+class LocationSearchBar extends StatelessWidget {
+  const LocationSearchBar(
+      {super.key, required this.controller, required this.onSearch});
+  final TextEditingController controller;
+  final VoidCallback onSearch;
+  @override
+  Widget build(BuildContext context) => TextField(
+      controller: controller,
+      maxLength: 100,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => onSearch(),
+      decoration: const InputDecoration(
+          hintText: 'Search suburb, town or postcode',
+          counterText: '',
+          prefixIcon: Icon(Icons.search),
+          labelText: 'Where are you looking?'));
+}
+
 ThemeData spicyTheme() {
-  final scheme = ColorScheme.fromSeed(seedColor: ink, primary: ink,
-      secondary: lime, surface: cream, onSurface: const Color(0xff242b29));
-  final border = OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+  final scheme = ColorScheme.fromSeed(
+      seedColor: ink,
+      primary: ink,
+      secondary: lime,
+      surface: cream,
+      onSurface: const Color(0xff242b29));
+  final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
       borderSide: const BorderSide(color: Color(0xffdce1da)));
-  return ThemeData(useMaterial3: true, colorScheme: scheme,
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
     scaffoldBackgroundColor: cream,
     visualDensity: VisualDensity.standard,
-    appBarTheme: const AppBarTheme(backgroundColor: cream, foregroundColor: ink,
-        surfaceTintColor: Colors.transparent, centerTitle: false),
-    navigationBarTheme: const NavigationBarThemeData(backgroundColor: Colors.white,
-        indicatorColor: lime, height: 80),
-    inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: Colors.white,
-        contentPadding: const EdgeInsets.all(16), border: border, enabledBorder: border,
-        focusedBorder: border.copyWith(borderSide: const BorderSide(color: ink, width: 2))),
-    chipTheme: ChipThemeData(side: BorderSide.none, backgroundColor: Colors.white,
-        selectedColor: lime, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    appBarTheme: const AppBarTheme(
+        backgroundColor: cream,
+        foregroundColor: ink,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false),
+    navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: Colors.white, indicatorColor: lime, height: 80),
+    inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.all(16),
+        border: border,
+        enabledBorder: border,
+        focusedBorder: border.copyWith(
+            borderSide: const BorderSide(color: ink, width: 2))),
+    chipTheme: ChipThemeData(
+        side: BorderSide.none,
+        backgroundColor: Colors.white,
+        selectedColor: lime,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
-        minimumSize: const Size(48, 48), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)))),
-    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
-        minimumSize: const Size(48, 48), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)))),
-    cardTheme: const CardThemeData(color: Colors.white, elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(24)))),
-    dialogTheme: const DialogThemeData(shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(24)))),
-    bottomSheetTheme: const BottomSheetThemeData(backgroundColor: cream, showDragHandle: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24)))),
+    filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)))),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)))),
+    cardTheme: const CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(24)))),
+    dialogTheme: const DialogThemeData(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(24)))),
+    bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: cream,
+        showDragHandle: true,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)))),
   );
 }
 
@@ -48,16 +97,24 @@ class SectionHeader extends StatelessWidget {
   final Widget? action;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 8, bottom: 16),
-    child: Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 16, runSpacing: 8, children: [
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-          if (subtitle != null) Text(subtitle!),
-        ]),
-        if (action != null) action!,
-      ]),
-  );
+        padding: const EdgeInsets.only(top: 8, bottom: 16),
+        child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+                if (subtitle != null) Text(subtitle!),
+              ]),
+              if (action != null) action!,
+            ]),
+      );
 }
 
 class StatusPill extends StatelessWidget {
@@ -66,11 +123,20 @@ class StatusPill extends StatelessWidget {
   final IconData icon;
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(color: lime.withValues(alpha: .45), borderRadius: BorderRadius.circular(16)),
-    child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 6,
-      children: [Icon(icon, size: 16, color: ink), Text(label, style: const TextStyle(color: ink, fontWeight: FontWeight.w600))]),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+            color: lime.withValues(alpha: .45),
+            borderRadius: BorderRadius.circular(16)),
+        child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            children: [
+              Icon(icon, size: 16, color: ink),
+              Text(label,
+                  style:
+                      const TextStyle(color: ink, fontWeight: FontWeight.w600))
+            ]),
+      );
 }
 
 class BrandPlaceholder extends StatelessWidget {
@@ -78,41 +144,66 @@ class BrandPlaceholder extends StatelessWidget {
   final bool home;
   final double height;
   @override
-  Widget build(BuildContext context) => Container(height: height, width: double.infinity,
-    decoration: BoxDecoration(color: cream, borderRadius: BorderRadius.circular(16)),
-    child: Center(child: Icon(home ? Icons.home_outlined : Icons.content_cut, size: 40, color: ink)),
-  );
+  Widget build(BuildContext context) => Container(
+        height: height,
+        width: double.infinity,
+        decoration: BoxDecoration(
+            color: cream, borderRadius: BorderRadius.circular(16)),
+        child: Center(
+            child: Icon(home ? Icons.home_outlined : Icons.content_cut,
+                size: 40, color: ink)),
+      );
 }
 
 class DiscoverySkeleton extends StatelessWidget {
   const DiscoverySkeleton({super.key});
   @override
-  Widget build(BuildContext context) => Semantics(label: 'Loading nearby businesses',
-    child: Column(children: [const LinearProgressIndicator(), const SizedBox(height: 16),
-      for (var i = 0; i < 2; i++) Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(height: 80, decoration: BoxDecoration(color: cream, borderRadius: BorderRadius.circular(16))),
-        const SizedBox(height: 16), Container(height: 16, width: 180, color: cream),
-        const SizedBox(height: 8), Container(height: 12, width: 120, color: cream),
-      ])),
-    ]),
-  );
+  Widget build(BuildContext context) => Semantics(
+        label: 'Loading nearby businesses',
+        child: Column(children: [
+          const LinearProgressIndicator(),
+          const SizedBox(height: 16),
+          for (var i = 0; i < 2; i++)
+            Panel(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                          color: cream,
+                          borderRadius: BorderRadius.circular(16))),
+                  const SizedBox(height: 16),
+                  Container(height: 16, width: 180, color: cream),
+                  const SizedBox(height: 8),
+                  Container(height: 12, width: 120, color: cream),
+                ])),
+        ]),
+      );
 }
 
 class WorkspaceGroup extends StatelessWidget {
-  const WorkspaceGroup({super.key, required this.title, required this.icon, required this.children});
+  const WorkspaceGroup(
+      {super.key,
+      required this.title,
+      required this.icon,
+      required this.children});
   final String title;
   final IconData icon;
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 16),
-    clipBehavior: Clip.antiAlias,
-    child: ExpansionTile(key: PageStorageKey(title), leading: Icon(icon, color: ink),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-      children: children),
-  );
+        margin: const EdgeInsets.only(bottom: 16),
+        clipBehavior: Clip.antiAlias,
+        child: ExpansionTile(
+            key: PageStorageKey(title),
+            leading: Icon(icon, color: ink),
+            title: Text(title,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+            childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children),
+      );
 }
 
 /// Shared scissors artwork and wordmark for configured and setup screens.
@@ -247,7 +338,8 @@ class FormFieldBox extends StatelessWidget {
       this.hint,
       this.keyboard,
       this.lines = 1,
-      this.required = true, this.validator});
+      this.required = true,
+      this.validator});
   final TextEditingController controller;
   final String label;
   final String? hint;
@@ -267,9 +359,10 @@ class FormFieldBox extends StatelessWidget {
               labelText: label,
               hintText: hint,
               border: const OutlineInputBorder()),
-          validator: validator ?? (v) => required && (v == null || v.trim().isEmpty)
-              ? 'Enter $label'
-              : null));
+          validator: validator ??
+              (v) => required && (v == null || v.trim().isEmpty)
+                  ? 'Enter $label'
+                  : null));
 }
 
 class ActionButton extends StatelessWidget {

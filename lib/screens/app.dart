@@ -30,7 +30,8 @@ class _SpicySelfAppState extends State<SpicySelfApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _poll = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (_active && widget.store.signedIn && !widget.store.busy) unawaited(widget.store.refreshVisits());
+      if (_active && widget.store.signedIn && !widget.store.busy)
+        unawaited(widget.store.refreshVisits());
     });
   }
 
@@ -82,20 +83,20 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                     mapMode: index == 1,
                     onOpenMap: () => setState(() => index = 1)),
                 VisitsScreen(store: s),
-                AccountScreen(key: ValueKey(s.backend!.userId), store: s,
+                AccountScreen(
+                    key: ValueKey(s.backend!.userId),
+                    store: s,
                     onBusinessTap: () => openBusinessWorkspace(context, s)),
               ];
               return LayoutBuilder(builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 850;
                 return Scaffold(
-                  appBar: AppBar(
-                      title: const SpicySelfBrand(),
-                      actions: [
-                        TextButton.icon(
-                            onPressed: () => showLegal(context),
-                            icon: const Icon(Icons.info_outline, size: 18),
-                            label: const Text('About'))
-                      ]),
+                  appBar: AppBar(title: const SpicySelfBrand(), actions: [
+                    TextButton.icon(
+                        onPressed: () => showLegal(context),
+                        icon: const Icon(Icons.info_outline, size: 18),
+                        label: const Text('About'))
+                  ]),
                   body: Column(children: [
                     if (s.signedIn)
                       Align(
@@ -112,7 +113,9 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    s.displayName.isEmpty ? 'Complete your account' : 'Hi, ${s.displayName}',
+                                    s.displayName.isEmpty
+                                        ? 'Complete your account'
+                                        : 'Hi, ${s.displayName}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -136,19 +139,23 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                                     icon: Icon(d.$2), label: Text(d.$1)))
                                 .toList()),
                       Expanded(
-                          child: IndexedStack(index: selected < 2 ? 0 : selected - 1, children: pages))
+                          child: IndexedStack(
+                              index: selected < 2 ? 0 : selected - 1,
+                              children: pages))
                     ]))
                   ]),
                   bottomNavigationBar: wide
                       ? null
-                      : SafeArea(top: false, child: NavigationBar(
-                          selectedIndex: selected,
-                          onDestinationSelected: (v) =>
-                              setState(() => index = v),
-                          destinations: destinations
-                              .map((d) => NavigationDestination(
-                                  icon: Icon(d.$2), label: d.$1))
-                              .toList())),
+                      : SafeArea(
+                          top: false,
+                          child: NavigationBar(
+                              selectedIndex: selected,
+                              onDestinationSelected: (v) =>
+                                  setState(() => index = v),
+                              destinations: destinations
+                                  .map((d) => NavigationDestination(
+                                      icon: Icon(d.$2), label: d.$1))
+                                  .toList())),
                 );
               });
             }),

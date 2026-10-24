@@ -10,22 +10,34 @@ import 'account.dart';
 import 'common.dart';
 import 'visits.dart';
 
-Future<void> sendApplicationNotification(AppStore store, String businessId) async {
-  store.applicationNotificationMessage = 'Your application is saved. Sending the review notification…';
+Future<void> sendApplicationNotification(
+    AppStore store, String businessId) async {
+  store.applicationNotificationMessage =
+      'Your application is saved. Sending the review notification…';
   store.changed();
   try {
-    final result = await store.backend!.invoke('business-application-notify', {'business_id': businessId});
-    if (result['email_sent'] == true || result['already_processed'] == true) {
-      store.applicationNotificationMessage = 'Your application is saved and the review notification has been accepted. Delivery to the inbox is not guaranteed.';
+    final result = await store.backend!
+        .invoke('business-application-notify', {'business_id': businessId});
+    if (result['email_sent'] == true) {
+      store.applicationNotificationMessage =
+          'Your application is saved and the review notification has been accepted. Delivery to the inbox is not guaranteed.';
+    } else if (result['already_processed'] == true) {
+      store.applicationNotificationMessage =
+          'Your application is saved. There is no pending review notification to send.';
     } else if (result['configuration_required'] == true) {
-      throw Exception('Application saved. Review email needs a verified sender configured by the platform. You can retry without reapplying.');
+      throw Exception(
+          'Application saved. Review email needs a verified sender configured by the platform. You can retry without reapplying.');
     } else {
-      throw Exception('Application saved. Review email was not accepted; please retry without reapplying.');
+      throw Exception(
+          'Application saved. Review email was not accepted; please retry without reapplying.');
     }
   } catch (e) {
-    store.applicationNotificationMessage = 'Application saved. Notification delivery needs attention. ${friendlyError(e)}';
+    store.applicationNotificationMessage =
+        'Application saved. Notification delivery needs attention. ${friendlyError(e)}';
     rethrow;
-  } finally { store.changed(); }
+  } finally {
+    store.changed();
+  }
 }
 
 class BusinessScreen extends StatelessWidget {
@@ -33,8 +45,7 @@ class BusinessScreen extends StatelessWidget {
   final AppStore store;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-      listenable: store,
-      builder: (context, _) => buildWorkspace(context));
+      listenable: store, builder: (context, _) => buildWorkspace(context));
 
   Widget buildWorkspace(BuildContext context) {
     if (!store.signedIn) {
@@ -45,23 +56,27 @@ class BusinessScreen extends StatelessWidget {
     }
     if (store.account['business_status'] != 'approved') {
       final status = store.account['business_status'] as String? ?? 'pending';
-      final note = (store.account['business_review_note'] as String? ?? '').trim();
+      final note =
+          (store.account['business_review_note'] as String? ?? '').trim();
       return PageBody(width: 700, children: [
         PageHeading(
-          status == 'pending' ? 'Application under review' : 'Business application: $status',
+          status == 'pending'
+              ? 'Application under review'
+              : 'Business application: $status',
           'Your business will appear as a verified SpicySelf listing only after approval.',
         ),
         Notice(status == 'pending'
             ? 'Your application has been submitted. Our team will review your registration and contact details.'
             : 'Your business is not currently approved. Contact SpicySelf support if you need a review.'),
         if (note.isNotEmpty) Panel(child: Text('Review note: $note')),
-        if (store.applicationNotificationMessage != null) Notice(store.applicationNotificationMessage!),
+        if (store.applicationNotificationMessage != null)
+          Notice(store.applicationNotificationMessage!),
         if (status == 'pending')
           OutlinedButton.icon(
             onPressed: store.busy
                 ? null
-                : () => store.run(
-                    () => sendApplicationNotification(store, store.businessId!)),
+                : () => store.run(() =>
+                    sendApplicationNotification(store, store.businessId!)),
             icon: const Icon(Icons.mail_outline),
             label: const Text('Retry review email'),
           ),
@@ -105,7 +120,19 @@ class _BusinessApplicationState extends State<BusinessApplication> {
   LatLng pin = const LatLng(-36.8485, 174.7633);
   @override
   void dispose() {
-    for (final c in [name, registrationNumber, contactName, contactEmail, contactPhone, description, address, suburb, placeId, lat, lng]) {
+    for (final c in [
+      name,
+      registrationNumber,
+      contactName,
+      contactEmail,
+      contactPhone,
+      description,
+      address,
+      suburb,
+      placeId,
+      lat,
+      lng
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -121,15 +148,26 @@ class _BusinessApplicationState extends State<BusinessApplication> {
 
   Future<void> submit() async {
     final s = widget.store;
-    if (!consent || !declaration) throw Exception('Confirm business authority and publication consent.');
-    final applicationId = await s.backend!.rpc('apply_business', {'p_data': {
-      'name': name.text.trim(), 'registration_number': registrationNumber.text.trim(),
-      'contact_name': contactName.text.trim(), 'contact_email': contactEmail.text.trim(),
-      'contact_phone': contactPhone.text.trim(), 'description': description.text.trim(),
-      'kind': kind, 'address': address.text.trim(), 'suburb': suburb.text.trim(),
-      'lat': double.parse(lat.text.trim()), 'lng': double.parse(lng.text.trim()),
-      'place_id': placeId.text.trim(), 'publish_consent': consent, 'operating_declaration': declaration,
-    }});
+    if (!consent || !declaration)
+      throw Exception('Confirm business authority and publication consent.');
+    final applicationId = await s.backend!.rpc('apply_business', {
+      'p_data': {
+        'name': name.text.trim(),
+        'registration_number': registrationNumber.text.trim(),
+        'contact_name': contactName.text.trim(),
+        'contact_email': contactEmail.text.trim(),
+        'contact_phone': contactPhone.text.trim(),
+        'description': description.text.trim(),
+        'kind': kind,
+        'address': address.text.trim(),
+        'suburb': suburb.text.trim(),
+        'lat': double.parse(lat.text.trim()),
+        'lng': double.parse(lng.text.trim()),
+        'place_id': placeId.text.trim(),
+        'publish_consent': consent,
+        'operating_declaration': declaration,
+      }
+    });
     // Saving and notification delivery are separate: never resubmit a saved application.
     await s.refreshAccount();
     await sendApplicationNotification(s, applicationId as String);
@@ -147,96 +185,203 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     return PageBody(width: 760, children: [
       const PageHeading('Your craft. A bigger community.',
           'Join SpicySelf to share your services, welcome local customers and manage your day.'),
-      const StatusPill('SpicySelf for Business', icon: Icons.storefront_outlined),
+      const StatusPill('SpicySelf for Business',
+          icon: Icons.storefront_outlined),
       const SizedBox(height: 24),
-      Text('Step ${step + 1} of 4 · ${labels[step]}', style: Theme.of(context).textTheme.titleMedium),
+      Text('Step ${step + 1} of 4 · ${labels[step]}',
+          style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 8),
-      LinearProgressIndicator(value: (step + 1) / 4, semanticsLabel: 'Application progress'),
+      LinearProgressIndicator(
+          value: (step + 1) / 4, semanticsLabel: 'Application progress'),
       const SizedBox(height: 24),
-      Form(key: form, child: Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (step == 0) ...[
-          const SectionHeader('Tell us about your business'),
-          FormFieldBox(name, 'Registered business / trading name', validator: (v) =>
-              (v ?? '').trim().length < 2 ? 'Enter a name of at least 2 characters' : null),
-          FormFieldBox(registrationNumber, 'NZBN or business registration number',
-              hint: 'Use Not applicable if you do not have a registration number',
-              validator: (v) => (v ?? '').trim().length < 2 || (v ?? '').length > 80 ? 'Enter your registration number or Not applicable' : null),
-          DropdownButtonFormField<String>(initialValue: kind, isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Business type'),
-            items: const [DropdownMenuItem(value: 'barber', child: Text('Barber shop')),
-              DropdownMenuItem(value: 'salon', child: Text('Hair salon')),
-              DropdownMenuItem(value: 'home', child: Text('Home studio'))],
-            onChanged: (v) => setState(() => kind = v!)),
-          const SizedBox(height: 16),
-          FormFieldBox(description, 'About your business', lines: 3, required: false),
-        ],
-        if (step == 1) ...[
-          const SectionHeader('A person we can reach'),
-          FormFieldBox(contactName, 'Contact person full name', validator: (v) =>
-              (v ?? '').trim().length < 2 ? 'Enter the contact person’s name' : null),
-          FormFieldBox(contactEmail, 'Business contact email', keyboard: TextInputType.emailAddress,
-              validator: (v) => RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid email address'),
-          FormFieldBox(contactPhone, 'Business contact phone', keyboard: TextInputType.phone,
-              validator: (v) => RegExp(r'^[+0-9 ()-]{7,30}$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid contact phone'),
-          const Notice('Registration and contact details are private. Only authorised reviewers can see them.'),
-        ],
-        if (step == 2) ...[
-          const SectionHeader('Where the good hair happens'),
-          FormFieldBox(address, 'Full business address', validator: (v) =>
-              (v ?? '').trim().length < 5 || (v ?? '').length > 300 ? 'Enter a full street address (5–300 characters)' : null),
-          FormFieldBox(suburb, 'Suburb / town'),
-          const Text('Set the pin at your entrance. Home studios publish an approximate pin and suburb only; the exact address stays private.'),
-          const SizedBox(height: 16),
-          if ((!kIsWeb && const bool.fromEnvironment('MAPS_ENABLED')) ||
-              (kIsWeb && const String.fromEnvironment('GOOGLE_MAPS_WEB_KEY').isNotEmpty))
-            ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(height: 240,
-              child: GoogleMap(initialCameraPosition: CameraPosition(target: pin, zoom: 12),
-                onTap: setPin, markers: {Marker(markerId: const MarkerId('business'), position: pin,
-                    draggable: true, onDragEnd: setPin)},
-                zoomControlsEnabled: false, myLocationButtonEnabled: false))),
-          OutlinedButton.icon(onPressed: s.busy ? null : () => s.run(() async {
-            if (!await Geolocator.isLocationServiceEnabled()) throw Exception('Turn on location services or enter the coordinates.');
-            var permission = await Geolocator.checkPermission();
-            if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
-            if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever)
-              throw Exception('Location permission is off. Tap the map or enter the coordinates.');
-            final value = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(timeLimit: Duration(seconds: 15)));
-            if (mounted) setPin(LatLng(value.latitude, value.longitude));
-          }), icon: const Icon(Icons.my_location), label: const Text('Use my current business location')),
-          const SizedBox(height: 16),
-          FormFieldBox(lat, 'Pin latitude', hint: '-36.848500',
-            keyboard: const TextInputType.numberWithOptions(decimal: true, signed: true),
-            validator: (v) { final n = double.tryParse(v ?? ''); return n == null || !n.isFinite || n < -48 || n > -33 ? 'Enter a New Zealand latitude (−48 to −33)' : null; }),
-          FormFieldBox(lng, 'Pin longitude', hint: '174.763300',
-            keyboard: const TextInputType.numberWithOptions(decimal: true, signed: true),
-            validator: (v) { final n = double.tryParse(v ?? ''); return n == null || !n.isFinite || n < 165 || n > 180 ? 'Enter a New Zealand longitude (165 to 180)' : null; }),
-          FormFieldBox(placeId, 'Google Place ID (optional)', required: false, hint: 'Only if claiming an existing Google listing'),
-        ],
-        if (step == 3) ...[
-          const SectionHeader('One last look'),
-          Text(name.text, style: Theme.of(context).textTheme.titleLarge),
-          Text('${kind == 'home' ? 'Home studio' : kind == 'salon' ? 'Hair salon' : 'Barber shop'} · ${suburb.text}'),
-          const SizedBox(height: 16),
-          Text('Review contact: ${contactName.text} · ${contactEmail.text}'),
-          const SizedBox(height: 16),
-          CheckboxListTile(contentPadding: EdgeInsets.zero, value: declaration,
-            onChanged: s.busy ? null : (v) => setState(() => declaration = v!),
-            title: const Text('I own or am authorised to manage this business, and have the permissions required to operate at this address.')),
-          CheckboxListTile(contentPadding: EdgeInsets.zero, value: consent,
-            onChanged: s.busy ? null : (v) => setState(() => consent = v!),
-            title: const Text('Publish my business name, services, photos and public map location after approval.')),
-          const Notice('Submitting saves a pending application. Our team reviews your details before management tools or public bookings are enabled. Email delivery does not affect whether your application is saved.'),
-          ActionButton(s, 'Submit business application', submit, icon: Icons.storefront_outlined),
-        ],
-        const SizedBox(height: 16),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          if (step > 0) OutlinedButton(onPressed: s.busy ? null : () => setState(() => step--), child: const Text('Back')),
-          if (step < 3) FilledButton(onPressed: s.busy ? null : next, child: const Text('Continue')),
-        ]),
-      ]))),
+      Form(
+          key: form,
+          child: Panel(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                if (step == 0) ...[
+                  const SectionHeader('Tell us about your business'),
+                  FormFieldBox(name, 'Registered business / trading name',
+                      validator: (v) => (v ?? '').trim().length < 2
+                          ? 'Enter a name of at least 2 characters'
+                          : null),
+                  FormFieldBox(registrationNumber,
+                      'NZBN or business registration number',
+                      hint:
+                          'Use Not applicable if you do not have a registration number',
+                      validator: (v) => (v ?? '').trim().length < 2 ||
+                              (v ?? '').length > 80
+                          ? 'Enter your registration number or Not applicable'
+                          : null),
+                  DropdownButtonFormField<String>(
+                      initialValue: kind,
+                      isExpanded: true,
+                      decoration:
+                          const InputDecoration(labelText: 'Business type'),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'barber', child: Text('Barber shop')),
+                        DropdownMenuItem(
+                            value: 'salon', child: Text('Hair salon')),
+                        DropdownMenuItem(
+                            value: 'home', child: Text('Home studio'))
+                      ],
+                      onChanged: (v) => setState(() => kind = v!)),
+                  const SizedBox(height: 16),
+                  FormFieldBox(description, 'About your business',
+                      lines: 3, required: false),
+                ],
+                if (step == 1) ...[
+                  const SectionHeader('A person we can reach'),
+                  FormFieldBox(contactName, 'Contact person full name',
+                      validator: (v) => (v ?? '').trim().length < 2
+                          ? 'Enter the contact person’s name'
+                          : null),
+                  FormFieldBox(contactEmail, 'Business contact email',
+                      keyboard: TextInputType.emailAddress,
+                      validator: (v) => RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                              .hasMatch((v ?? '').trim())
+                          ? null
+                          : 'Enter a valid email address'),
+                  FormFieldBox(contactPhone, 'Business contact phone',
+                      keyboard: TextInputType.phone,
+                      validator: (v) => RegExp(r'^[+0-9 ()-]{7,30}$')
+                              .hasMatch((v ?? '').trim())
+                          ? null
+                          : 'Enter a valid contact phone'),
+                  const Notice(
+                      'Registration and contact details are private. Only authorised reviewers can see them.'),
+                ],
+                if (step == 2) ...[
+                  const SectionHeader('Where the good hair happens'),
+                  FormFieldBox(address, 'Full business address',
+                      validator: (v) =>
+                          (v ?? '').trim().length < 5 || (v ?? '').length > 300
+                              ? 'Enter a full street address (5–300 characters)'
+                              : null),
+                  FormFieldBox(suburb, 'Suburb / town'),
+                  const Text(
+                      'Set the pin at your entrance. Home studios publish an approximate pin and suburb only; the exact address stays private.'),
+                  const SizedBox(height: 16),
+                  if ((!kIsWeb && const bool.fromEnvironment('MAPS_ENABLED')) ||
+                      (kIsWeb &&
+                          const String.fromEnvironment('GOOGLE_MAPS_WEB_KEY')
+                              .isNotEmpty))
+                    ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SizedBox(
+                            height: 240,
+                            child: GoogleMap(
+                                initialCameraPosition:
+                                    CameraPosition(target: pin, zoom: 12),
+                                onTap: setPin,
+                                markers: {
+                                  Marker(
+                                      markerId: const MarkerId('business'),
+                                      position: pin,
+                                      draggable: true,
+                                      onDragEnd: setPin)
+                                },
+                                zoomControlsEnabled: false,
+                                myLocationButtonEnabled: false))),
+                  OutlinedButton.icon(
+                      onPressed: s.busy
+                          ? null
+                          : () => s.run(() async {
+                                if (!await Geolocator
+                                    .isLocationServiceEnabled())
+                                  throw Exception(
+                                      'Turn on location services or enter the coordinates.');
+                                var permission =
+                                    await Geolocator.checkPermission();
+                                if (permission == LocationPermission.denied)
+                                  permission =
+                                      await Geolocator.requestPermission();
+                                if (permission == LocationPermission.denied ||
+                                    permission ==
+                                        LocationPermission.deniedForever)
+                                  throw Exception(
+                                      'Location permission is off. Tap the map or enter the coordinates.');
+                                final value =
+                                    await Geolocator.getCurrentPosition(
+                                        locationSettings:
+                                            const LocationSettings(
+                                                timeLimit:
+                                                    Duration(seconds: 15)));
+                                if (mounted)
+                                  setPin(
+                                      LatLng(value.latitude, value.longitude));
+                              }),
+                      icon: const Icon(Icons.my_location),
+                      label: const Text('Use my current business location')),
+                  const SizedBox(height: 16),
+                  FormFieldBox(lat, 'Pin latitude',
+                      hint: '-36.848500',
+                      keyboard: const TextInputType.numberWithOptions(
+                          decimal: true, signed: true), validator: (v) {
+                    final n = double.tryParse(v ?? '');
+                    return n == null || !n.isFinite || n < -48 || n > -33
+                        ? 'Enter a New Zealand latitude (−48 to −33)'
+                        : null;
+                  }),
+                  FormFieldBox(lng, 'Pin longitude',
+                      hint: '174.763300',
+                      keyboard: const TextInputType.numberWithOptions(
+                          decimal: true, signed: true), validator: (v) {
+                    final n = double.tryParse(v ?? '');
+                    return n == null || !n.isFinite || n < 165 || n > 180
+                        ? 'Enter a New Zealand longitude (165 to 180)'
+                        : null;
+                  }),
+                  FormFieldBox(placeId, 'Google Place ID (optional)',
+                      required: false,
+                      hint: 'Only if claiming an existing Google listing'),
+                ],
+                if (step == 3) ...[
+                  const SectionHeader('One last look'),
+                  Text(name.text,
+                      style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                      '${kind == 'home' ? 'Home studio' : kind == 'salon' ? 'Hair salon' : 'Barber shop'} · ${suburb.text}'),
+                  const SizedBox(height: 16),
+                  Text(
+                      'Review contact: ${contactName.text} · ${contactEmail.text}'),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: declaration,
+                      onChanged: s.busy
+                          ? null
+                          : (v) => setState(() => declaration = v!),
+                      title: const Text(
+                          'I own or am authorised to manage this business, and have the permissions required to operate at this address.')),
+                  CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: consent,
+                      onChanged:
+                          s.busy ? null : (v) => setState(() => consent = v!),
+                      title: const Text(
+                          'Publish my business name, services, photos and public map location after approval.')),
+                  const Notice(
+                      'Submitting saves a pending application. Our team reviews your details before management tools or public bookings are enabled. Email delivery does not affect whether your application is saved.'),
+                  ActionButton(s, 'Submit business application', submit,
+                      icon: Icons.storefront_outlined),
+                ],
+                const SizedBox(height: 16),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  if (step > 0)
+                    OutlinedButton(
+                        onPressed: s.busy ? null : () => setState(() => step--),
+                        child: const Text('Back')),
+                  if (step < 3)
+                    FilledButton(
+                        onPressed: s.busy ? null : next,
+                        child: const Text('Continue')),
+                ]),
+              ]))),
     ]);
   }
-
 }
 
 class BusinessDashboard extends StatefulWidget {
@@ -260,7 +405,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
   void reload() {
     business = widget.store.backend!.rpc('operator_business',
         {'p_business': widget.id}).then((v) => Json.from(v as Map));
-    photos = widget.store.backend!.photos(widget.id).catchError((_) => <String>[]);
+    photos =
+        widget.store.backend!.photos(widget.id).catchError((_) => <String>[]);
   }
 
   Future<void> configure(String action, Json data) async {
@@ -286,7 +432,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     .compareTo(b['starts_at'] as String));
               final active = visits
                   .where((v) =>
-                      ['waiting', 'booked', 'serving'].contains(v['status']) && (section != 3 || v['kind'] == 'queue'))
+                      ['waiting', 'booked', 'serving'].contains(v['status']) &&
+                      (section != 3 || v['kind'] == 'queue'))
                   .toList();
               return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -304,13 +451,24 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                       Notice(
                           'Listing status: ${b['status']}. ${b['review_note'] ?? ''} ${b['status'] == 'pending' ? 'Add services and hours below so an admin can review your application.' : ''}'),
                     Wrap(spacing: 8, runSpacing: 8, children: [
-                      StatusPill('${visits.where((v) => v['kind'] == 'queue' && v['status'] == 'waiting').length} waiting', icon: Icons.groups_outlined),
-                      StatusPill('${visits.where((v) => v['status'] == 'serving').length} in the chair', icon: Icons.content_cut),
-                      StatusPill('${visits.where((v) => v['kind'] == 'appointment' && ['booked', 'serving'].contains(v['status']) && dayKey(tz.TZDateTime.from(DateTime.parse(v['starts_at'] as String), tz.getLocation('Pacific/Auckland'))) == dayKey(nzNow())).length} appointments today', icon: Icons.today_outlined),
+                      StatusPill(
+                          '${visits.where((v) => v['kind'] == 'queue' && v['status'] == 'waiting').length} waiting',
+                          icon: Icons.groups_outlined),
+                      StatusPill(
+                          '${visits.where((v) => v['status'] == 'serving').length} in the chair',
+                          icon: Icons.content_cut),
+                      StatusPill(
+                          '${visits.where((v) => v['kind'] == 'appointment' && [
+                                'booked',
+                                'serving'
+                              ].contains(v['status']) && dayKey(tz.TZDateTime.from(DateTime.parse(v['starts_at'] as String), tz.getLocation('Pacific/Auckland'))) == dayKey(nzNow())).length} appointments today',
+                          icon: Icons.today_outlined),
                     ]),
                     const SizedBox(height: 16),
                     Wrap(spacing: 8, runSpacing: 8, children: [
-                      ChoiceChip(label: const Text('Live queue'), selected: section == 3,
+                      ChoiceChip(
+                          label: const Text('Live queue'),
+                          selected: section == 3,
                           onSelected: (_) => setState(() => section = 3)),
                       ChoiceChip(
                           label: Text('Today & upcoming (${active.length})'),
@@ -371,16 +529,27 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                           .reversed
                           .map((v) =>
                               VisitCard(store: s, visit: v, operator: true)),
-                    if ((section == 0 || section == 2 || section == 3) && s.moreVisits) ActionButton(s, 'Load more visits', s.loadMoreVisits),
+                    if ((section == 0 || section == 2 || section == 3) &&
+                        s.moreVisits)
+                      ActionButton(s, 'Load more visits', s.loadMoreVisits),
                     if (section == 1) ...[
-                      WorkspaceGroup(title: 'Business profile', icon: Icons.storefront_outlined, children: [
-                        Text(b['name'] as String, style: Theme.of(context).textTheme.titleLarge),
-                        Text('${b['suburb']} · ${b['kind']}'),
-                        const SizedBox(height: 8), Text(b['description'] as String),
-                        const SizedBox(height: 16),
-                        const Notice('Name, address and ownership changes require review. Finish active visits before requesting a replacement listing. Home studio addresses remain private.'),
-                      ]),
-                      WorkspaceGroup(title: 'Services & pricing', icon: Icons.content_cut, children: [
+                      WorkspaceGroup(
+                          title: 'Business profile',
+                          icon: Icons.storefront_outlined,
+                          children: [
+                            Text(b['name'] as String,
+                                style: Theme.of(context).textTheme.titleLarge),
+                            Text('${b['suburb']} · ${b['kind']}'),
+                            const SizedBox(height: 8),
+                            Text(b['description'] as String),
+                            const SizedBox(height: 16),
+                            const Notice(
+                                'Name, address and ownership changes require review. Finish active visits before requesting a replacement listing. Home studio addresses remain private.'),
+                          ]),
+                      WorkspaceGroup(
+                          title: 'Services & pricing',
+                          icon: Icons.content_cut,
+                          children: [
                             Text('Services',
                                 style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 12),
@@ -399,7 +568,10 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                                 icon: const Icon(Icons.add),
                                 label: const Text('Add service'))
                           ]),
-                      WorkspaceGroup(title: 'Working hours', icon: Icons.schedule, children: [
+                      WorkspaceGroup(
+                          title: 'Working hours',
+                          icon: Icons.schedule,
+                          children: [
                             Text('Opening hours',
                                 style: Theme.of(context).textTheme.titleLarge),
                             const Text(
@@ -421,7 +593,10 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                                     List<Json>.from(b['hours'] as List)),
                                 child: const Text('Edit weekly hours'))
                           ]),
-                      WorkspaceGroup(title: 'Chairs & breaks', icon: Icons.chair_outlined, children: [
+                      WorkspaceGroup(
+                          title: 'Chairs & breaks',
+                          icon: Icons.chair_outlined,
+                          children: [
                             Text('Chairs / professionals',
                                 style: Theme.of(context).textTheme.titleLarge),
                             const Text(
@@ -456,7 +631,10 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                                           'remove_break', {'id': r['id']})),
                                       icon: const Icon(Icons.delete_outline)))
                           ]),
-                      WorkspaceGroup(title: 'Portfolio', icon: Icons.photo_library_outlined, children: [
+                      WorkspaceGroup(
+                          title: 'Portfolio',
+                          icon: Icons.photo_library_outlined,
+                          children: [
                             Text('Portfolio photos',
                                 style: Theme.of(context).textTheme.titleLarge),
                             const Text(
@@ -514,7 +692,10 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                                     Icons.add_photo_alternate_outlined),
                                 label: const Text('Add photo'))
                           ]),
-                      WorkspaceGroup(title: 'Payments & payouts', icon: Icons.payments_outlined, children: [
+                      WorkspaceGroup(
+                          title: 'Payments & payouts',
+                          icon: Icons.payments_outlined,
+                          children: [
                             Text('Payments & payouts',
                                 style: Theme.of(context).textTheme.titleLarge),
                             Text(b['online_payments'] == true

@@ -24,8 +24,8 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(listenable: widget.store,
-      builder: (context, _) => buildAccount(context));
+  Widget build(BuildContext context) => ListenableBuilder(
+      listenable: widget.store, builder: (context, _) => buildAccount(context));
 
   Widget buildAccount(BuildContext context) {
     final s = widget.store;
@@ -40,7 +40,8 @@ class _AccountScreenState extends State<AccountScreen> {
               CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: accepted,
-                  onChanged: s.busy ? null : (v) => setState(() => accepted = v!),
+                  onChanged:
+                      s.busy ? null : (v) => setState(() => accepted = v!),
                   title: const Text(
                       'I agree to the booking terms and privacy notice.')),
               TextButton(
@@ -70,14 +71,17 @@ class _AccountScreenState extends State<AccountScreen> {
         FormFieldBox(name, 'Your name'),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text('Check My Bookings for booking confirmations and live queue updates.'),
+          child: Text(
+              'Check My Bookings for booking confirmations and live queue updates.'),
         ),
-        if (s.backend!.hasVerifiedPhone) SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Booking texts'),
-            subtitle: const Text('Confirmations, reminders and queue updates.'),
-            value: sms,
-            onChanged: (v) => setState(() => sms = v)),
+        if (s.backend!.hasVerifiedPhone)
+          SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Booking texts'),
+              subtitle:
+                  const Text('Confirmations, reminders and queue updates.'),
+              value: sms,
+              onChanged: (v) => setState(() => sms = v)),
         SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Offers & news'),
@@ -85,13 +89,15 @@ class _AccountScreenState extends State<AccountScreen> {
             value: marketing,
             onChanged: (v) => setState(() => marketing = v)),
         ActionButton(s, 'Save preferences', () async {
-          await s.saveProfile(name.text, s.backend!.hasVerifiedPhone && sms, marketing);
+          await s.saveProfile(
+              name.text, s.backend!.hasVerifiedPhone && sms, marketing);
           if (context.mounted)
             ScaffoldMessenger.of(context)
                 .showSnackBar(const SnackBar(content: Text('Saved')));
         }, icon: Icons.check)
       ])),
-      Panel(child: Column(
+      Panel(
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('SpicySelf for Business',
@@ -104,29 +110,40 @@ class _AccountScreenState extends State<AccountScreen> {
                   : 'Track your application while our team reviews your business details.'),
           if (s.businessId == null) ...[
             const SizedBox(height: 12),
-            const Text('Free listing includes:', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Free listing includes:',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            const Text('• A business profile customers can discover\n• Services, prices and opening hours\n• A link to your existing website or booking page'),
+            const Text(
+                '• A business profile customers can discover\n• Services, prices and opening hours\n• Booking and queue tools after approval and setup'),
             const SizedBox(height: 8),
-            const Text('No subscription required to apply. Additional business tools may be offered separately later.'),
+            const Text(
+                'Applications are reviewed before your business becomes publicly bookable.'),
           ],
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: widget.onBusinessTap ?? () => openBusinessWorkspace(context, s),
+            onPressed:
+                widget.onBusinessTap ?? () => openBusinessWorkspace(context, s),
             icon: const Icon(Icons.storefront_outlined),
-            label: Text(s.businessId == null ? 'List your business' : 'Open business'),
+            label: Text(
+                s.businessId == null ? 'List your business' : 'Open business'),
           ),
         ],
       )),
-      if (s.isAdmin) Panel(child: ListTile(
-        leading: const Icon(Icons.admin_panel_settings_outlined),
-        title: const Text('Administration'),
-        subtitle: const Text('Protected review and operations console'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => DetailScaffold(store: s, title: 'Administration',
-            child: ListenableBuilder(listenable: s, builder: (context, child) => AdminScreen(store: s))))),
-      )),
+      if (s.isAdmin)
+        Panel(
+            child: ListTile(
+          leading: const Icon(Icons.admin_panel_settings_outlined),
+          title: const Text('Administration'),
+          subtitle: const Text('Protected review and operations console'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => DetailScaffold(
+                  store: s,
+                  title: 'Administration',
+                  child: ListenableBuilder(
+                      listenable: s,
+                      builder: (context, child) => AdminScreen(store: s))))),
+        )),
       if (s.businessId != null || s.isAdmin) MfaPanel(store: s),
       OutlinedButton(
           onPressed: s.busy

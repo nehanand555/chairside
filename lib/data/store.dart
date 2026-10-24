@@ -34,6 +34,7 @@ class AppStore extends ChangeNotifier {
     final saved = (profile['display_name'] as String? ?? '').trim();
     return saved.isNotEmpty ? saved : backend?.suggestedName ?? '';
   }
+
   bool get unlocked => account['aal2'] == true;
   bool get isAdmin => account['is_admin'] == true;
   String? get businessId => account['business_id'] as String?;
@@ -69,7 +70,11 @@ class AppStore extends ChangeNotifier {
       _lastUser = backend?.userId;
       applicationNotificationMessage = null;
       _visitPages = 1;
-      profile = {}; account = {}; visits = []; favorites = []; moreVisits = false;
+      profile = {};
+      account = {};
+      visits = [];
+      favorites = [];
+      moreVisits = false;
       changed();
     }
     if (!signedIn) {
@@ -88,12 +93,15 @@ class AppStore extends ChangeNotifier {
       final context = await backend!.rpc('account_context') as Map;
       var profiles = await backend!.rows('profiles', filters: {'id': user});
       if (_disposed || revision != _revision || backend!.userId != user) return;
-      if ((profiles.isEmpty || (profiles.first['display_name'] as String? ?? '').isEmpty) && suggestedName != null && suggestedName.isNotEmpty) {
+      if ((profiles.isEmpty ||
+              (profiles.first['display_name'] as String? ?? '').isEmpty) &&
+          suggestedName != null &&
+          suggestedName.isNotEmpty) {
         await backend!.initializeProfile(user, suggestedName);
         profiles = await backend!.rows('profiles', filters: {'id': user});
       }
-      final saved = await backend!
-          .rows('favorites', filters: {'customer_id': user});
+      final saved =
+          await backend!.rows('favorites', filters: {'customer_id': user});
       if (_disposed || revision != _revision || backend!.userId != user) return;
       account = Json.from(context);
       profile = profiles.isEmpty ? {} : profiles.first;
@@ -119,8 +127,10 @@ class AppStore extends ChangeNotifier {
       final result = <Json>[];
       int count = 0;
       for (var page = 0; page < _visitPages; page++) {
-        final rows = List<Json>.from(await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
-        result.addAll(rows); count = rows.length;
+        final rows = List<Json>.from(
+            await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
+        result.addAll(rows);
+        count = rows.length;
         if (count < 200) break;
       }
       if (!_disposed && backend!.userId == user) {
@@ -135,8 +145,8 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> loadMoreVisits() async {
-    final result = List<Json>.from(
-        await backend!.rpc('my_visits', {'p_offset': _visitPages * 200}) as List);
+    final result = List<Json>.from(await backend!
+        .rpc('my_visits', {'p_offset': _visitPages * 200}) as List);
     _visitPages++;
     final known = visits.map((v) => v['id']).toSet();
     visits.addAll(result.where((v) => !known.contains(v['id'])));

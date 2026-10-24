@@ -9,7 +9,6 @@ import 'app.dart';
 import 'booking.dart';
 import 'common.dart';
 
-
 /// Only expose external HTTPS URLs. A homepage alone is not a booking link.
 String? publicWebsiteUrl(Json place) {
   final value = place['website_url'];
@@ -38,19 +37,23 @@ String? publicBookingUrl(Json place) {
   final isBookingPath = RegExp(
     r'(^|/)(book|booking|book-now|book-online|appointments|appointment|schedule|reserve|reservations)(/|$|-)',
   ).hasMatch(path);
-  const bookingHosts = {
-    'booksy.com', 'fresha.com', 'timely.com', 'setmore.com',
-    'square.site', 'squareup.com', 'calendly.com',
-  };
-  final isBookingHost = bookingHosts.any(
-    (domain) => host == domain || host.endsWith('.$domain'),
-  ) && path.length > 1;
-  return isBookingPath || isBookingHost ? website : null;
+  // A booking-provider domain alone is insufficient: its pricing, support and
+  // product pages are websites, not business booking destinations.
+  final providerBooking =
+      ((host == 'booksy.com' || host.endsWith('.booksy.com')) &&
+              RegExp(r'^/[a-z]{2}(?:-[a-z]{2})?/\d+').hasMatch(path)) ||
+          ((host == 'fresha.com' || host.endsWith('.fresha.com')) &&
+              path.startsWith('/a/'));
+  return isBookingPath || providerBooking ? website : null;
 }
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen(
-      {super.key, required this.store, this.mapsEnabled = true, this.mapMode = false, this.onOpenMap});
+      {super.key,
+      required this.store,
+      this.mapsEnabled = true,
+      this.mapMode = false,
+      this.onOpenMap});
   final AppStore store;
   final bool mapsEnabled;
   final bool mapMode;
@@ -98,7 +101,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       warning = null;
       businesses = [];
       places = [];
-      selectedMember = null; selectedPlace = null;
+      selectedMember = null;
+      selectedPlace = null;
     });
     try {
       final data = await widget.store.backend!.invoke('discover', {
@@ -154,154 +158,250 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.store;
-    final members = businesses.where((b) =>
-        (!onlyFavorites || s.favorites.contains(b['id'])) &&
-        (category == null || b['kind'] == category)).toList();
+    final members = businesses
+        .where((b) =>
+            (!onlyFavorites || s.favorites.contains(b['id'])) &&
+            (category == null || b['kind'] == category))
+        .toList();
     final publicResults = onlyFavorites || category != null ? <Json>[] : places;
     return PageBody(children: [
-      PageHeading(widget.mapMode ? 'A little closer to your next look.' : 'Find your next look.',
-          widget.mapMode ? 'Explore the map. Find a place that feels like you.' : 'Good hair. Your kind of place. Discover local barbers, salons and home studios.'),
-      Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        TextField(controller: search, maxLength: 100,
-          textInputAction: TextInputAction.search,
-          onSubmitted: (_) => load(text: true),
-          decoration: const InputDecoration(hintText: 'Search suburb, town or postcode',
-              counterText: '', prefixIcon: Icon(Icons.search), labelText: 'Where are you looking?')),
+      PageHeading(
+          widget.mapMode
+              ? 'A little closer to your next look.'
+              : 'Find your next look.',
+          widget.mapMode
+              ? 'Explore the map. Find a place that feels like you.'
+              : 'Good hair. Your kind of place. Discover local barbers, salons and home studios.'),
+      Panel(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        LocationSearchBar(controller: search, onSearch: () => load(text: true)),
         const SizedBox(height: 12),
         Wrap(spacing: 8, runSpacing: 8, children: [
-          FilledButton.icon(onPressed: loading ? null : () => load(text: true),
-              icon: const Icon(Icons.search), label: const Text('Search')),
-          OutlinedButton.icon(onPressed: loading ? null : locate,
-              icon: const Icon(Icons.my_location), label: const Text('Near me')),
+          FilledButton.icon(
+              onPressed: loading ? null : () => load(text: true),
+              icon: const Icon(Icons.search),
+              label: const Text('Search')),
+          OutlinedButton.icon(
+              onPressed: loading ? null : locate,
+              icon: const Icon(Icons.my_location),
+              label: const Text('Near me')),
           if (!widget.mapMode && widget.onOpenMap != null)
-            TextButton.icon(onPressed: widget.onOpenMap,
-                icon: const Icon(Icons.map_outlined), label: const Text('Open map')),
+            TextButton.icon(
+                onPressed: widget.onOpenMap,
+                icon: const Icon(Icons.map_outlined),
+                label: const Text('Open map')),
         ]),
       ])),
       Wrap(spacing: 8, runSpacing: 8, children: [
-        for (final item in const [(null, 'All'), ('barber', 'Barbers'), ('salon', 'Hair Salons'), ('home', 'Home Studios')])
-          ChoiceChip(label: Text(item.$2), selected: category == item.$1,
-              onSelected: (_) => setState(() { category = item.$1; selectedMember = null; selectedPlace = null; })),
-        FilterChip(label: const Text('Favourites'), avatar: const Icon(Icons.favorite_border, size: 18),
-          selected: onlyFavorites, onSelected: (v) {
-            if (!s.signedIn) { openAccount(context, s); }
-            else { setState(() { onlyFavorites = v; selectedMember = null; selectedPlace = null; }); }
-          }),
+        for (final item in const [
+          (null, 'All'),
+          ('barber', 'Barbers'),
+          ('salon', 'Hair Salons'),
+          ('home', 'Home Studios')
+        ])
+          ChoiceChip(
+              label: Text(item.$2),
+              selected: category == item.$1,
+              onSelected: (_) => setState(() {
+                    category = item.$1;
+                    selectedMember = null;
+                    selectedPlace = null;
+                  })),
+        FilterChip(
+            label: const Text('Favourites'),
+            avatar: const Icon(Icons.favorite_border, size: 18),
+            selected: onlyFavorites,
+            onSelected: (v) {
+              if (!s.signedIn) {
+                openAccount(context, s);
+              } else {
+                setState(() {
+                  onlyFavorites = v;
+                  selectedMember = null;
+                  selectedPlace = null;
+                });
+              }
+            }),
       ]),
       const SizedBox(height: 16),
       if (loading) const DiscoverySkeleton(),
-      if (error != null) Notice(error!, action: TextButton(onPressed: () => load(), child: const Text('Try again'))),
+      if (error != null)
+        Notice(error!,
+            action: TextButton(
+                onPressed: () => load(), child: const Text('Try again'))),
       if (widget.mapMode && mapAvailable) ...[
-        ClipRRect(borderRadius: BorderRadius.circular(24), child: SizedBox(
-          height: MediaQuery.sizeOf(context).width < 600 ? 320 : 440,
-          child: GoogleMap(initialCameraPosition: CameraPosition(target: center, zoom: 12),
-            myLocationButtonEnabled: false, zoomControlsEnabled: false, mapToolbarEnabled: false,
-            onMapCreated: (c) => controller = c,
-            onCameraMove: (position) => center = position.target,
-            markers: {
-              for (final b in members) Marker(markerId: MarkerId('member-${b['id']}'),
-                position: LatLng((b['lat'] as num).toDouble(), (b['lng'] as num).toDouble()),
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                onTap: () => setState(() { selectedMember = b; selectedPlace = null; }),
-                infoWindow: InfoWindow(title: b['name'] as String,
-                    snippet: b['kind'] == 'home' ? 'SpicySelf • Approximate location' : 'SpicySelf member')),
-              for (final p in publicResults) Marker(markerId: MarkerId(p['place_id'] as String),
-                position: LatLng((p['lat'] as num).toDouble(), (p['lng'] as num).toDouble()),
-                onTap: () => setState(() { selectedPlace = p; selectedMember = null; }),
-                infoWindow: InfoWindow(title: p['name'] as String, snippet: 'Public Google listing')),
-            },
-          ),
-        )),
+        ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).width < 600 ? 320 : 440,
+              child: GoogleMap(
+                initialCameraPosition: CameraPosition(target: center, zoom: 12),
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
+                onMapCreated: (c) => controller = c,
+                onCameraMove: (position) => center = position.target,
+                markers: {
+                  for (final b in members)
+                    Marker(
+                        markerId: MarkerId('member-${b['id']}'),
+                        position: LatLng((b['lat'] as num).toDouble(),
+                            (b['lng'] as num).toDouble()),
+                        icon: BitmapDescriptor.defaultMarkerWithHue(
+                            BitmapDescriptor.hueGreen),
+                        onTap: () => setState(() {
+                              selectedMember = b;
+                              selectedPlace = null;
+                            }),
+                        infoWindow: InfoWindow(
+                            title: b['name'] as String,
+                            snippet: b['kind'] == 'home'
+                                ? 'SpicySelf • Approximate location'
+                                : 'SpicySelf member')),
+                  for (final p in publicResults)
+                    Marker(
+                        markerId: MarkerId(p['place_id'] as String),
+                        position: LatLng((p['lat'] as num).toDouble(),
+                            (p['lng'] as num).toDouble()),
+                        onTap: () => setState(() {
+                              selectedPlace = p;
+                              selectedMember = null;
+                            }),
+                        infoWindow: InfoWindow(
+                            title: p['name'] as String,
+                            snippet: 'Public Google listing')),
+                },
+              ),
+            )),
         Wrap(spacing: 8, runSpacing: 8, children: [
-          TextButton.icon(onPressed: loading ? null : () => load(text: false),
-              icon: const Icon(Icons.refresh), label: const Text('Search this map area')),
-          TextButton.icon(onPressed: loading ? null : locate,
-              icon: const Icon(Icons.my_location), label: const Text('Recenter')),
+          TextButton.icon(
+              onPressed: loading ? null : () => load(text: false),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Search this map area')),
+          TextButton.icon(
+              onPressed: loading ? null : locate,
+              icon: const Icon(Icons.my_location),
+              label: const Text('Recenter')),
         ]),
         if (selectedMember != null) memberCard(selectedMember!),
-        if (selectedPlace != null) PublicBusinessCard(place: selectedPlace!, store: s),
+        if (selectedPlace != null)
+          PublicBusinessCard(place: selectedPlace!, store: s),
       ],
       if (widget.mapMode && !mapAvailable)
-        const Notice('Map view is unavailable. You can browse businesses in the list below.'),
-      if (warning != null) Padding(padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(warning!, style: Theme.of(context).textTheme.bodySmall)),
+        const Notice(
+            'Map view is unavailable. You can browse businesses in the list below.'),
+      if (warning != null)
+        Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child:
+                Text(warning!, style: Theme.of(context).textTheme.bodySmall)),
       SectionHeader(onlyFavorites ? 'Your saved places' : 'Book with SpicySelf',
           subtitle: 'Local members. Real services. Your next appointment.'),
-      if (members.isEmpty && !loading) Notice(onlyFavorites
-          ? 'No saved businesses in this area. Try another area or turn off Favourites.'
-          : 'No members match this area and category yet. Try a nearby suburb or choose All.'),
+      if (members.isEmpty && !loading && error == null)
+        Notice(onlyFavorites
+            ? 'No saved businesses in this area. Try another area or turn off Favourites.'
+            : 'No members match this area and category yet. Try a nearby suburb or choose All.'),
       ResponsiveCards(children: members.map(memberCard).toList()),
       if (publicResults.isNotEmpty) ...[
         const SectionHeader('Around the neighbourhood'),
-        const Text('Public Google listings are directory results. In-app bookings are available only with SpicySelf members.'),
+        const Text(
+            'Public Google listings are directory results. In-app bookings are available only with SpicySelf members.'),
         const SizedBox(height: 16),
-        ResponsiveCards(children: publicResults.map((p) => PublicBusinessCard(place: p, store: s)).toList()),
+        ResponsiveCards(
+            children: publicResults
+                .map((p) => PublicBusinessCard(place: p, store: s))
+                .toList()),
         const GoogleAttribution(),
         for (final p in publicResults)
           for (final a in (p['attributions'] as List? ?? []))
             if ((a['provider'] ?? '').toString().isNotEmpty)
-              TextButton(onPressed: () => openLink(a['providerUri'] as String), child: Text(a['provider'] as String)),
+              TextButton(
+                  onPressed: () => openLink(a['providerUri'] as String),
+                  child: Text(a['provider'] as String)),
       ],
       if (category != null && !onlyFavorites)
-        const Text('Category filters show SpicySelf members. Choose All to also browse public Google listings.'),
+        const Text(
+            'Category filters show SpicySelf members. Choose All to also browse public Google listings.'),
       const SizedBox(height: 24),
-      Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const StatusPill('SpicySelf for Business', icon: Icons.storefront_outlined),
+      Panel(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const StatusPill('SpicySelf for Business',
+            icon: Icons.storefront_outlined),
         const SizedBox(height: 16),
-        Text('Your craft. Your community.', style: Theme.of(context).textTheme.titleLarge),
+        Text('Your craft. Your community.',
+            style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        const Text('Run a shop or home studio? Apply from Profile to get discovered. You don’t need a Google Maps listing.'),
+        const Text(
+            'Run a shop or home studio? Apply from Profile to get discovered. You don’t need a Google Maps listing.'),
         const SizedBox(height: 8),
-        TextButton(onPressed: () => openBusinessWorkspace(context, s), child: const Text('Meet SpicySelf for Business')),
+        TextButton(
+            onPressed: () => openBusinessWorkspace(context, s),
+            child: const Text('Meet SpicySelf for Business')),
       ])),
     ]);
   }
 
-  Widget memberCard(Json b) => BusinessCard(business: b,
+  Widget memberCard(Json b) => BusinessCard(
+      business: b,
       favorite: widget.store.favorites.contains(b['id']),
       onOpen: () => openBusiness(context, widget.store, b['id'] as String),
       onFavorite: () {
-        if (!widget.store.signedIn) { openAccount(context, widget.store); }
-        else { widget.store.run(() => widget.store.favorite(b['id'] as String)); }
+        if (!widget.store.signedIn) {
+          openAccount(context, widget.store);
+        } else {
+          widget.store.run(() => widget.store.favorite(b['id'] as String));
+        }
       });
-
 }
 
 class ResponsiveCards extends StatelessWidget {
   const ResponsiveCards({super.key, required this.children});
   final List<Widget> children;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
-    final columns = constraints.maxWidth >= 720 ? 2 : 1;
-    final width = (constraints.maxWidth - (columns - 1) * 16) / columns;
-    return Wrap(spacing: 16, runSpacing: 0, children: [
-      for (final child in children) SizedBox(width: width, child: child),
-    ]);
-  });
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 720 ? 2 : 1;
+        final width = (constraints.maxWidth - (columns - 1) * 16) / columns;
+        return Wrap(spacing: 16, runSpacing: 0, children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ]);
+      });
 }
 
 class PublicBusinessCard extends StatelessWidget {
-  const PublicBusinessCard({super.key, required this.place, required this.store});
+  const PublicBusinessCard(
+      {super.key, required this.place, required this.store});
   final Json place;
   final AppStore store;
   @override
-  Widget build(BuildContext context) => Panel(child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const StatusPill('Public Google listing', icon: Icons.public),
-      const SizedBox(height: 16),
-      Text(place['name'] as String, style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 8), Text(place['address'] as String),
-      const SizedBox(height: 16),
-      Wrap(spacing: 8, runSpacing: 8, children: [
-        if (publicBookingUrl(place) != null) OutlinedButton.icon(
-            onPressed: () => openLink(publicBookingUrl(place)!),
-            icon: const Icon(Icons.open_in_new), label: const Text('Book externally')),
-        if (publicWebsiteUrl(place) != null) OutlinedButton.icon(
-            onPressed: () => openLink(publicWebsiteUrl(place)!),
-            icon: const Icon(Icons.language), label: const Text('Website')),
-        TextButton(onPressed: () => showPublicListing(context, store, place), child: const Text('View details')),
-      ]),
-    ]));
+  Widget build(BuildContext context) => Panel(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const StatusPill('Public Google listing', icon: Icons.public),
+        const SizedBox(height: 16),
+        Text(place['name'] as String,
+            style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        Text(place['address'] as String),
+        const SizedBox(height: 16),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          if (publicBookingUrl(place) != null)
+            OutlinedButton.icon(
+                onPressed: () => openLink(publicBookingUrl(place)!),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Book externally')),
+          if (publicWebsiteUrl(place) != null)
+            OutlinedButton.icon(
+                onPressed: () => openLink(publicWebsiteUrl(place)!),
+                icon: const Icon(Icons.language),
+                label: const Text('Website')),
+          TextButton(
+              onPressed: () => showPublicListing(context, store, place),
+              child: const Text('View details')),
+        ]),
+      ]));
 }
 
 class BusinessCard extends StatelessWidget {
@@ -338,7 +438,8 @@ class BusinessCard extends StatelessWidget {
                 Text(business['name'] as String,
                     style: const TextStyle(
                         fontSize: 19, fontWeight: FontWeight.bold)),
-                Text('${business['suburb']}${business['distance_km'] is num ? ' • ${(business['distance_km'] as num).toStringAsFixed(1)} km' : ''}')
+                Text(
+                    '${business['suburb']}${business['distance_km'] is num ? ' • ${(business['distance_km'] as num).toStringAsFixed(1)} km' : ''}')
               ])),
           IconButton(
               onPressed: onFavorite,
@@ -349,12 +450,13 @@ class BusinessCard extends StatelessWidget {
         // The discover endpoint returns approved members only; older responses
         // omit status. An explicit non-approved status never gets a badge.
         if (business['status'] == null || business['status'] == 'approved')
-          const StatusPill('Verified SpicySelf business', icon: Icons.verified_outlined),
+          const StatusPill('Verified SpicySelf business',
+              icon: Icons.verified_outlined),
         const SizedBox(height: 8),
         Text(business['kind'] == 'home'
             ? 'Home studio • approximate map pin'
             : business['queue_open'] == true
-                ? 'Appointments + live queue'
+                ? 'Live queue enabled • check services'
                 : 'Explore services and available times'),
         const SizedBox(height: 12),
         FilledButton(
@@ -393,7 +495,8 @@ Future<void> showPublicListing(
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Website')),
                 const SizedBox(height: 8),
-                const Text('External links open the business website or booking provider. Bookings are handled outside SpicySelf; availability is not verified.'),
+                const Text(
+                    'External links open the business website or booking provider. Bookings are handled outside SpicySelf; availability is not verified.'),
                 const SizedBox(height: 12),
               ],
               OutlinedButton(
@@ -406,7 +509,9 @@ Future<void> showPublicListing(
               const GoogleAttribution(),
               for (final a in (place['attributions'] as List? ?? []))
                 if ((a['provider'] ?? '').toString().isNotEmpty)
-                  TextButton(onPressed: () => openLink(a['providerUri'] as String), child: Text(a['provider'] as String)),
+                  TextButton(
+                      onPressed: () => openLink(a['providerUri'] as String),
+                      child: Text(a['provider'] as String)),
             ])));
 
 /// Compact source attribution for Google result cards and listing sheets.
@@ -414,8 +519,15 @@ class GoogleAttribution extends StatelessWidget {
   const GoogleAttribution({super.key});
   @override
   Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
-    child: Text('Google Maps', maxLines: 1,
-      style: TextStyle(fontFamily: 'Roboto', fontSize: 14, fontStyle: FontStyle.normal, fontWeight: FontWeight.w400, letterSpacing: 0, color: Color(0xff5e5e5e))),
-  );
+        padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
+        child: Text('Google Maps',
+            maxLines: 1,
+            style: TextStyle(
+                fontFamily: 'Roboto',
+                fontSize: 14,
+                fontStyle: FontStyle.normal,
+                fontWeight: FontWeight.w400,
+                letterSpacing: 0,
+                color: Color(0xff5e5e5e))),
+      );
 }

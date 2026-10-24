@@ -1,4 +1,5 @@
 import { authenticated, body, endpoint, HttpError, rpc, uuid } from "../_shared/http.ts";
+import { deliverReviewEmail } from "../_shared/application_notification.ts";
 
 // Optional email delivery: set RESEND_API_KEY, RESEND_FROM_EMAIL and
 // APPLICATION_REVIEW_EMAIL in Supabase Edge Function secrets.
@@ -26,21 +27,14 @@ Deno.serve(endpoint(async (req) => {
     "Type: " + application.business_kind,
     "Suburb: " + application.suburb,
     "Application ID: " + application.business_id,
-    "Review and verify in the SpicySelf Admin tab. No business has been automatically approved.",
+    "Review and verify in the protected SpicySelf administration console. No business has been automatically approved.",
   ].join("\n");
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    signal: AbortSignal.timeout(10000),
-    headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject: "New SpicySelf business application: " + application.business_name,
-      text: message,
-    }),
-  });
-  if (!response.ok) throw new HttpError(503,
-    "Application saved, but Resend rejected the email. Check your verified sender and allowed recipient in Resend.");
+  try {
+    await deliverReviewEmail({apiKey, from, to, businessId,
+      businessName: application.business_name, text: message});
+  } catch (error) {
+    throw new HttpError(503, (error as Error).message);
+  }
   await rpc(client, "complete_business_application_notification", { p_business: businessId });
   return { queued_for_admin: true, email_sent: true };
 }));

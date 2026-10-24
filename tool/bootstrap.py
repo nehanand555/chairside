@@ -40,7 +40,31 @@ def configure_ios_maps():
             config.write_text(text.rstrip() + "\n" + include + "\n")
 
 
+def runtime_defines():
+    path = ROOT / "build-config.json"
+    existing = json.loads(path.read_text()) if path.exists() else {}
+    if not isinstance(existing, dict):
+        raise ValueError("build-config.json must contain a JSON object; it was not overwritten")
+    for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_WEB_KEY", "SUPPORT_EMAIL"):
+        existing[key] = os.environ[key] if key in os.environ else existing.get(key, "")
+    return existing
+
+
+def configure_podfile(text):
+    # Repair the previously generated commented-out platform declaration.
+    text = re.sub(r"(?m)^.*projectplatform :ios, '[0-9.]+'[ \t]*$", "", text)
+    pattern = r"(?m)^[ \t]*#?[ \t]*platform :ios, '([0-9.]+)'[ \t]*$"
+    def minimum(match):
+        version = match.group(1)
+        minimum_version = version if int(version.split(".")[0]) >= 15 else "15.0"
+        return f"platform :ios, '{minimum_version}'"
+    if re.search(pattern, text):
+        return re.sub(pattern, minimum, text)
+    return "platform :ios, '15.0'\n" + text
+
+
 def configure(platform="web"):
+    defines = runtime_defines()
     with tempfile.TemporaryDirectory(prefix="chairside-platforms-") as temp:
         shell = Path(temp) / "chairside"
         subprocess.run(["flutter", "create", "--empty", "--platforms=android,ios,web", "--org=nz.nehanand", "--project-name=chairside", str(shell)], check=True)
@@ -58,10 +82,12 @@ def configure(platform="web"):
             ET.SubElement(root, "uses-permission", {f"{{{ns}}}name": value})
     application = root.find("application")
     application.set(f"{{{ns}}}label", "SpicySelf")
+    existing_android_key = ""
     for meta in list(application.findall("meta-data")):
         if meta.get(f"{{{ns}}}name") == "com.google.android.geo.API_KEY":
+            existing_android_key = meta.get(f"{{{ns}}}value", "")
             application.remove(meta)
-    ET.SubElement(application, "meta-data", {f"{{{ns}}}name": "com.google.android.geo.API_KEY", f"{{{ns}}}value": os.getenv("GOOGLE_MAPS_ANDROID_KEY", "")})
+    ET.SubElement(application, "meta-data", {f"{{{ns}}}name": "com.google.android.geo.API_KEY", f"{{{ns}}}value": os.getenv("GOOGLE_MAPS_ANDROID_KEY", existing_android_key)})
     activity = application.find("activity")
     # Supabase's app_links handler owns OAuth callbacks, not Flutter's router.
     deep_link_meta = next((m for m in activity.findall("meta-data") if m.get(f"{{{ns}}}name") == "flutter_deeplinking_enabled"), None)
@@ -99,9 +125,10 @@ def configure(platform="web"):
     delegate.write_text(swift)
     podfile = ROOT / "ios/Podfile"
     if podfile.exists():
-        podfile.write_text(re.sub(r"#?\s*platform :ios, '[0-9.]+'", "platform :ios, '15.0'", podfile.read_text()))
+        podfile.write_text(configure_podfile(podfile.read_text()))
     project = ROOT / "ios/Runner.xcodeproj/project.pbxproj"
-    project_text = re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [^;]+;", "IPHONEOS_DEPLOYMENT_TARGET = 15.0;", project.read_text())
+    project_text = re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = ([0-9.]+);",
+        lambda m: m.group(0) if int(m.group(1).split(".")[0]) >= 15 else "IPHONEOS_DEPLOYMENT_TARGET = 15.0;", project.read_text())
     for old_id in (LEGACY_APP_ID, "nz.nehanand.chairside"):
         project_text = project_text.replace(old_id, APP_ID)
     project.write_text(project_text)
@@ -117,15 +144,21 @@ def configure(platform="web"):
     web = ROOT / "web/index.html"
     html = web.read_text()
     html = re.sub(r'\s*<script[^>]*data-chairside-maps[^>]*></script>', '', html)
-    key = os.getenv("GOOGLE_MAPS_WEB_KEY", "")
+    key = defines["GOOGLE_MAPS_WEB_KEY"]
     if key:
         from urllib.parse import quote
         html = html.replace("</head>", f'<script data-chairside-maps src="https://maps.googleapis.com/maps/api/js?key={quote(key, safe="")}&v=quarterly"></script>\n</head>')
     html = html.replace("<title>spicyself</title>", "<title>SpicySelf — find your next look</title>")
     web.write_text(html)
     (ROOT / "web/_headers").write_text("/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: geolocation=(self), camera=(), microphone=()\n  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'\n/index.html\n  Cache-Control: no-cache\n")
-    defines = {key: os.getenv(key, "") for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_WEB_KEY", "SUPPORT_EMAIL")}
-    defines["MAPS_ENABLED"] = bool(os.getenv({"web": "GOOGLE_MAPS_WEB_KEY", "android": "GOOGLE_MAPS_ANDROID_KEY", "ios": "GOOGLE_MAPS_IOS_KEY", "ios-simulator": "GOOGLE_MAPS_IOS_KEY"}[platform]))
+    if platform == "web":
+        maps_enabled = bool(defines["GOOGLE_MAPS_WEB_KEY"])
+    elif platform == "android":
+        maps_enabled = bool(os.getenv("GOOGLE_MAPS_ANDROID_KEY", existing_android_key))
+    else:
+        local_maps = ROOT / "ios/Flutter/Maps.local.xcconfig"
+        maps_enabled = bool(re.search(r"(?m)^GOOGLE_MAPS_IOS_KEY\s*=\s*[A-Za-z0-9_-]+[ \t]*$", local_maps.read_text()))
+    defines["MAPS_ENABLED"] = maps_enabled
     (ROOT / "build-config.json").write_text(json.dumps(defines))
     apply_branding(ROOT)
 

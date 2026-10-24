@@ -31,11 +31,15 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     final s = widget.store;
     if (loadedUser != s.backend?.userId) {
-      loadedUser = s.backend?.userId; data = null; health = null;
+      loadedUser = s.backend?.userId;
+      data = null;
+      health = null;
     }
-    if (!s.isAdmin) return const PageBody(children: [
-      PageHeading('Restricted access', 'This console is available to authorised administrators only.'),
-    ]);
+    if (!s.isAdmin)
+      return const PageBody(children: [
+        PageHeading('Restricted access',
+            'This console is available to authorised administrators only.'),
+      ]);
     if (s.unlocked && data == null) reload();
     return OperatorGate(
         store: s,
@@ -59,10 +63,20 @@ class _AdminScreenState extends State<AdminScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Wrap(spacing: 8, runSpacing: 8, children: [
-                          for (final status in ['pending', 'approved', 'rejected', 'suspended', 'all'])
-                            ChoiceChip(label: Text(status == 'all' ? 'All businesses' : '${status[0].toUpperCase()}${status.substring(1)}'),
+                          for (final status in [
+                            'pending',
+                            'approved',
+                            'rejected',
+                            'suspended',
+                            'all'
+                          ])
+                            ChoiceChip(
+                                label: Text(status == 'all'
+                                    ? 'All businesses'
+                                    : '${status[0].toUpperCase()}${status.substring(1)}'),
                                 selected: filter == status,
-                                onSelected: (_) => setState(() => filter = status)),
+                                onSelected: (_) =>
+                                    setState(() => filter = status)),
                           OutlinedButton.icon(
                               onPressed: () => setState(reload),
                               icon: const Icon(Icons.refresh),
@@ -70,7 +84,8 @@ class _AdminScreenState extends State<AdminScreen> {
                         ]),
                         const SizedBox(height: 16),
                         ...businesses
-                            .where((b) => filter == 'all' || b['status'] == filter)
+                            .where(
+                                (b) => filter == 'all' || b['status'] == filter)
                             .map((b) => Panel(
                                     child: Column(
                                         crossAxisAlignment:
@@ -85,12 +100,17 @@ class _AdminScreenState extends State<AdminScreen> {
                                           as String),
                                       Text(
                                           'Owner phone: ${b['owner_phone'] ?? 'Not available'}'),
-                                      Text('Owner email: ${b['owner_email'] ?? 'Not available'}'),
+                                      Text(
+                                          'Owner email: ${b['owner_email'] ?? 'Not available'}'),
                                       const SizedBox(height: 8),
-                                      Text('Registration number: ${b['registration_number'] ?? 'Not provided'}'),
-                                      Text('Contact person: ${b['contact_name'] ?? 'Not provided'}'),
-                                      Text('Contact email: ${b['contact_email'] ?? 'Not provided'}'),
-                                      Text('Contact phone: ${b['contact_phone'] ?? 'Not provided'}'),
+                                      Text(
+                                          'Registration number: ${b['registration_number'] ?? 'Not provided'}'),
+                                      Text(
+                                          'Contact person: ${b['contact_name'] ?? 'Not provided'}'),
+                                      Text(
+                                          'Contact email: ${b['contact_email'] ?? 'Not provided'}'),
+                                      Text(
+                                          'Contact phone: ${b['contact_phone'] ?? 'Not provided'}'),
                                       if (b['place_id'] != null)
                                         SelectableText(
                                             'Google claim: ${b['place_id']}'),
@@ -123,12 +143,22 @@ class _AdminScreenState extends State<AdminScreen> {
                                                             store: s,
                                                             title: b['name']
                                                                 as String,
-                                                            child: AdminBusinessVisits(store: s, business: b['id'] as String)))),
-                                                child: const Text('Visits & refunds'))
+                                                            child: AdminBusinessVisits(
+                                                                store: s,
+                                                                business: b[
+                                                                        'id']
+                                                                    as String)))),
+                                                child: const Text(
+                                                    'Visits & refunds'))
                                           ])
                                     ]))),
-                        if (businesses.where((b) => filter == 'all' || b['status'] == filter).isEmpty)
-                          Notice(filter == 'pending' ? 'No applications waiting for review.' : 'No businesses in this status.'),
+                        if (businesses
+                            .where(
+                                (b) => filter == 'all' || b['status'] == filter)
+                            .isEmpty)
+                          Notice(filter == 'pending'
+                              ? 'No applications waiting for review.'
+                              : 'No businesses in this status.'),
                         const SizedBox(height: 20),
                         Text('Open reports (${reports.length})',
                             style: Theme.of(context).textTheme.titleLarge),
@@ -156,25 +186,49 @@ class _AdminScreenState extends State<AdminScreen> {
         ]));
   }
 
-  Future<void> review(BuildContext context, Json business, String status) async {
+  Future<void> review(
+      BuildContext context, Json business, String status) async {
     final note = TextEditingController();
     final form = GlobalKey<FormState>();
-    final result = await showDialog<String>(context: context, builder: (context) => AlertDialog(
-      title: Text('$status: ${business['name']}'),
-      content: Form(key: form, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('Record the evidence checked or the reason for this decision. The owner can see this note.'),
-        const SizedBox(height: 16),
-        FormFieldBox(note, 'Review note', lines: 4, validator: (v) =>
-            (v ?? '').trim().length < 10 || (v ?? '').length > 2000 ? 'Use 10–2000 characters to explain the decision' : null),
-      ]))),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: () { if (form.currentState!.validate()) Navigator.pop(context, note.text.trim()); },
-            child: const Text('Save decision'))],
-    ));
+    final result = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text('$status: ${business['name']}'),
+              content: Form(
+                  key: form,
+                  child: SingleChildScrollView(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Text(
+                        'Record the evidence checked or the reason for this decision. The owner can see this note.'),
+                    const SizedBox(height: 16),
+                    FormFieldBox(note, 'Review note',
+                        lines: 4,
+                        validator: (v) => (v ?? '').trim().length < 10 ||
+                                (v ?? '').length > 2000
+                            ? 'Use 10–2000 characters to explain the decision'
+                            : null),
+                  ]))),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel')),
+                FilledButton(
+                    onPressed: () {
+                      if (form.currentState!.validate())
+                        Navigator.pop(context, note.text.trim());
+                    },
+                    child: const Text('Save decision'))
+              ],
+            ));
     note.dispose();
-    if (result != null) await widget.store.run(() async {
-      await widget.store.backend!.rpc('admin_review', {'p_business': business['id'], 'p_status': status, 'p_note': result});
-      if (mounted) setState(reload);
-    });
+    if (result != null)
+      await widget.store.run(() async {
+        await widget.store.backend!.rpc('admin_review', {
+          'p_business': business['id'],
+          'p_status': status,
+          'p_note': result
+        });
+        if (mounted) setState(reload);
+      });
   }
 }
