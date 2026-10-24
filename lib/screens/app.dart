@@ -94,7 +94,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
               final pages = <Widget>[
                 DiscoverScreen(store: s, mapsEnabled: widget.mapsEnabled),
                 VisitsScreen(store: s),
-                AccountScreen(key: ValueKey(s.backend!.userId), store: s, onBusinessTap: () => openBusiness(context, s)),
+                AccountScreen(key: ValueKey(s.backend!.userId), store: s, onBusinessTap: () => openBusinessWorkspace(context, s)),
                 if (s.isAdmin) AdminScreen(key: ValueKey(s.unlocked), store: s)
               ];
               return LayoutBuilder(builder: (context, constraints) {
@@ -210,7 +210,7 @@ class DetailScaffold extends StatelessWidget {
           ])));
 }
 
-Future<void> openBusiness(BuildContext context, AppStore store) =>
+Future<void> openBusinessWorkspace(BuildContext context, AppStore store) =>
     Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => DetailScaffold(
             store: store,
