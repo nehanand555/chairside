@@ -16,7 +16,8 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   Future<Json>? data;
   Future<Json>? health;
-  bool all = false;
+  String filter = 'pending';
+  String? loadedUser;
   void reload() {
     data = widget.store.backend!
         .rpc('admin_overview')
@@ -29,6 +30,9 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.store;
+    if (loadedUser != s.backend?.userId) {
+      loadedUser = s.backend?.userId; data = null; health = null;
+    }
     if (!s.isAdmin) return const PageBody(children: [
       PageHeading('Restricted access', 'This console is available to authorised administrators only.'),
     ]);
@@ -54,11 +58,11 @@ class _AdminScreenState extends State<AdminScreen> {
                   return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Wrap(spacing: 8, children: [
-                          FilterChip(
-                              label: const Text('Show all businesses'),
-                              selected: all,
-                              onSelected: (v) => setState(() => all = v)),
+                        Wrap(spacing: 8, runSpacing: 8, children: [
+                          for (final status in ['pending', 'approved', 'rejected', 'suspended', 'all'])
+                            ChoiceChip(label: Text(status == 'all' ? 'All businesses' : '${status[0].toUpperCase()}${status.substring(1)}'),
+                                selected: filter == status,
+                                onSelected: (_) => setState(() => filter = status)),
                           OutlinedButton.icon(
                               onPressed: () => setState(reload),
                               icon: const Icon(Icons.refresh),
@@ -66,7 +70,7 @@ class _AdminScreenState extends State<AdminScreen> {
                         ]),
                         const SizedBox(height: 16),
                         ...businesses
-                            .where((b) => all || b['status'] == 'pending')
+                            .where((b) => filter == 'all' || b['status'] == filter)
                             .map((b) => Panel(
                                     child: Column(
                                         crossAxisAlignment:
@@ -123,9 +127,8 @@ class _AdminScreenState extends State<AdminScreen> {
                                                 child: const Text('Visits & refunds'))
                                           ])
                                     ]))),
-                        if (!all &&
-                            businesses.every((b) => b['status'] != 'pending'))
-                          const Notice('No applications waiting for review.'),
+                        if (businesses.where((b) => filter == 'all' || b['status'] == filter).isEmpty)
+                          Notice(filter == 'pending' ? 'No applications waiting for review.' : 'No businesses in this status.'),
                         const SizedBox(height: 20),
                         Text('Open reports (${reports.length})',
                             style: Theme.of(context).textTheme.titleLarge),
@@ -153,40 +156,25 @@ class _AdminScreenState extends State<AdminScreen> {
         ]));
   }
 
-  Future<void> review(
-      BuildContext context, Json business, String status) async {
+  Future<void> review(BuildContext context, Json business, String status) async {
     final note = TextEditingController();
-    final result = await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-                title: Text('$status: ${business['name']}'),
-                content: SingleChildScrollView(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text(
-                      'Record what you verified, or the reason for this decision. This note is visible to the owner.'),
-                  const SizedBox(height: 12),
-                  FormFieldBox(note, 'Review note', lines: 4)
-                ])),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel')),
-                  FilledButton(
-                      onPressed: () {
-                        if (note.text.trim().length >= 10)
-                          Navigator.pop(context, note.text.trim());
-                      },
-                      child: const Text('Save decision'))
-                ]));
+    final form = GlobalKey<FormState>();
+    final result = await showDialog<String>(context: context, builder: (context) => AlertDialog(
+      title: Text('$status: ${business['name']}'),
+      content: Form(key: form, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('Record the evidence checked or the reason for this decision. The owner can see this note.'),
+        const SizedBox(height: 16),
+        FormFieldBox(note, 'Review note', lines: 4, validator: (v) =>
+            (v ?? '').trim().length < 10 || (v ?? '').length > 2000 ? 'Use 10–2000 characters to explain the decision' : null),
+      ]))),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        FilledButton(onPressed: () { if (form.currentState!.validate()) Navigator.pop(context, note.text.trim()); },
+            child: const Text('Save decision'))],
+    ));
     note.dispose();
-    if (result != null)
-      await widget.store.run(() async {
-        await widget.store.backend!.rpc('admin_review', {
-          'p_business': business['id'],
-          'p_status': status,
-          'p_note': result
-        });
-        if (mounted) setState(reload);
-      });
+    if (result != null) await widget.store.run(() async {
+      await widget.store.backend!.rpc('admin_review', {'p_business': business['id'], 'p_status': status, 'p_note': result});
+      if (mounted) setState(reload);
+    });
   }
 }

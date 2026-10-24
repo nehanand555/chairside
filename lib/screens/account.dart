@@ -24,7 +24,10 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(listenable: widget.store,
+      builder: (context, _) => buildAccount(context));
+
+  Widget buildAccount(BuildContext context) {
     final s = widget.store;
     if (!s.signedIn)
       return PageBody(width: 520, children: [
