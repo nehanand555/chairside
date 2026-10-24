@@ -98,6 +98,23 @@ class DiscoverySkeleton extends StatelessWidget {
   );
 }
 
+class WorkspaceGroup extends StatelessWidget {
+  const WorkspaceGroup({super.key, required this.title, required this.icon, required this.children});
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.only(bottom: 16),
+    clipBehavior: Clip.antiAlias,
+    child: ExpansionTile(key: PageStorageKey(title), leading: Icon(icon, color: ink),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+      childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children),
+  );
+}
+
 /// Shared scissors artwork and wordmark for configured and setup screens.
 class SpicySelfBrand extends StatelessWidget {
   const SpicySelfBrand({super.key});
@@ -230,17 +247,19 @@ class FormFieldBox extends StatelessWidget {
       this.hint,
       this.keyboard,
       this.lines = 1,
-      this.required = true});
+      this.required = true, this.validator});
   final TextEditingController controller;
   final String label;
   final String? hint;
   final TextInputType? keyboard;
   final int lines;
   final bool required;
+  final String? Function(String?)? validator;
   @override
   Widget build(BuildContext context) => Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
+          key: ValueKey(label),
           controller: controller,
           keyboardType: keyboard,
           maxLines: lines,
@@ -248,7 +267,7 @@ class FormFieldBox extends StatelessWidget {
               labelText: label,
               hintText: hint,
               border: const OutlineInputBorder()),
-          validator: (v) => required && (v == null || v.trim().isEmpty)
+          validator: validator ?? (v) => required && (v == null || v.trim().isEmpty)
               ? 'Enter $label'
               : null));
 }

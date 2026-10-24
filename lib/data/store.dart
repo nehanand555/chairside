@@ -21,6 +21,7 @@ class AppStore extends ChangeNotifier {
   List<String> favorites = [];
   bool moreVisits = false;
   String? error;
+  String? applicationNotificationMessage;
   bool busy = false;
   bool _disposed = false;
   int _revision = 0;
@@ -66,6 +67,7 @@ class AppStore extends ChangeNotifier {
     final revision = ++_revision;
     if (_lastUser != backend?.userId) {
       _lastUser = backend?.userId;
+      applicationNotificationMessage = null;
       _visitPages = 1;
       profile = {}; account = {}; visits = []; favorites = []; moreVisits = false;
       changed();
