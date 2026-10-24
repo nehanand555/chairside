@@ -94,10 +94,18 @@ class _AccountScreenState extends State<AccountScreen> {
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(s.businessId == null
-              ? 'Own a barber shop, salon or home studio? Apply to join SpicySelf.'
+              ? 'Get discovered by local customers. Claim or register your barber shop, salon or home studio for free.'
               : s.account['business_status'] == 'approved'
-                  ? 'Open your verified business workspace.'
-                  : 'View your application status and review notifications.'),
+                  ? 'Manage your services, opening hours, bookings and live queue in one place.'
+                  : 'Track your application while our team reviews your business details.'),
+          if (s.businessId == null) ...[
+            const SizedBox(height: 12),
+            const Text('Free listing includes:', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            const Text('• A business profile customers can discover\n• Services, prices and opening hours\n• A link to your existing website or booking page'),
+            const SizedBox(height: 8),
+            const Text('No subscription required to apply. Additional business tools may be offered separately later.'),
+          ],
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: widget.onBusinessTap ?? () => openBusinessWorkspace(context, s),
