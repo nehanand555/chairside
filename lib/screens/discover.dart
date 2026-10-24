@@ -84,6 +84,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant DiscoverScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.mapMode || !mapAvailable) controller = null;
+  }
+
+  @override
   void dispose() {
     request++;
     search.dispose();
@@ -120,7 +126,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         places = List<Json>.from(data['places'] as List);
         warning = data['warning'] as String?;
       });
-      await controller?.animateCamera(CameraUpdate.newLatLngZoom(center, 12));
+      // Switching to Explore disposes the native map, not these shared results.
+      try {
+        await controller?.animateCamera(CameraUpdate.newLatLngZoom(center, 12));
+      } catch (_) {/* Camera failure must not discard successful discovery. */}
     } catch (e) {
       if (mounted && request == id) setState(() => error = friendlyError(e));
     } finally {
@@ -240,7 +249,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 myLocationButtonEnabled: false,
                 zoomControlsEnabled: false,
                 mapToolbarEnabled: false,
-                onMapCreated: (c) => controller = c,
+                onMapCreated: (c) {
+                  if (mounted && widget.mapMode && mapAvailable) controller = c;
+                },
                 onCameraMove: (position) => center = position.target,
                 markers: {
                   for (final b in members)

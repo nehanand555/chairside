@@ -12,12 +12,15 @@ import 'visits.dart';
 
 Future<void> sendApplicationNotification(
     AppStore store, String businessId) async {
+  final session = store.sessionRevision;
+  final user = store.backend?.userId;
   store.applicationNotificationMessage =
       'Your application is saved. Sending the review notification…';
   store.changed();
   try {
     final result = await store.backend!
         .invoke('business-application-notify', {'business_id': businessId});
+    if (!store.isCurrentSession(session, user)) return;
     if (result['email_sent'] == true) {
       store.applicationNotificationMessage =
           'Your application is saved and the review notification has been accepted. Delivery to the inbox is not guaranteed.';
@@ -32,11 +35,12 @@ Future<void> sendApplicationNotification(
           'Application saved. Review email was not accepted; please retry without reapplying.');
     }
   } catch (e) {
+    if (!store.isCurrentSession(session, user)) return;
     store.applicationNotificationMessage =
         'Application saved. Notification delivery needs attention. ${friendlyError(e)}';
     rethrow;
   } finally {
-    store.changed();
+    if (store.isCurrentSession(session, user)) store.changed();
   }
 }
 
@@ -52,7 +56,9 @@ class BusinessScreen extends StatelessWidget {
       return OperatorGate(store: store, child: const SizedBox.shrink());
     }
     if (store.businessId == null) {
-      return BusinessApplication(store: store);
+      return BusinessApplication(
+          key: ValueKey((store.backend!.userId, store.sessionRevision)),
+          store: store);
     }
     if (store.account['business_status'] != 'approved') {
       final status = store.account['business_status'] as String? ?? 'pending';
@@ -102,7 +108,11 @@ class BusinessScreen extends StatelessWidget {
     }
     return OperatorGate(
       store: store,
-      child: BusinessDashboard(store: store, id: store.businessId!),
+      child: BusinessDashboard(
+          key: ValueKey(
+              (store.backend!.userId, store.businessId, store.sessionRevision)),
+          store: store,
+          id: store.businessId!),
     );
   }
 }
@@ -206,6 +216,7 @@ class _PendingApplicationEditorState extends State<PendingApplicationEditor> {
 class _BusinessApplicationState extends State<BusinessApplication> {
   final form = GlobalKey<FormState>();
   int step = 0;
+  String? submittedApplication;
   final name = TextEditingController(),
       registrationNumber = TextEditingController(),
       contactName = TextEditingController(),
@@ -252,6 +263,9 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     final s = widget.store;
     if (!consent || !declaration)
       throw Exception('Confirm business authority and publication consent.');
+    if (submittedApplication != null) return;
+    final session = s.sessionRevision;
+    final user = s.backend!.userId;
     final applicationId = await s.backend!.rpc('apply_business', {
       'p_data': {
         'name': name.text.trim(),
@@ -270,9 +284,12 @@ class _BusinessApplicationState extends State<BusinessApplication> {
         'operating_declaration': declaration,
       }
     });
+    if (!mounted || !s.isCurrentSession(session, user)) return;
+    setState(() => submittedApplication = applicationId as String);
     // Saving and notification delivery are separate: never resubmit a saved application.
     await s.refreshAccount();
-    await sendApplicationNotification(s, applicationId as String);
+    if (s.isCurrentSession(session, user))
+      await sendApplicationNotification(s, applicationId as String);
   }
 
   void next() {
@@ -283,6 +300,22 @@ class _BusinessApplicationState extends State<BusinessApplication> {
   @override
   Widget build(BuildContext context) {
     final s = widget.store;
+    if (submittedApplication != null)
+      return PageBody(width: 760, children: [
+        const PageHeading('Application saved',
+            'Your application was submitted for review. There is no need to apply again.'),
+        const Notice(
+            'Refresh your account to see the latest review status. Email delivery is separate from saving your application.'),
+        if (s.applicationNotificationMessage != null)
+          Notice(s.applicationNotificationMessage!),
+        ActionButton(s, 'Check application status', s.refreshAccount),
+        OutlinedButton(
+            onPressed: s.busy
+                ? null
+                : () => s.run(() =>
+                    sendApplicationNotification(s, submittedApplication!)),
+            child: const Text('Retry review email')),
+      ]);
     const labels = ['Business', 'Contact', 'Location', 'Review'];
     return PageBody(width: 760, children: [
       const PageHeading('Your craft. A bigger community.',
@@ -2960,6 +2993,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                                       context,
                                       'Close your SpicySelf listing?',
                                       'Finish or cancel all visits first. This removes your listing from search. Historical financial records are retained.',
+                                      store: s,
+                                      requireMfa: true,
                                       action: 'Close listing'))
                                     await s.run(() async {
                                       await configure('close', {});
@@ -2978,8 +3013,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
             text: ((current?['price_cents'] as num? ?? 3000) / 100)
                 .toStringAsFixed(2));
     bool active = current?['active'] != false;
-    final result = await showDialog<Json>(
-        context: context,
+    final result = await showSessionDialog<Json>(context, widget.store,
+        requireMfa: true,
         builder: (context) => StatefulBuilder(
             builder: (context, set) => AlertDialog(
                     title:
@@ -3034,15 +3069,15 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
     name.dispose();
     minutes.dispose();
     price.dispose();
-    if (result != null)
+    if (result != null && mounted)
       await widget.store.run(() => configure('service', result));
   }
 
   Future<void> editResource(BuildContext context, Json? current) async {
     final name = TextEditingController(text: current?['name'] as String? ?? '');
     bool active = current?['active'] != false;
-    final result = await showDialog<Json>(
-        context: context,
+    final result = await showSessionDialog<Json>(context, widget.store,
+        requireMfa: true,
         builder: (context) => StatefulBuilder(
             builder: (context, set) => AlertDialog(
                     title: const Text('Chair / professional'),
@@ -3070,7 +3105,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                           child: const Text('Save'))
                     ])));
     name.dispose();
-    if (result != null)
+    if (result != null && mounted)
       await widget.store.run(() => configure('resource', result));
   }
 
@@ -3093,8 +3128,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                         .firstOrNull?['closes'] as String? ??
                     '17:00')
                 .substring(0, 5)));
-    final result = await showDialog<List<Json>>(
-        context: context,
+    final result = await showSessionDialog<List<Json>>(context, widget.store,
+        requireMfa: true,
         builder: (context) => StatefulBuilder(
             builder: (context, set) => AlertDialog(
                     title: const Text('Weekly hours'),
@@ -3163,7 +3198,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
     for (final c in [...opens, ...closes]) {
       c.dispose();
     }
-    if (result != null)
+    if (result != null && mounted)
       await widget.store.run(() => configure('hours', {'hours': result}));
   }
 
@@ -3184,8 +3219,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
     String service = services.first['id'] as String,
         resource = resources.first['id'] as String;
     bool consent = false;
-    final result = await showDialog<Json>(
-        context: context,
+    final result = await showSessionDialog<Json>(context, widget.store,
+        requireMfa: true,
         builder: (context) => StatefulBuilder(
             builder: (context, set) => AlertDialog(
                     title: const Text('Add walk-in'),
@@ -3244,7 +3279,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     ])));
     name.dispose();
     phone.dispose();
-    if (result != null)
+    if (result != null && mounted)
       await widget.store.run(() async {
         final walk = result['p_walk_in'] as Json;
         if ((walk['phone'] as String).isNotEmpty)
@@ -3262,8 +3297,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
             text:
                 '${nzNow().hour.toString().padLeft(2, '0')}:${nzNow().minute.toString().padLeft(2, '0')}'),
         minutes = TextEditingController(text: '30');
-    final result = await showDialog<Json>(
-        context: context,
+    final result = await showSessionDialog<Json>(context, widget.store,
+        requireMfa: true,
         builder: (context) => AlertDialog(
                 title: const Text('Break today'),
                 content: SingleChildScrollView(
@@ -3296,7 +3331,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                 ]));
     start.dispose();
     minutes.dispose();
-    if (result != null)
+    if (result != null && mounted)
       await widget.store.run(() async {
         if (!RegExp(r'^([01][0-9]|2[0-3]):[0-5][0-9]$')
             .hasMatch(result['time'] as String))

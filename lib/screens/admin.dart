@@ -18,6 +18,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<Json>? health;
   String filter = 'pending';
   String? loadedUser;
+  int? loadedSession;
   void reload() {
     data = widget.store.backend!
         .rpc('admin_overview')
@@ -28,9 +29,13 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+      listenable: widget.store, builder: (context, _) => buildConsole(context));
+
+  Widget buildConsole(BuildContext context) {
     final s = widget.store;
-    if (loadedUser != s.backend?.userId) {
+    if (loadedUser != s.backend?.userId || loadedSession != s.sessionRevision) {
+      loadedSession = s.sessionRevision;
       loadedUser = s.backend?.userId;
       data = null;
       health = null;
@@ -190,8 +195,9 @@ class _AdminScreenState extends State<AdminScreen> {
       BuildContext context, Json business, String status) async {
     final note = TextEditingController();
     final form = GlobalKey<FormState>();
-    final result = await showDialog<String>(
-        context: context,
+    final result = await showSessionDialog<String>(context, widget.store,
+        requireAdmin: true,
+        requireMfa: true,
         builder: (context) => AlertDialog(
               title: Text('$status: ${business['name']}'),
               content: Form(
@@ -221,7 +227,7 @@ class _AdminScreenState extends State<AdminScreen> {
               ],
             ));
     note.dispose();
-    if (result != null)
+    if (result != null && mounted)
       await widget.store.run(() async {
         await widget.store.backend!.rpc('admin_review', {
           'p_business': business['id'],

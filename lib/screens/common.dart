@@ -258,10 +258,40 @@ Future<void> openLink(String url) async {
       webOnlyWindowName: '_self')) throw Exception('Could not open the link');
 }
 
+Future<T?> showSessionDialog<T>(BuildContext context, AppStore store,
+    {required WidgetBuilder builder,
+    bool requireAdmin = false,
+    bool requireMfa = false}) async {
+  final session = store.sessionRevision;
+  final user = store.backend?.userId;
+  bool allowed() =>
+      store.isCurrentSession(session, user) &&
+      (!requireAdmin || store.isAdmin) &&
+      (!requireMfa || store.unlocked);
+  final result = await showDialog<T>(
+      context: context,
+      builder: (dialogContext) => ListenableBuilder(
+          listenable: store,
+          builder: (context, _) => allowed()
+              ? builder(context)
+              : AlertDialog(
+                  title: const Text('Session changed'),
+                  content: const Text(
+                      'Your account or access changed. Close this dialog and start again.'),
+                  actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop<T>(dialogContext),
+                          child: const Text('Close'))
+                    ])));
+  return allowed() ? result : null;
+}
+
 Future<bool> confirm(BuildContext context, String title, String message,
-        {String action = 'Confirm'}) async =>
-    await showDialog<bool>(
-        context: context,
+        {required AppStore store,
+        String action = 'Confirm',
+        bool requireMfa = false}) async =>
+    await showSessionDialog<bool>(context, store,
+        requireMfa: requireMfa,
         builder: (context) =>
             AlertDialog(title: Text(title), content: Text(message), actions: [
               TextButton(

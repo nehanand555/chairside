@@ -16,7 +16,8 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   final name = TextEditingController();
   bool sms = false, marketing = false, accepted = false;
-  String? loadedUser;
+  String? loadedUser, formUser;
+  int? formSession;
   @override
   void dispose() {
     name.dispose();
@@ -29,6 +30,15 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Widget buildAccount(BuildContext context) {
     final s = widget.store;
+    if (formUser != s.backend?.userId || formSession != s.sessionRevision) {
+      formSession = s.sessionRevision;
+      formUser = s.backend?.userId;
+      loadedUser = null;
+      name.clear();
+      sms = false;
+      marketing = false;
+      accepted = false;
+    }
     if (!s.signedIn)
       return PageBody(width: 520, children: [
         const PageHeading('Welcome to SpicySelf',
@@ -89,9 +99,11 @@ class _AccountScreenState extends State<AccountScreen> {
             value: marketing,
             onChanged: (v) => setState(() => marketing = v)),
         ActionButton(s, 'Save preferences', () async {
+          final session = s.sessionRevision;
+          final user = s.backend!.userId;
           await s.saveProfile(
               name.text, s.backend!.hasVerifiedPhone && sms, marketing);
-          if (context.mounted)
+          if (context.mounted && s.isCurrentSession(session, user))
             ScaffoldMessenger.of(context)
                 .showSnackBar(const SnackBar(content: Text('Saved')));
         }, icon: Icons.check)
@@ -164,7 +176,7 @@ class _AccountScreenState extends State<AccountScreen> {
               : () async {
                   if (await confirm(context, 'Delete your account?',
                       'This removes your profile and signs you out. Finish or cancel active visits first. Business owners must close their business. Financial records may be retained.',
-                      action: 'Delete account')) {
+                      store: s, action: 'Delete account')) {
                     await s.run(() async {
                       await s.backend!.invoke('delete-account', {});
                       await s.backend!.signOut();
@@ -213,6 +225,8 @@ class _MfaPanelState extends State<MfaPanel> {
   final code = TextEditingController();
   Future<List<Json>>? factors;
   Json? enrollment;
+  String? factorUser;
+  int? factorSession;
 
   @override
   void dispose() {
@@ -223,10 +237,19 @@ class _MfaPanelState extends State<MfaPanel> {
   @override
   Widget build(BuildContext context) {
     final s = widget.store;
+    if (factorUser != s.backend?.userId || factorSession != s.sessionRevision) {
+      factorSession = s.sessionRevision;
+      factorUser = s.backend?.userId;
+      factors = null;
+      enrollment = null;
+      code.clear();
+    }
+    if (!s.signedIn) return const SizedBox.shrink();
     if (s.unlocked)
       return const Notice(
           'Business access is unlocked for this session. Keep your authenticator app available for future sign-ins.');
     return AsyncPanel<List<Json>>(
+        key: ValueKey((factorUser, s.sessionRevision)),
         future: factors ??= s.backend!.factors(),
         retry: () => setState(() => factors = s.backend!.factors()),
         builder: (items) {
@@ -244,12 +267,17 @@ class _MfaPanelState extends State<MfaPanel> {
                       'Add SpicySelf to an authenticator such as Google Authenticator or Microsoft Authenticator. Store the setup key securely; you’ll need the app to access business tools.'),
                   const SizedBox(height: 12),
                   ActionButton(s, 'Set up authenticator', () async {
+                    final session = s.sessionRevision;
+                    final user = s.backend!.userId;
                     for (final f
                         in items.where((f) => f['status'] != 'verified')) {
+                      if (!s.isCurrentSession(session, user)) return;
                       await s.backend!.discardFactor(f['id'] as String);
                     }
+                    if (!s.isCurrentSession(session, user)) return;
                     final result = await s.backend!.enrollFactor();
-                    if (mounted) setState(() => enrollment = result);
+                    if (mounted && s.isCurrentSession(session, user))
+                      setState(() => enrollment = result);
                   }, icon: Icons.shield_outlined)
                 ],
                 if (enrollment != null) ...[

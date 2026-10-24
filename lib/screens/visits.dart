@@ -134,15 +134,18 @@ class VisitCard extends StatelessWidget {
               onPressed: store.busy
                   ? null
                   : () async {
+                      final session = store.sessionRevision;
+                      final user = store.backend!.userId;
                       Json? address;
                       final ok = await store.run(() async {
                         address = Json.from(await store.backend!.rpc(
                             'visit_location', {'p_visit': v['id']}) as Map);
                       });
-                      if (!ok || !context.mounted) return;
+                      if (!ok ||
+                          !context.mounted ||
+                          !store.isCurrentSession(session, user)) return;
                       final location = address!;
-                      await showDialog<void>(
-                          context: context,
+                      await showSessionDialog<void>(context, store,
                           builder: (c) => AlertDialog(
                                   title: const Text('Your visit address'),
                                   content: Text(location['address'] as String),
@@ -187,6 +190,8 @@ class VisitCard extends StatelessWidget {
                   : () async {
                       if (await confirm(context, 'Cancel this visit?',
                           'Your place will be released. If prepaid, a full refund will be requested.',
+                          store: store,
+                          requireMfa: operator,
                           action: 'Cancel visit'))
                         await store.run(() =>
                             store.changeVisit(v['id'] as String, 'cancel'));
@@ -198,7 +203,8 @@ class VisitCard extends StatelessWidget {
                   ? null
                   : () async {
                       if (await confirm(context, 'Mark as absent?',
-                          'Only use this when the customer has missed their time. Prepaid visits will be refunded.'))
+                          'Only use this when the customer has missed their time. Prepaid visits will be refunded.',
+                          store: store, requireMfa: operator))
                         await store.run(() =>
                             store.changeVisit(v['id'] as String, 'no_show'));
                     },
@@ -210,6 +216,8 @@ class VisitCard extends StatelessWidget {
                   : () async {
                       if (await confirm(context, 'Issue full refund?',
                           'This requests a full refund of ${money(v['price_cents'])}.',
+                          store: store,
+                          requireMfa: operator,
                           action: 'Request refund'))
                         await store.run(() async {
                           await store.backend!

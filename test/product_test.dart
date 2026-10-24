@@ -94,7 +94,7 @@ class TestBackend extends Backend {
             .map(Json.from)
             .toList();
       case 'create_visit':
-        expect(params['p_kind'], 'queue');
+        expectSync(params['p_kind'], 'queue');
         visits.add({
           'id': 'v1',
           'business_id': 'p1',
@@ -112,8 +112,12 @@ class TestBackend extends Backend {
         });
         return 'v1';
       case 'change_visit':
-        visits.first['status'] =
-            params['p_action'] == 'start' ? 'serving' : 'completed';
+        visits.firstWhere((v) => v['id'] == params['p_visit'])['status'] = {
+          'start': 'serving',
+          'complete': 'completed',
+          'cancel': 'cancelled',
+          'no_show': 'no_show',
+        }[params['p_action']]!;
         return null;
     }
     throw StateError('Unexpected RPC: $name');

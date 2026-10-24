@@ -26,6 +26,11 @@ class AppStore extends ChangeNotifier {
   bool _disposed = false;
   int _revision = 0;
   int _visitPages = 1;
+  int _visitRevision = 0;
+  int _sessionRevision = 0;
+  int get sessionRevision => _sessionRevision;
+  bool isCurrentSession(int revision, String? user) =>
+      !_disposed && revision == _sessionRevision && backend?.userId == user;
   String? _lastUser;
   bool get configured => backend != null;
   bool get signedIn => backend?.userId != null;
@@ -49,14 +54,16 @@ class AppStore extends ChangeNotifier {
 
   Future<bool> run(Future<void> Function() action) async {
     if (busy) return false;
+    final session = _sessionRevision;
+    final user = backend?.userId;
     busy = true;
     error = null;
     changed();
     try {
       await action();
-      return true;
+      return isCurrentSession(session, user);
     } catch (e) {
-      error = friendlyError(e);
+      if (isCurrentSession(session, user)) error = friendlyError(e);
       return false;
     } finally {
       busy = false;
@@ -68,6 +75,10 @@ class AppStore extends ChangeNotifier {
     final revision = ++_revision;
     if (_lastUser != backend?.userId) {
       _lastUser = backend?.userId;
+      _sessionRevision++;
+      _visitRevision++;
+      backend?.stopWatching();
+      error = null;
       applicationNotificationMessage = null;
       _visitPages = 1;
       profile = {};
@@ -122,31 +133,46 @@ class AppStore extends ChangeNotifier {
   Future<void> refreshVisits() async {
     if (!signedIn) return;
     final user = backend!.userId;
+    final session = _sessionRevision;
+    final revision = ++_visitRevision;
+    final pages = _visitPages;
     try {
       await backend!.rpc('refresh_queues');
       final result = <Json>[];
       int count = 0;
-      for (var page = 0; page < _visitPages; page++) {
+      for (var page = 0; page < pages; page++) {
+        if (!isCurrentSession(session, user) || revision != _visitRevision)
+          return;
         final rows = List<Json>.from(
             await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
         result.addAll(rows);
         count = rows.length;
         if (count < 200) break;
       }
-      if (!_disposed && backend!.userId == user) {
+      if (isCurrentSession(session, user) && revision == _visitRevision) {
         visits = {for (final v in result) v['id']: v}.values.toList();
         moreVisits = count == 200;
         changed();
       }
     } catch (e) {
-      error = friendlyError(e);
-      changed();
+      if (isCurrentSession(session, user) && revision == _visitRevision) {
+        error = friendlyError(e);
+        changed();
+      }
     }
   }
 
   Future<void> loadMoreVisits() async {
-    final result = List<Json>.from(await backend!
-        .rpc('my_visits', {'p_offset': _visitPages * 200}) as List);
+    if (!signedIn || !moreVisits) return;
+    final user = backend!.userId;
+    final session = _sessionRevision;
+    final revision = _visitRevision;
+    final page = _visitPages;
+    final result = List<Json>.from(
+        await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
+    if (!isCurrentSession(session, user) ||
+        revision != _visitRevision ||
+        page != _visitPages) return;
     _visitPages++;
     final known = visits.map((v) => v['id']).toSet();
     visits.addAll(result.where((v) => !known.contains(v['id'])));
