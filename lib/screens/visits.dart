@@ -4,51 +4,56 @@ import '../data/store.dart';
 import 'app.dart';
 import 'common.dart';
 
-class VisitsScreen extends StatelessWidget {
+class VisitsScreen extends StatefulWidget {
   const VisitsScreen({super.key, required this.store});
   final AppStore store;
   @override
+  State<VisitsScreen> createState() => _VisitsScreenState();
+}
+
+class _VisitsScreenState extends State<VisitsScreen> {
+  String group = 'Upcoming';
+  @override
   Widget build(BuildContext context) {
-    if (!store.signedIn)
-      return PageBody(children: [
-        const PageHeading(
-            'Your visits', 'Your upcoming chair time, all in one place.'),
-        Notice('Sign in to view your appointments and queue place.',
-            action: FilledButton(
-                onPressed: () => openAccount(context, store),
-                child: const Text('Sign in')))
-      ]);
-    final own = store.visits
-        .where((v) => v['customer_id'] == store.backend!.userId)
-        .toList();
-    final active = own
-        .where((v) => ['booked', 'waiting', 'serving'].contains(v['status']))
-        .toList();
-    final history = own
-        .where((v) => !['booked', 'waiting', 'serving'].contains(v['status']))
-        .toList();
-    return RefreshIndicator(
-        onRefresh: store.refreshVisits,
-        child: PageBody(children: [
-          PageHeading('Your visits',
-              'Times are shown in New Zealand time. Queue estimates can change.',
-              action: OutlinedButton.icon(
-                  onPressed: store.refreshVisits,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'))),
-          if (active.isEmpty)
-            const Notice(
-                'No upcoming visit. Find a nearby professional in Explore.'),
-          ...active.map((v) => VisitCard(store: store, visit: v)),
-          const SizedBox(height: 20),
-          Text('Past visits', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          ...history.map((v) => VisitCard(store: store, visit: v)),
-          if (store.moreVisits)
-            ActionButton(store, 'Load more visits', store.loadMoreVisits)
-        ]));
+    final store = widget.store;
+    if (!store.signedIn) return PageBody(children: [
+      const PageHeading('My Bookings', 'Your next little moment of self-care.'),
+      Notice('Sign in to view your appointments and queue place.',
+        action: FilledButton(onPressed: () => openAccount(context, store), child: const Text('Sign in'))),
+    ]);
+    final own = store.visits.where((v) => v['customer_id'] == store.backend!.userId).toList();
+    final matching = own.where((v) => bookingGroup(v['status'] as String) == group).toList()
+      ..sort((a, b) => group == 'Upcoming'
+          ? (a['starts_at'] as String).compareTo(b['starts_at'] as String)
+          : (b['starts_at'] as String).compareTo(a['starts_at'] as String));
+    return RefreshIndicator(onRefresh: store.refreshVisits,
+      child: PageBody(children: [
+        PageHeading('My Bookings', 'Appointments, queue places and past visits. All times are New Zealand time.',
+          action: OutlinedButton.icon(onPressed: store.refreshVisits,
+              icon: const Icon(Icons.refresh), label: const Text('Refresh'))),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final label in ['Upcoming', 'Completed', 'Cancelled']) ChoiceChip(
+            label: Text(label), selected: group == label,
+            onSelected: (_) => setState(() => group = label)),
+        ]),
+        const SizedBox(height: 24),
+        if (matching.isEmpty) Panel(child: Column(children: [
+          const Icon(Icons.calendar_month_outlined, size: 40, color: ink),
+          const SizedBox(height: 16),
+          Text(group == 'Upcoming' ? 'Your next look starts here.' : 'No ${group.toLowerCase()} bookings yet.',
+              style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Text(group == 'Upcoming' ? 'Find a local professional in Explore and choose a real available time.'
+              : 'Your booking history will appear here.', textAlign: TextAlign.center),
+        ])),
+        ...matching.map((v) => VisitCard(store: store, visit: v)),
+        if (store.moreVisits) ActionButton(store, 'Load more visits', store.loadMoreVisits),
+      ]));
   }
 }
+
+String bookingGroup(String status) => ['booked', 'waiting', 'serving'].contains(status)
+    ? 'Upcoming' : status == 'completed' ? 'Completed' : 'Cancelled';
 
 class VisitCard extends StatelessWidget {
   const VisitCard(

@@ -76,7 +76,7 @@ class _BookingScreenState extends State<BookingScreen> {
     final accepted = await confirm(
         context,
         queue ? 'Join this queue?' : 'Confirm appointment?',
-        '${choice['name']} • ${money(choice['price_cents'])} NZD\n${queue ? 'Queue times are estimates. You’ll see your expected time in My visits.' : nzTime(selected!['starts_at'])}\nPay at the business, or online if enabled. Cancel upcoming visits in My visits. Prepaid cancellations request a full refund.',
+        '${choice['name']} • ${money(choice['price_cents'])} NZD\n${queue ? 'Queue times are estimates. You’ll see your expected time in My Bookings.' : nzTime(selected!['starts_at'])}\nPay at the business, or online if enabled. Cancel upcoming visits in My Bookings. Prepaid cancellations request a full refund.',
         action: queue ? 'Join queue' : 'Confirm booking');
     if (!accepted) return;
     await s.run(() async {
@@ -112,7 +112,19 @@ class _BookingScreenState extends State<BookingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     PageHeading(b['name'] as String,
-                        '${b['suburb']} • ${b['kind'] == 'home' ? 'Home studio' : 'Chairside member'}'),
+                        '${b['suburb']} • ${b['kind'] == 'home' ? 'Home studio' : 'SpicySelf member'}'),
+                    if (b['status'] == 'approved')
+                      const Padding(padding: EdgeInsets.only(bottom: 16),
+                        child: StatusPill('Verified SpicySelf business', icon: Icons.verified_outlined)),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final s = widget.store;
+                        if (!s.signedIn) { await openAccount(context, s); return; }
+                        await s.run(() => s.favorite(widget.businessId));
+                        if (mounted) setState(() {});
+                      },
+                      icon: Icon(widget.store.favorites.contains(widget.businessId) ? Icons.favorite : Icons.favorite_border),
+                      label: Text(widget.store.favorites.contains(widget.businessId) ? 'Remove favourite' : 'Save favourite')),
                     if ((b['description'] as String).isNotEmpty)
                       Padding(
                           padding: const EdgeInsets.only(bottom: 16),
@@ -123,7 +135,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     AsyncPanel<List<String>>(
                         future: photos,
                         builder: (urls) => urls.isEmpty
-                            ? const SizedBox.shrink()
+                            ? BrandPlaceholder(home: b['kind'] == 'home', height: 180)
                             : Padding(
                                 padding: const EdgeInsets.only(bottom: 20),
                                 child: SizedBox(
@@ -161,14 +173,16 @@ class _BookingScreenState extends State<BookingScreen> {
                     const SizedBox(height: 20),
                     if (visit != null) ...[
                       const PageHeading('You’re booked in.',
-                          'Your place is saved. Keep My visits open for updates.'),
+                          'Your place is saved. Keep My Bookings open for updates.'),
                       VisitCard(
                           store: widget.store,
                           visit: visit,
                           onlinePayments: b['online_payments'] == true)
                     ],
-                    if (created != null && visit == null) const Notice('Your place was saved. Open My visits and refresh for the latest details.'),
-                    if (created == null)
+                    if (created != null && visit == null) const Notice('Your place was saved. Open My Bookings and refresh for the latest details.'),
+                    if (b['status'] != 'approved')
+                      const Notice('This listing is not currently accepting bookings.'),
+                    if (created == null && b['status'] == 'approved')
                       Panel(
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -215,7 +229,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             if (queue) ...[
                               if (estimates != null) AsyncPanel<List<Json>>(future: estimates!, retry: () => setState(loadEstimates), builder: (items) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [for (final e in items) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(e['wait_minutes'] == null ? '${e['name']}: no more queue space today' : '${e['name']}: about ${e['wait_minutes']} min • ${e['waiting']} waiting', style: const TextStyle(fontWeight: FontWeight.bold)))])),
                               const Text(
-                                  'We’ll reserve your place behind the people already waiting. Estimates move as the barber works. Come back to My visits to see updates.'),
+                                  'We’ll reserve your place behind the people already waiting. Estimates move as the barber works. Come back to My Bookings to see updates.'),
                               const SizedBox(height: 12),
                               DropdownButtonFormField<String>(
                                   initialValue: resource,

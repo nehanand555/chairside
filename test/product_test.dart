@@ -376,6 +376,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Bookings').last);
     await tester.pumpAndSettle();
+    await tapVisible(tester, find.text('Completed'));
     expect(find.text('completed'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     app.dispose();
