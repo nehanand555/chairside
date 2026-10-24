@@ -5,8 +5,9 @@ import 'app.dart';
 import 'common.dart';
 
 class AccountScreen extends StatefulWidget {
-  const AccountScreen({super.key, required this.store});
+  const AccountScreen({super.key, required this.store, this.onBusinessTap});
   final AppStore store;
+  final VoidCallback? onBusinessTap;
   @override
   State<AccountScreen> createState() => _AccountScreenState();
 }
@@ -86,6 +87,25 @@ class _AccountScreenState extends State<AccountScreen> {
                 .showSnackBar(const SnackBar(content: Text('Saved')));
         }, icon: Icons.check)
       ])),
+      Panel(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(s.businessId == null ? 'List your business' : 'Your business',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(s.businessId == null
+              ? 'Own a barber shop, salon or home studio? Apply to join SpicySelf.'
+              : s.account['business_status'] == 'approved'
+                  ? 'Open your verified business workspace.'
+                  : 'View your application status and review notifications.'),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: widget.onBusinessTap ?? () => openBusiness(context, s),
+            icon: const Icon(Icons.storefront_outlined),
+            label: Text(s.businessId == null ? 'List your business' : 'Open business'),
+          ),
+        ],
+      )),
       if (s.businessId != null || s.isAdmin) MfaPanel(store: s),
       OutlinedButton(
           onPressed: s.busy
