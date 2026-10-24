@@ -75,7 +75,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
               final s = widget.store;
               if (!s.configured)
                 return Scaffold(
-                    appBar: AppBar(title: const Text('SpicySelf')),
+                    appBar: AppBar(title: const SpicySelfBrand()),
                     body: PageBody(children: [
                       const PageHeading('Find your next look.',
                           'Discover local hair, nails, tattoos and beauty professionals.'),
@@ -104,18 +104,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                 final wide = constraints.maxWidth >= 850;
                 return Scaffold(
                   appBar: AppBar(
-                      title:
-                          const Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.content_cut, size: 24),
-                        SizedBox(width: 10),
-                        Flexible(
-                            child: Text('spicyself',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -1)))
-                      ]),
+                      title: const SpicySelfBrand(),
                       actions: [
                         TextButton.icon(
                             onPressed: () => showLegal(context),

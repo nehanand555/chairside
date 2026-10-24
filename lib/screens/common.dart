@@ -4,9 +4,36 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 import '../data/store.dart';
 
-const ink = Color(0xff12302d);
-const cream = Color(0xfff5f5ef);
+const ink = Color(0xff153e37);
+const cream = Color(0xfffaf9f0);
 const lime = Color(0xffdcf4a5);
+
+/// Shared scissors artwork and wordmark for configured and setup screens.
+class SpicySelfBrand extends StatelessWidget {
+  const SpicySelfBrand({super.key});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: 'SpicySelf',
+        image: true,
+        child: ExcludeSemantics(
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Image.asset('assets/branding/scissors.png', width: 56, height: 56),
+            const SizedBox(width: 4),
+            const Flexible(
+              child: Text('spicyself',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: ink,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1)),
+            ),
+          ]),
+        ),
+      );
+}
+
 String money(dynamic cents) =>
     NumberFormat.currency(locale: 'en_NZ', symbol: '\$')
         .format((cents as num) / 100);

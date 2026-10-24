@@ -13,6 +13,8 @@ import subprocess
 import tempfile
 from xml.etree import ElementTree as ET
 
+from branding import apply_branding
+
 ROOT = Path(__file__).resolve().parents[1]
 APP_ID = "nz.nehanand.spicyself"
 LEGACY_APP_ID = "nz.chairside.chairside"
@@ -125,6 +127,7 @@ def configure(platform="web"):
     defines = {key: os.getenv(key, "") for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_WEB_KEY", "SUPPORT_EMAIL")}
     defines["MAPS_ENABLED"] = bool(os.getenv({"web": "GOOGLE_MAPS_WEB_KEY", "android": "GOOGLE_MAPS_ANDROID_KEY", "ios": "GOOGLE_MAPS_IOS_KEY", "ios-simulator": "GOOGLE_MAPS_IOS_KEY"}[platform]))
     (ROOT / "build-config.json").write_text(json.dumps(defines))
+    apply_branding(ROOT)
 
 
 if __name__ == "__main__":
