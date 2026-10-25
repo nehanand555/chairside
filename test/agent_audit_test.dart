@@ -2,7 +2,6 @@
 // Run with: flutter test test/agent_audit_test.dart
 // This uses an isolated fake backend; it does not alter production bookings.
 import 'package:chairside/data/store.dart';
-import 'package:chairside/screens/account.dart';
 import 'package:chairside/screens/admin.dart';
 import 'package:chairside/screens/app.dart';
 import 'package:chairside/screens/common.dart';
