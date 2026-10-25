@@ -31,3 +31,12 @@ Deno.test("rejected and unreachable email sends report saved application without
     if (!failed) throw new Error("Rejected delivery was treated as accepted");
   }
 });
+
+Deno.test("review email escapes applicant-controlled HTML and uses a protected admin entry point", async () => {
+  const { reviewEmailHtml } = await import("./application_notification.ts");
+  const html = reviewEmailHtml({businessName: '<img src=x onerror="bad()">', businessId: "unit-test"});
+  if (html.includes('<img') || !html.includes("&lt;img") ||
+      !html.includes("Open SpicySelf admin portal") || !html.includes("MFA")) {
+    throw new Error("Unsafe or incomplete review email");
+  }
+});
