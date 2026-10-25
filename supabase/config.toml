@@ -32,6 +32,8 @@ verify_enabled = true
 # Functions validate user tokens themselves; publishable API keys are not JWTs.
 [functions.discover]
 verify_jwt = false
+[functions.business-address]
+verify_jwt = false
 [functions.payments]
 verify_jwt = false
 [functions.stripe-webhook]
