@@ -1,16 +1,28 @@
--- Supabase-native scheduled transactional email worker (staging).
--- Invokes the already deployed Edge Function every minute with a Vault-held token.
--- The function validates this token via service-role-only email_validate_cron_token.
-create extension if not exists pg_cron with schema pg_catalog;
-create extension if not exists pg_net with schema extensions;
+-- Supabase-native email scheduler; skip Supabase-specific extensions when running
+-- ordinary PostgreSQL tests. Supabase staging has this scheduler deployed.
+DO $outer$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name='pg_cron')
+     OR NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name='pg_net')
+     OR to_regclass('vault.secrets') IS NULL
+     OR to_regclass('vault.decrypted_secrets') IS NULL THEN
+    RAISE NOTICE 'Supabase Cron/Vault unavailable; skipping platform-only email scheduler';
+    RETURN;
+  END IF;
 
+  EXECUTE 'CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog';
+  EXECUTE 'CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions';
+
+  EXECUTE $secret$
 select vault.create_secret(
   encode(gen_random_bytes(32), 'hex'),
   'spicyself_email_cron_token',
   'Internal staging scheduler token for SpicySelf email worker'
 )
-where not exists (select 1 from vault.secrets where name = 'spicyself_email_cron_token');
+where not exists (select 1 from vault.secrets where name = 'spicyself_email_cron_token')
+  $secret$;
 
+  EXECUTE $func$
 create or replace function public.email_validate_cron_token(p_token text)
 returns boolean
 language sql stable security definer set search_path = ''
@@ -23,10 +35,12 @@ as $fn$
       where name = 'spicyself_email_cron_token'
     ), false
   );
-$fn$;
-revoke all on function public.email_validate_cron_token(text) from public, anon, authenticated;
-grant execute on function public.email_validate_cron_token(text) to service_role;
+$fn$
+  $func$;
+  EXECUTE 'revoke all on function public.email_validate_cron_token(text) from public, anon, authenticated;';
+  EXECUTE 'grant execute on function public.email_validate_cron_token(text) to service_role;';
 
+  EXECUTE $scheduler$
 select cron.schedule(
   'spicyself-staging-email-worker',
   '* * * * *',
@@ -43,4 +57,7 @@ select cron.schedule(
       timeout_milliseconds := 25000
     );
   $job$
-);
+)
+  $scheduler$;
+END
+$outer$;
