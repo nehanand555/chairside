@@ -39,6 +39,7 @@ String? enrollmentOtpUri(String? source) {
       !RegExp(
         r'^[A-Z2-7]+=*$',
         caseSensitive: false,
-      ).hasMatch(uri.queryParameters['secret'] ?? '')) return null;
+      ).hasMatch(uri.queryParameters['secret'] ?? ''))
+    return null;
   return source;
 }
