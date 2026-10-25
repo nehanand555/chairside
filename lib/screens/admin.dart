@@ -17,6 +17,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<Json>? data;
   Future<Json>? health;
   Future<Json>? emailHealth;
+  Future<List<dynamic>>? emailEvents;
   String filter = 'pending';
   String? loadedUser;
   int? loadedSession;
@@ -24,6 +25,9 @@ class _AdminScreenState extends State<AdminScreen> {
     data = widget.store.backend!
         .rpc('admin_overview')
         .then((v) => Json.from(v as Map));
+    emailEvents = widget.store.backend!
+        .rpc('admin_email_events')
+        .then((v) => List<dynamic>.from(v as List));
     emailHealth = widget.store.backend!
         .rpc('admin_email_overview')
         .then((v) => Json.from(v as Map));
@@ -44,6 +48,7 @@ class _AdminScreenState extends State<AdminScreen> {
       data = null;
       health = null;
       emailHealth = null;
+      emailEvents = null;
     }
     if (!s.isAdmin)
       return const PageBody(children: [
@@ -59,6 +64,37 @@ class _AdminScreenState extends State<AdminScreen> {
           if (emailHealth != null)
             AsyncPanel<Json>(future: emailHealth!, builder: (h) => Notice(
               'Email queue: ${h['pending']} pending • ${h['accepted']} accepted • ${h['delivered']} delivered • ${h['failed']} requiring review')),
+          if (emailEvents != null)
+            AsyncPanel<List<dynamic>>(
+              future: emailEvents!,
+              builder: (events) => Panel(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Recent email notifications', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  if (events.isEmpty) const Text('No notification events yet.'),
+                  for (final raw in events)
+                    Builder(builder: (context) {
+                      final event = Json.from(raw as Map);
+                      final error = event['error'] as String?;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text("${event['business']} · ${event['event']}"),
+                        subtitle: Text("State: ${event['state']} · Attempts: ${event['attempts']}${error == null ? '' : ' · ' + error}"),
+                        trailing: error != null && error.startsWith('http_') &&
+                                (event['state'] == 'failed' || event['state'] == 'dead')
+                          ? TextButton(
+                              onPressed: s.busy ? null : () => s.run(() async {
+                                await s.backend!.rpc('admin_retry_email', {'p_id': event['id']});
+                                if (mounted) setState(reload);
+                              }),
+                              child: const Text('Retry'))
+                          : null,
+                      );
+                    }),
+                ],
+              )),
+            ),
           if (health != null)
             AsyncPanel<Json>(
                 future: health!,
