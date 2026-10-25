@@ -32,8 +32,22 @@ export function adminNotificationHtml(subject: string, message: string, url: str
 
 // Invoke with x-worker-secret from a trusted scheduler. Never callable with user JWT alone.
 Deno.serve(async (req) => {
-  if (req.method !== "POST" || !Deno.env.get("WORKER_SECRET") ||
-      req.headers.get("x-worker-secret") !== Deno.env.get("WORKER_SECRET")) {
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  const workerSecret = Deno.env.get("WORKER_SECRET");
+  const providedWorkerSecret = req.headers.get("x-worker-secret");
+  const githubAuthenticated = !!workerSecret && !!providedWorkerSecret &&
+    providedWorkerSecret === workerSecret;
+  let cronAuthenticated = false;
+  if (!githubAuthenticated && req.headers.get("x-cron-token")) {
+    try {
+      cronAuthenticated = await rpc<boolean>(service(), "email_validate_cron_token", {
+        p_token: req.headers.get("x-cron-token"),
+      });
+    } catch {
+      cronAuthenticated = false;
+    }
+  }
+  if (!githubAuthenticated && !cronAuthenticated) {
     return new Response("Unauthorized", { status: 401 });
   }
   const sender = Deno.env.get("RESEND_FROM_EMAIL");
