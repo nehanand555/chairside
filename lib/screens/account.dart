@@ -196,10 +196,17 @@ class _AccountScreenState extends State<AccountScreen> {
               : () => s.run(() async {
                     await s.backend!.signOut();
                     await s.refreshAccount();
-                    if (mounted)
+                    if (mounted) {
                       setState(() {
                         loadedUser = null;
+                        signInEmail.clear();
+                        emailSent = false;
                       });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text(
+                          'Signed out of SpicySelf. Choose a Google account or use email to sign in again.')),
+                      );
+                    }
                   }),
           child: const Text('Sign out')),
       const SizedBox(height: 16),
