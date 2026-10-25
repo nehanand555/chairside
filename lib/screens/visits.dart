@@ -109,10 +109,10 @@ class _VisitsScreenState extends State<VisitsScreen> {
 
 String bookingGroup(String status) =>
     ['booked', 'waiting', 'serving'].contains(status)
-        ? 'Upcoming'
-        : status == 'completed'
-            ? 'Completed'
-            : 'Cancelled';
+    ? 'Upcoming'
+    : status == 'completed'
+    ? 'Completed'
+    : 'Cancelled';
 
 class VisitCard extends StatelessWidget {
   const VisitCard({
@@ -196,7 +196,8 @@ class VisitCard extends StatelessWidget {
                           });
                           if (!ok ||
                               !context.mounted ||
-                              !store.isCurrentSession(session, user)) return;
+                              !store.isCurrentSession(session, user))
+                            return;
                           final location = address!;
                           await showSessionDialog<void>(
                             context,
@@ -232,12 +233,12 @@ class VisitCard extends StatelessWidget {
                   onPressed: store.busy
                       ? null
                       : () => store.run(() async {
-                            final result = await store.backend!.invoke(
-                              'payments',
-                              {'action': 'checkout', 'visit_id': v['id']},
-                            );
-                            await openLink(result['url'] as String);
-                          }),
+                          final result = await store.backend!.invoke(
+                            'payments',
+                            {'action': 'checkout', 'visit_id': v['id']},
+                          );
+                          await openLink(result['url'] as String);
+                        }),
                   icon: const Icon(Icons.payments_outlined),
                   label: const Text('Pay online'),
                 ),
