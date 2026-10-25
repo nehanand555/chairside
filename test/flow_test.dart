@@ -16,6 +16,17 @@ import 'redesign_test.dart' as redesign;
 
 class RejectedApplicationBackend extends redesign.RoleBackend {
   int resubmissions = 0;
+  bool saveFails = false;
+  Completer<void>? delayedSave;
+  Completer<Json>? delayedNotification;
+  @override
+  Future<Json> invoke(String name, Json data) {
+    if (name == 'business-application-notify' && delayedNotification != null) {
+      return delayedNotification!.future;
+    }
+    return super.invoke(name, data);
+  }
+
   @override
   Future<dynamic> rpc(String name, [Json params = const {}]) async {
     if (name == 'my_pending_business_application') {
@@ -31,6 +42,8 @@ class RejectedApplicationBackend extends redesign.RoleBackend {
       };
     }
     if (name == 'update_pending_business_application') {
+      if (saveFails) throw Exception('Application could not be saved');
+      if (delayedSave != null) await delayedSave!.future;
       expect(params['p_business'], 'p1');
       resubmissions++;
       status = 'pending';
@@ -188,6 +201,86 @@ void main() {
     expect(backend.resubmissions, 1);
     expect(backend.applications, 0);
     expect(backend.operatorCalls, 0);
+    expect(find.text('Application under review'), findsOneWidget);
+    await redesign.close(tester, store);
+  });
+
+  testWidgets(
+      'resubmission confirms and closes while review email is still pending',
+      (tester) async {
+    final backend = RejectedApplicationBackend()
+      ..owner = true
+      ..status = 'rejected'
+      ..delayedNotification = Completer<Json>();
+    final store =
+        await redesign.mount(tester, backend, (s) => BusinessScreen(store: s));
+    await fixtures.tapVisible(tester, find.text('Edit and reapply'));
+    await tester.pumpAndSettle();
+    await fixtures.tapVisible(
+        tester, find.text('Save and resubmit for review'));
+    await tester.pumpAndSettle();
+    expect(find.text('Application under review'), findsOneWidget);
+    expect(find.text('Application sent for review.'), findsOneWidget);
+    expect(find.text('Save and resubmit for review'), findsNothing);
+    expect(backend.resubmissions, 1);
+    backend.delayedNotification!.completeError(Exception('Email unavailable'));
+    await tester.pumpAndSettle();
+    expect(find.text('Application under review'), findsOneWidget);
+    expect(store.applicationNotificationMessage,
+        contains('Notification delivery needs attention'));
+    expect(tester.takeException(), isNull);
+    await redesign.close(tester, store);
+  });
+
+  testWidgets('resubmission shows progress and prevents duplicate clicks',
+      (tester) async {
+    final backend = RejectedApplicationBackend()
+      ..owner = true
+      ..status = 'rejected'
+      ..delayedSave = Completer<void>();
+    final store =
+        await redesign.mount(tester, backend, (s) => BusinessScreen(store: s));
+    await fixtures.tapVisible(tester, find.text('Edit and reapply'));
+    await tester.pumpAndSettle();
+    final button =
+        find.widgetWithText(FilledButton, 'Save and resubmit for review');
+    await tester.ensureVisible(button);
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pump();
+    expect(find.text('Submitting application…'), findsOneWidget);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.widgetWithText(FilledButton, 'Submitting application…'))
+            .onPressed,
+        isNull);
+    backend.delayedSave!.complete();
+    await tester.pumpAndSettle();
+    expect(backend.resubmissions, 1);
+    expect(find.text('Application under review'), findsOneWidget);
+    await redesign.close(tester, store);
+  });
+
+  testWidgets(
+      'failed resubmission stays editable and shows the error beside submit',
+      (tester) async {
+    final backend = RejectedApplicationBackend()
+      ..owner = true
+      ..status = 'rejected'
+      ..saveFails = true;
+    final store =
+        await redesign.mount(tester, backend, (s) => BusinessScreen(store: s));
+    await fixtures.tapVisible(tester, find.text('Edit and reapply'));
+    await tester.pumpAndSettle();
+    await fixtures.tapVisible(
+        tester, find.text('Save and resubmit for review'));
+    expect(find.text('Application could not be saved'), findsOneWidget);
+    expect(find.text('Application sent for review.'), findsNothing);
+    expect(find.text('Save and resubmit for review'), findsOneWidget);
+    backend.saveFails = false;
+    await fixtures.tapVisible(
+        tester, find.text('Save and resubmit for review'));
     expect(find.text('Application under review'), findsOneWidget);
     await redesign.close(tester, store);
   });
@@ -633,7 +726,9 @@ void main() {
   testWidgets(
       'saved application survives failed account refresh without resubmission',
       (tester) async {
-    final backend = WorkspaceBackend()..failAccountAfterSave = true;
+    final backend = WorkspaceBackend()
+      ..failAccountAfterSave = true
+      ..notificationFails = true;
     final store =
         await redesign.mount(tester, backend, (s) => BusinessScreen(store: s));
     Future<void> fill(String label, String value) =>
@@ -657,6 +752,9 @@ void main() {
     await fixtures.tapVisible(tester, find.byType(CheckboxListTile).last);
     await fixtures.tapVisible(tester, find.text('Submit business application'));
     expect(find.text('Application saved'), findsOneWidget);
+    expect(find.text('Application sent for review.'), findsOneWidget);
+    expect(store.applicationNotificationMessage,
+        contains('Notification delivery needs attention'));
     expect(find.text('Submit business application'), findsNothing);
     expect(backend.applications, 1);
     backend.failAccountAfterSave = false;

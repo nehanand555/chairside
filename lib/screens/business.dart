@@ -48,6 +48,15 @@ Future<void> sendApplicationNotification(
   }
 }
 
+// Email delivery must never prevent confirmation of a saved application.
+Future<void> notifySavedApplication(AppStore store, String id) async {
+  try {
+    await sendApplicationNotification(store, id);
+  } catch (_) {
+    // The notification helper records a retryable delivery message in the store.
+  }
+}
+
 class BusinessScreen extends StatelessWidget {
   const BusinessScreen({super.key, required this.store});
   final AppStore store;
@@ -189,7 +198,10 @@ class _PendingApplicationEditorState extends State<PendingApplicationEditor> {
     super.dispose();
   }
 
+  bool submitted = false;
+
   Future<void> resubmit() async {
+    if (submitted) return;
     if (!current || form.currentState?.validate() != true || businessId == null)
       return;
     final id = businessId!;
@@ -204,12 +216,17 @@ class _PendingApplicationEditorState extends State<PendingApplicationEditor> {
         'contact_phone': phone.text.trim(),
       },
     });
-    if (!current) return;
+    if (!mounted || !current) return;
+    setState(() => submitted = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Application sent for review.')));
+    unawaited(notifySavedApplication(widget.store, id));
     await widget.store.refreshAccount();
-    if (!current) return;
-    // The application remains pending even if the notification cannot be delivered.
-    await sendApplicationNotification(widget.store, id);
-    if (mounted && current) Navigator.of(context).pop();
+    if (mounted &&
+        current &&
+        widget.store.account['business_status'] == 'pending') {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -223,60 +240,73 @@ class _PendingApplicationEditorState extends State<PendingApplicationEditor> {
               ]),
       );
 
-  Widget buildEditor(BuildContext context) => PageBody(width: 700, children: [
-        const PageHeading('Review your application',
-            'Correct your contact and business details, then resubmit for review.'),
-        AsyncPanel<Json>(
-          future: application,
-          retry: () => setState(() => application = load()),
-          builder: (data) => Form(
-            key: form,
-            child: Panel(
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Business type: ${data['kind']} · ${data['suburb']}'),
-                const SizedBox(height: 8),
-                const Text(
-                    'To change your business type or location, contact the review team.'),
-                const SizedBox(height: 16),
-                FormFieldBox(name, 'Business name',
-                    validator: (v) => (v ?? '').trim().length < 2
-                        ? 'Enter a business name'
-                        : null),
-                FormFieldBox(description, 'About your business',
-                    lines: 3, required: false),
-                FormFieldBox(registration, 'NZBN or registration number',
-                    validator: (v) => (v ?? '').trim().length < 2
-                        ? 'Enter your registration number or Not applicable'
-                        : null),
-                FormFieldBox(contact, 'Contact person',
-                    validator: (v) => (v ?? '').trim().length < 2
-                        ? 'Enter a contact name'
-                        : null),
-                FormFieldBox(email, 'Contact email',
-                    keyboard: TextInputType.emailAddress,
-                    validator: (v) => RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                            .hasMatch((v ?? '').trim())
-                        ? null
-                        : 'Enter a valid email'),
-                FormFieldBox(phone, 'Contact phone',
-                    keyboard: TextInputType.phone,
-                    validator: (v) =>
-                        RegExp(r'^[+0-9 ()-]{7,30}$').hasMatch((v ?? '').trim())
-                            ? null
-                            : 'Enter a valid phone number'),
-                const SizedBox(height: 12),
-                const Notice(
-                    'Resubmitting updates your existing application. It does not create a second business or approve your listing.'),
-                ActionButton(
-                    widget.store, 'Save and resubmit for review', resubmit,
-                    icon: Icons.send_outlined),
-              ],
-            )),
+  Widget buildEditor(BuildContext context) => submitted
+      ? PageBody(width: 700, children: [
+          const PageHeading('Application sent for review',
+              'Your updated application has been saved. You do not need to submit it again.'),
+          if (widget.store.applicationNotificationMessage != null)
+            Notice(widget.store.applicationNotificationMessage!),
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Back to business'),
           ),
-        ),
-      ]);
+        ])
+      : PageBody(width: 700, children: [
+          const PageHeading('Review your application',
+              'Correct your contact and business details, then resubmit for review.'),
+          AsyncPanel<Json>(
+            future: application,
+            retry: () => setState(() => application = load()),
+            builder: (data) => Form(
+              key: form,
+              child: Panel(
+                  child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Business type: ${data['kind']} · ${data['suburb']}'),
+                  const SizedBox(height: 8),
+                  const Text(
+                      'To change your business type or location, contact the review team.'),
+                  const SizedBox(height: 16),
+                  FormFieldBox(name, 'Business name',
+                      validator: (v) => (v ?? '').trim().length < 2
+                          ? 'Enter a business name'
+                          : null),
+                  FormFieldBox(description, 'About your business',
+                      lines: 3, required: false),
+                  FormFieldBox(registration, 'NZBN or registration number',
+                      validator: (v) => (v ?? '').trim().length < 2
+                          ? 'Enter your registration number or Not applicable'
+                          : null),
+                  FormFieldBox(contact, 'Contact person',
+                      validator: (v) => (v ?? '').trim().length < 2
+                          ? 'Enter a contact name'
+                          : null),
+                  FormFieldBox(email, 'Contact email',
+                      keyboard: TextInputType.emailAddress,
+                      validator: (v) => RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                              .hasMatch((v ?? '').trim())
+                          ? null
+                          : 'Enter a valid email'),
+                  FormFieldBox(phone, 'Contact phone',
+                      keyboard: TextInputType.phone,
+                      validator: (v) => RegExp(r'^[+0-9 ()-]{7,30}$')
+                              .hasMatch((v ?? '').trim())
+                          ? null
+                          : 'Enter a valid phone number'),
+                  const SizedBox(height: 12),
+                  const Notice(
+                      'Resubmitting updates your existing application. It does not create a second business or approve your listing.'),
+                  if (widget.store.error != null) Notice(widget.store.error!),
+                  ActionButton(
+                      widget.store, 'Save and resubmit for review', resubmit,
+                      busyLabel: 'Submitting application…',
+                      icon: Icons.send_outlined),
+                ],
+              )),
+            ),
+          ),
+        ]);
 }
 
 class BusinessApplication extends StatefulWidget {
@@ -447,10 +477,10 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     });
     if (!mounted || !s.isCurrentSession(session, user)) return;
     setState(() => submittedApplication = applicationId as String);
-    // Saving and notification delivery are separate: never resubmit a saved application.
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Application sent for review.')));
+    unawaited(notifySavedApplication(s, applicationId));
     await s.refreshAccount();
-    if (s.isCurrentSession(session, user))
-      await sendApplicationNotification(s, applicationId as String);
   }
 
   void next() {
@@ -464,7 +494,7 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     if (submittedApplication != null)
       return PageBody(width: 760, children: [
         const PageHeading('Application saved',
-            'Your application was submitted for review. There is no need to apply again.'),
+            'Application sent for review. There is no need to apply again.'),
         const Notice(
             'Refresh your account to see the latest review status. Email delivery is separate from saving your application.'),
         if (s.applicationNotificationMessage != null)
@@ -663,7 +693,9 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                           'Publish my business name, services, photos and public map location after approval.')),
                   const Notice(
                       'Submitting saves a pending application. Our team reviews your details before management tools or public bookings are enabled. Email delivery does not affect whether your application is saved.'),
+                  if (s.error != null) Notice(s.error!),
                   ActionButton(s, 'Submit business application', submit,
+                      busyLabel: 'Submitting application…',
                       icon: Icons.storefront_outlined),
                 ],
                 const SizedBox(height: 16),

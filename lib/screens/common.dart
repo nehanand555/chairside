@@ -397,16 +397,22 @@ class FormFieldBox extends StatelessWidget {
 
 class ActionButton extends StatelessWidget {
   const ActionButton(this.store, this.label, this.action,
-      {super.key, this.icon});
+      {super.key, this.icon, this.busyLabel});
   final AppStore store;
+  final String? busyLabel;
   final String label;
   final Future<void> Function() action;
   final IconData? icon;
   @override
   Widget build(BuildContext context) => FilledButton.icon(
       onPressed: store.busy ? null : () => store.run(action),
-      icon: Icon(icon ?? Icons.arrow_forward, size: 18),
-      label: Text(label));
+      icon: store.busy && busyLabel != null
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : Icon(icon ?? Icons.arrow_forward, size: 18),
+      label: Text(store.busy ? busyLabel ?? label : label));
 }
 
 class AsyncPanel<T> extends StatelessWidget {
