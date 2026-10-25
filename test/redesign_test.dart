@@ -107,7 +107,8 @@ void main() {
     await tester.tap(find.text('Map').last);
     await tester.pumpAndSettle();
     expect(find.textContaining('Map view is unavailable'), findsOneWidget);
-    expect(backend.discoverRequests.length, requests);
+    // Opening Map refreshes recently approved member listings.
+    expect(backend.discoverRequests.length, requests + 1);
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     expect(find.text('SpicySelf for Business'), findsOneWidget);
