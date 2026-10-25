@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -23,8 +24,12 @@ abstract class Backend {
   String? get suggestedName => null;
   Stream<void> get authChanges;
   Future<dynamic> rpc(String name, [Json params = const {}]);
-  Future<List<Json>> rows(String table,
-      {Json filters = const {}, String? order, int limit = 100});
+  Future<List<Json>> rows(
+    String table, {
+    Json filters = const {},
+    String? order,
+    int limit = 100,
+  });
   Future<void> save(String table, Json values);
   Future<void> initializeProfile(String user, String displayName);
   Future<void> remove(String table, Json filters);
@@ -70,8 +75,12 @@ class SupabaseBackend extends Backend {
   Future<dynamic> rpc(String name, [Json params = const {}]) =>
       client.rpc(name, params: params);
   @override
-  Future<List<Json>> rows(String table,
-      {Json filters = const {}, String? order, int limit = 100}) async {
+  Future<List<Json>> rows(
+    String table, {
+    Json filters = const {},
+    String? order,
+    int limit = 100,
+  }) async {
     var query = client.from(table).select();
     for (final entry in filters.entries) {
       query = query.eq(entry.key, entry.value as Object);
@@ -91,9 +100,13 @@ class SupabaseBackend extends Backend {
   Future<void> initializeProfile(String user, String displayName) async {
     if (userId != user) return;
     // A simultaneous profile save wins. Never reset names or consent preferences.
-    await client.from('profiles').upsert(
-        {'id': user, 'display_name': displayName},
-        onConflict: 'id', ignoreDuplicates: true);
+    await client
+        .from('profiles')
+        .upsert(
+          {'id': user, 'display_name': displayName},
+          onConflict: 'id',
+          ignoreDuplicates: true,
+        );
     await client
         .from('profiles')
         .update({'display_name': displayName})
@@ -117,9 +130,11 @@ class SupabaseBackend extends Backend {
       return Map<String, dynamic>.from(result.data as Map);
     } on FunctionException catch (e) {
       final details = e.details;
-      throw Exception(details is Map
-          ? details['error'] ?? 'Service unavailable'
-          : 'Service unavailable. Try again.');
+      throw Exception(
+        details is Map
+            ? details['error'] ?? 'Service unavailable'
+            : 'Service unavailable. Try again.',
+      );
     }
   }
 
@@ -131,8 +146,9 @@ class SupabaseBackend extends Backend {
       redirectTo: kIsWeb
           ? webAuthRedirect(Uri.base)
           : 'nz.nehanand.spicyself://login-callback/',
-      authScreenLaunchMode:
-          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+      authScreenLaunchMode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
     );
     if (!launched)
       throw Exception('Could not open Google sign-in. Please try again.');
@@ -170,9 +186,10 @@ class SupabaseBackend extends Backend {
   @override
   Future<Json> enrollFactor() async {
     final result = await client.auth.mfa.enroll(
-        factorType: FactorType.totp,
-        issuer: 'spicyself',
-        friendlyName: 'spicyself business');
+      factorType: FactorType.totp,
+      issuer: 'spicyself',
+      friendlyName: 'spicyself business',
+    );
     return {
       'id': result.id,
       'secret': result.totp!.secret,
@@ -197,7 +214,9 @@ class SupabaseBackend extends Backend {
   Future<List<String>> photos(String business) async {
     final bucket = client.storage.from('portfolios');
     final files = await bucket.list(
-        path: business, searchOptions: const SearchOptions(limit: 20));
+      path: business,
+      searchOptions: const SearchOptions(limit: 20),
+    );
     return files
         .where((f) => f.id != null)
         .map((f) => bucket.getPublicUrl('$business/${f.name}'))
@@ -206,15 +225,22 @@ class SupabaseBackend extends Backend {
 
   @override
   Future<void> uploadPhoto(
-      String business, Uint8List bytes, String extension) async {
+    String business,
+    Uint8List bytes,
+    String extension,
+  ) async {
     if (bytes.length > 5 * 1024 * 1024)
       throw Exception('Choose an image smaller than 5 MB');
     if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension))
       throw Exception('Choose a JPG, PNG or WebP image');
     final type = extension == 'jpg' ? 'jpeg' : extension;
-    await client.storage.from('portfolios').uploadBinary(
-        '$business/${DateTime.now().microsecondsSinceEpoch}.$extension', bytes,
-        fileOptions: FileOptions(contentType: 'image/$type'));
+    await client.storage
+        .from('portfolios')
+        .uploadBinary(
+          '$business/${DateTime.now().microsecondsSinceEpoch}.$extension',
+          bytes,
+          fileOptions: FileOptions(contentType: 'image/$type'),
+        );
   }
 
   @override
@@ -230,13 +256,14 @@ class SupabaseBackend extends Backend {
     _channel = client
         .channel('my-visits')
         .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'visits',
-            callback: (_) {
-              _changes?.cancel();
-              _changes = Timer(const Duration(milliseconds: 200), changed);
-            })
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'visits',
+          callback: (_) {
+            _changes?.cancel();
+            _changes = Timer(const Duration(milliseconds: 200), changed);
+          },
+        )
         .subscribe();
   }
 

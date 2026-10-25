@@ -36,7 +36,10 @@ String? enrollmentOtpUri(String? source) {
       uri.scheme != 'otpauth' ||
       uri.host != 'totp' ||
       uri.path.length < 2 ||
-      !RegExp(r'^[A-Z2-7]+=*$', caseSensitive: false)
-          .hasMatch(uri.queryParameters['secret'] ?? '')) return null;
+      !RegExp(
+        r'^[A-Z2-7]+=*$',
+        caseSensitive: false,
+      ).hasMatch(uri.queryParameters['secret'] ?? ''))
+    return null;
   return source;
 }

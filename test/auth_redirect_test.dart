@@ -7,14 +7,18 @@ void main() {
       'www.spicyself.com',
       'spicyself.com',
       'chairside-staging.pages.dev',
-      'preview.chairside-staging.pages.dev'
+      'preview.chairside-staging.pages.dev',
     ]) {
-      expect(webAuthRedirect(Uri.parse('https://$host/')),
-          'https://www.spicyself.com/');
+      expect(
+        webAuthRedirect(Uri.parse('https://$host/')),
+        'https://www.spicyself.com/',
+      );
     }
   });
   test('development callbacks retain their browser storage origin', () {
-    expect(webAuthRedirect(Uri.parse('http://localhost:5000/')),
-        'http://localhost:5000/');
+    expect(
+      webAuthRedirect(Uri.parse('http://localhost:5000/')),
+      'http://localhost:5000/',
+    );
   });
 }

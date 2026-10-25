@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:chairside/data/backend.dart';
 import 'package:chairside/data/store.dart';
 import 'package:chairside/screens/app.dart';
@@ -54,13 +55,13 @@ class TestBackend extends Backend {
         'name': 'Haircut',
         'minutes': 30,
         'price_cents': 3500,
-        'active': true
-      }
+        'active': true,
+      },
     ],
     'resources': [
-      {'id': 'r1', 'name': 'Chair 1', 'active': true}
+      {'id': 'r1', 'name': 'Chair 1', 'active': true},
     ],
-    'hours': <Json>[]
+    'hours': <Json>[],
   };
   @override
   Future<dynamic> rpc(String name, [Json params = const {}]) async {
@@ -70,7 +71,7 @@ class TestBackend extends Backend {
           'is_admin': false,
           'aal2': userId == 'owner',
           'business_id': userId == 'owner' ? 'p1' : null,
-          'business_status': userId == 'owner' ? 'approved' : null
+          'business_status': userId == 'owner' ? 'approved' : null,
         };
       case 'business_detail':
       case 'operator_business':
@@ -81,8 +82,8 @@ class TestBackend extends Backend {
             'resource_id': 'r1',
             'name': 'Chair 1',
             'waiting': 0,
-            'wait_minutes': 1
-          }
+            'wait_minutes': 1,
+          },
         ];
       case 'available_slots':
         return <Json>[];
@@ -109,7 +110,7 @@ class TestBackend extends Backend {
           'status': 'waiting',
           'starts_at': '2026-10-18T00:00:00Z',
           'payment_status': 'unpaid',
-          'created_at': '2026-10-17T23:00:00Z'
+          'created_at': '2026-10-17T23:00:00Z',
         });
         return 'v1';
       case 'change_visit':
@@ -125,8 +126,12 @@ class TestBackend extends Backend {
   }
 
   @override
-  Future<List<Json>> rows(String table,
-      {Json filters = const {}, String? order, int limit = 100}) async {
+  Future<List<Json>> rows(
+    String table, {
+    Json filters = const {},
+    String? order,
+    int limit = 100,
+  }) async {
     if (table == 'profiles')
       return profiles[filters['id']] == null
           ? []
@@ -145,7 +150,7 @@ class TestBackend extends Backend {
       'center': {'lat': -36.85, 'lng': 174.76},
       'businesses': [business],
       'places': publicPlaces,
-      'warning': null
+      'warning': null,
     };
   }
 
@@ -158,7 +163,7 @@ class TestBackend extends Backend {
     if (table == 'profiles')
       profiles[values['id'] as String] = {
         ...?profiles[values['id']],
-        ...values
+        ...values,
       };
   }
 
@@ -166,13 +171,14 @@ class TestBackend extends Backend {
   Future<void> initializeProfile(String user, String displayName) async {
     initializedProfiles++;
     profiles.putIfAbsent(
-        user,
-        () => {
-              'id': user,
-              'display_name': displayName,
-              'sms_updates': false,
-              'marketing_consent': false
-            });
+      user,
+      () => {
+        'id': user,
+        'display_name': displayName,
+        'sms_updates': false,
+        'marketing_consent': false,
+      },
+    );
     if (profiles[user]!['display_name'] == '')
       profiles[user]!['display_name'] = displayName;
   }
@@ -203,7 +209,10 @@ class TestBackend extends Backend {
   Future<void> discardFactor(String id) async {}
   @override
   Future<void> uploadPhoto(
-      String business, Uint8List bytes, String extension) async {}
+    String business,
+    Uint8List bytes,
+    String extension,
+  ) async {}
   @override
   Future<void> deletePhoto(String business, String url) async {}
 }
@@ -219,9 +228,7 @@ Future<void> tapVisible(WidgetTester tester, Finder finder) async {
 void main() {
   setUpAll(tz.initializeTimeZones);
   test('public listings show separate, safe booking and website links', () {
-    final homepage = <String, dynamic>{
-      'website_url': 'https://example.com/',
-    };
+    final homepage = <String, dynamic>{'website_url': 'https://example.com/'};
     expect(publicWebsiteUrl(homepage), 'https://example.com/');
     expect(publicBookingUrl(homepage), isNull);
 
@@ -240,7 +247,7 @@ void main() {
     for (final website in [
       'https://booksy.com/pricing',
       'https://fresha.com/for-business',
-      'https://squareup.com/pricing'
+      'https://squareup.com/pricing',
     ]) {
       expect(publicBookingUrl({'website_url': website}), isNull);
       expect(publicWebsiteUrl({'website_url': website}), website);
@@ -262,48 +269,56 @@ void main() {
     expect(nzTime('2026-10-18T00:00:00Z'), contains('1:00 PM'));
   });
   testWidgets(
-      'Google login requires terms and receives the returned session without SMS',
-      (tester) async {
-    final backend = TestBackend()..userId = null;
-    final events = StreamController<void>.broadcast();
-    backend.authEvents = events;
-    final store = AppStore(backend);
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Profile').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Phone number'), findsNothing);
-    expect(find.text('Text me a code'), findsNothing);
-    await tapVisible(tester, find.text('Choose Google account'));
-    expect(backend.googleSignIns, 0);
-    expect(find.textContaining('Please read and accept'), findsOneWidget);
-    await tapVisible(tester, find.byType(CheckboxListTile));
-    await tapVisible(tester, find.text('Choose Google account'));
-    expect(backend.googleSignIns, 1);
-    expect(store.signedIn,
-        false); // Opening the browser does not create a session.
-    backend.googleNames['google-customer'] = 'Nikita';
-    backend.userId = 'google-customer';
-    events.add(null); // Supabase emits this after exchanging the PKCE code.
-    await tester.pumpAndSettle();
-    expect(find.text('Your account'), findsOneWidget);
-    expect(find.text('Hi, Nikita'), findsOneWidget);
-    expect(backend.profiles['google-customer']!['display_name'], 'Nikita');
-    final nameInput = find.descendant(
+    'Google login requires terms and receives the returned session without SMS',
+    (tester) async {
+      final backend = TestBackend()..userId = null;
+      final events = StreamController<void>.broadcast();
+      backend.authEvents = events;
+      final store = AppStore(backend);
+      await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Profile').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Phone number'), findsNothing);
+      expect(find.text('Text me a code'), findsNothing);
+      await tapVisible(tester, find.text('Choose Google account'));
+      expect(backend.googleSignIns, 0);
+      expect(find.textContaining('Please read and accept'), findsOneWidget);
+      await tapVisible(tester, find.byType(CheckboxListTile));
+      await tapVisible(tester, find.text('Choose Google account'));
+      expect(backend.googleSignIns, 1);
+      expect(
+        store.signedIn,
+        false,
+      ); // Opening the browser does not create a session.
+      backend.googleNames['google-customer'] = 'Nikita';
+      backend.userId = 'google-customer';
+      events.add(null); // Supabase emits this after exchanging the PKCE code.
+      await tester.pumpAndSettle();
+      expect(find.text('Your account'), findsOneWidget);
+      expect(find.text('Hi, Nikita'), findsOneWidget);
+      expect(backend.profiles['google-customer']!['display_name'], 'Nikita');
+      final nameInput = find.descendant(
         of: find.byType(FormFieldBox).first,
-        matching: find.byType(TextFormField));
-    expect(tester.widget<TextFormField>(nameInput).controller!.text, 'Nikita');
-    expect(find.text('Your name'), findsOneWidget);
-    expect(find.text('Booking texts'), findsNothing);
-    await tapVisible(tester, find.text('Sign out'));
-    expect(find.text('Choose Google account'), findsOneWidget);
-    expect(store.visits, isEmpty);
-    await tester.pumpWidget(const SizedBox.shrink());
-    store.dispose();
-    await events.close();
-  });
-  testWidgets('email sign-in requires consent and clears session on sign-out',
-      (tester) async {
+        matching: find.byType(TextFormField),
+      );
+      expect(
+        tester.widget<TextFormField>(nameInput).controller!.text,
+        'Nikita',
+      );
+      expect(find.text('Your name'), findsOneWidget);
+      expect(find.text('Booking texts'), findsNothing);
+      await tapVisible(tester, find.text('Sign out'));
+      expect(find.text('Choose Google account'), findsOneWidget);
+      expect(store.visits, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+      store.dispose();
+      await events.close();
+    },
+  );
+  testWidgets('email sign-in requires consent and clears session on sign-out', (
+    tester,
+  ) async {
     final backend = TestBackend()..userId = null;
     final events = StreamController<void>.broadcast();
     backend.authEvents = events;
@@ -331,8 +346,9 @@ void main() {
     expect(store.signedIn, true);
     await tapVisible(tester, find.text('Sign out'));
     expect(store.signedIn, false);
-    final input = tester
-        .widget<TextField>(find.widgetWithText(TextField, 'Email address'));
+    final input = tester.widget<TextField>(
+      find.widgetWithText(TextField, 'Email address'),
+    );
     expect(input.controller!.text, isEmpty);
     expect(find.text('Choose Google account'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -341,40 +357,46 @@ void main() {
   });
 
   testWidgets(
-      'Google launch and callback failures leave sign-in available to retry',
-      (tester) async {
-    final backend = TestBackend()..userId = null;
-    final events = StreamController<void>.broadcast();
-    backend.authEvents = events;
-    backend.googleError =
-        Exception('Could not open Google sign-in. Please try again.');
-    final store = AppStore(backend);
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Profile').last);
-    await tester.pumpAndSettle();
-    await tapVisible(tester, find.byType(CheckboxListTile));
-    await tapVisible(tester, find.text('Choose Google account'));
-    expect(
-        find.textContaining('Could not open Google sign-in'), findsOneWidget);
-    expect(store.busy, false);
-    expect(store.signedIn, false);
-    backend.googleError = null;
-    await tapVisible(tester, find.text('Choose Google account'));
-    expect(backend.googleSignIns, 2);
-    events
-        .addError(Exception('Google sign-in was cancelled. Please try again.'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Google sign-in was cancelled'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    expect(store.signedIn, false);
-    await tester.pumpWidget(const SizedBox.shrink());
-    store.dispose();
-    await events.close();
-  });
-  test(
-      'Google names initialize missing profiles without replacing saved names or consent',
-      () async {
+    'Google launch and callback failures leave sign-in available to retry',
+    (tester) async {
+      final backend = TestBackend()..userId = null;
+      final events = StreamController<void>.broadcast();
+      backend.authEvents = events;
+      backend.googleError = Exception(
+        'Could not open Google sign-in. Please try again.',
+      );
+      final store = AppStore(backend);
+      await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Profile').last);
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.byType(CheckboxListTile));
+      await tapVisible(tester, find.text('Choose Google account'));
+      expect(
+        find.textContaining('Could not open Google sign-in'),
+        findsOneWidget,
+      );
+      expect(store.busy, false);
+      expect(store.signedIn, false);
+      backend.googleError = null;
+      await tapVisible(tester, find.text('Choose Google account'));
+      expect(backend.googleSignIns, 2);
+      events.addError(
+        Exception('Google sign-in was cancelled. Please try again.'),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Google sign-in was cancelled'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      expect(store.signedIn, false);
+      await tester.pumpWidget(const SizedBox.shrink());
+      store.dispose();
+      await events.close();
+    },
+  );
+  test('Google names initialize missing profiles without replacing saved names or consent', () async {
     final backend = TestBackend()..userId = 'fresh-google';
     backend.googleNames['fresh-google'] = 'Nikita';
     final store = AppStore(backend);
@@ -395,127 +417,137 @@ void main() {
     store.dispose();
     secondSession.dispose();
   });
-  test('an empty saved name can be initialized without opting into texts',
-      () async {
-    final backend = TestBackend();
-    backend.profiles['customer']!['display_name'] = '';
-    backend.profiles['customer']!['marketing_consent'] = true;
-    backend.googleNames['customer'] = 'Google name';
-    final store = AppStore(backend);
-    await store.refreshAccount();
-    expect(store.displayName, 'Google name');
-    expect(store.profile['sms_updates'], false);
-    expect(store.profile['marketing_consent'], true);
-    store.dispose();
-  });
+  test(
+    'an empty saved name can be initialized without opting into texts',
+    () async {
+      final backend = TestBackend();
+      backend.profiles['customer']!['display_name'] = '';
+      backend.profiles['customer']!['marketing_consent'] = true;
+      backend.googleNames['customer'] = 'Google name';
+      final store = AppStore(backend);
+      await store.refreshAccount();
+      expect(store.displayName, 'Google name');
+      expect(store.profile['sms_updates'], false);
+      expect(store.profile['marketing_consent'], true);
+      store.dispose();
+    },
+  );
   testWidgets(
-      'Google listings and postcode retries work when the map is unavailable',
-      (tester) async {
-    final backend = TestBackend();
-    backend.publicPlaces.add({
-      'place_id': 'google-barber',
-      'name': 'Google Barber',
-      'address': 'Porirua 5014',
-      'lat': -41.1,
-      'lng': 174.9,
-      'maps_url': 'https://maps.google.com/',
-      'attributions': <Json>[]
-    });
-    final store = AppStore(backend);
-    await store.refreshAccount();
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
-    await tester.pumpAndSettle();
-    expect(backend.discoverRequests.last['include_public'], true);
-    await tester.ensureVisible(find.text('Google Barber'));
-    await tester.pumpAndSettle();
-    expect(find.text('Google Barber'), findsOneWidget);
-    backend.discoverFailure = {
-      'query': '5014',
-      'message': 'Search temporarily unavailable'
-    };
-    final search = find.byType(TextField).first;
-    await tester.ensureVisible(search);
-    await tester.pumpAndSettle();
-    await tester.enterText(search, '5014');
-    await tapVisible(tester, find.widgetWithText(FilledButton, 'Search'));
-    expect(backend.discoverRequests.last['query'], '5014');
-    expect(find.text('Google Barber'), findsNothing);
-    expect(find.text('Search temporarily unavailable'), findsOneWidget);
-    backend.discoverFailure = null;
-    await tapVisible(tester, find.text('Try again'));
-    expect(backend.discoverRequests.last['query'], '5014');
-    expect(find.text('Google Barber'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-    store.dispose();
-  });
+    'Google listings and postcode retries work when the map is unavailable',
+    (tester) async {
+      final backend = TestBackend();
+      backend.publicPlaces.add({
+        'place_id': 'google-barber',
+        'name': 'Google Barber',
+        'address': 'Porirua 5014',
+        'lat': -41.1,
+        'lng': 174.9,
+        'maps_url': 'https://maps.google.com/',
+        'attributions': <Json>[],
+      });
+      final store = AppStore(backend);
+      await store.refreshAccount();
+      await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+      await tester.pumpAndSettle();
+      expect(backend.discoverRequests.last['include_public'], true);
+      await tester.ensureVisible(find.text('Google Barber'));
+      await tester.pumpAndSettle();
+      expect(find.text('Google Barber'), findsOneWidget);
+      backend.discoverFailure = {
+        'query': '5014',
+        'message': 'Search temporarily unavailable',
+      };
+      final search = find.byType(TextField).first;
+      await tester.ensureVisible(search);
+      await tester.pumpAndSettle();
+      await tester.enterText(search, '5014');
+      await tapVisible(tester, find.widgetWithText(FilledButton, 'Search'));
+      expect(backend.discoverRequests.last['query'], '5014');
+      expect(find.text('Google Barber'), findsNothing);
+      expect(find.text('Search temporarily unavailable'), findsOneWidget);
+      backend.discoverFailure = null;
+      await tapVisible(tester, find.text('Try again'));
+      expect(backend.discoverRequests.last['query'], '5014');
+      expect(find.text('Google Barber'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      store.dispose();
+    },
+  );
   testWidgets(
-      'customer joins queue, business serves them, customer sees completion',
-      (tester) async {
-    final backend = TestBackend();
-    // One transport is shared by both roles, as the real database is.
-    final app = AppStore(backend);
-    await app.refreshAccount();
-    await tester.pumpWidget(SpicySelfApp(store: app, mapsEnabled: false));
-    await tester.pumpAndSettle();
-    await tapVisible(tester, find.byKey(const ValueKey('view-p1')));
-    final picker = find.byKey(const ValueKey('service-picker'));
-    await tapVisible(tester, picker);
-    await tester.tap(find.text('Haircut • 30 min • \$35.00').last);
-    await tester.pumpAndSettle();
-    await tapVisible(tester, find.text('Join live queue'));
-    await tapVisible(tester, find.byKey(const ValueKey('confirm-visit')));
-    await tester.tap(find.widgetWithText(FilledButton, 'Join queue').last);
-    await tester.pumpAndSettle();
-    expect(backend.visits.single['status'], 'waiting');
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    backend.userId = 'owner';
-    await app.refreshAccount();
-    await tester.pumpAndSettle();
-    // Use the stable account shortcut instead of an ambiguous text label.
-    await tapVisible(tester, find.byKey(const ValueKey('account-greeting')));
-    expect(find.text('Your account'), findsOneWidget);
-    await tapVisible(
-        tester, find.widgetWithText(OutlinedButton, 'Open business'));
-    await tester.pumpAndSettle();
-    expect(app.businessId, 'p1');
-    expect(app.visits.single['status'], 'waiting');
-    expect(find.text('Harbour Cuts'), findsWidgets);
-    await tapVisible(tester, find.widgetWithText(FilledButton, 'Start'));
-    expect(backend.visits.single['status'], 'serving');
-    expect(find.widgetWithText(FilledButton, 'Start'), findsNothing);
-    expect(find.widgetWithText(FilledButton, 'Finish'), findsOneWidget);
-    await tapVisible(tester, find.widgetWithText(FilledButton, 'Finish'));
-    expect(backend.visits.single['status'], 'completed');
-    // The business workspace is a separate route above the customer tabs.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    backend.userId = 'customer';
-    await app.refreshAccount();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('My Bookings').last);
-    await tester.pumpAndSettle();
-    await tapVisible(tester, find.text('Completed'));
-    expect(find.text('completed'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox.shrink());
-    app.dispose();
-  });
-  testWidgets('discovery and navigation fit small phones and desktop',
-      (tester) async {
+    'customer joins queue, business serves them, customer sees completion',
+    (tester) async {
+      final backend = TestBackend();
+      // One transport is shared by both roles, as the real database is.
+      final app = AppStore(backend);
+      await app.refreshAccount();
+      await tester.pumpWidget(SpicySelfApp(store: app, mapsEnabled: false));
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.byKey(const ValueKey('view-p1')));
+      final picker = find.byKey(const ValueKey('service-picker'));
+      await tapVisible(tester, picker);
+      await tester.tap(find.text('Haircut • 30 min • \$35.00').last);
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('Join live queue'));
+      await tapVisible(tester, find.byKey(const ValueKey('confirm-visit')));
+      await tester.tap(find.widgetWithText(FilledButton, 'Join queue').last);
+      await tester.pumpAndSettle();
+      expect(backend.visits.single['status'], 'waiting');
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      backend.userId = 'owner';
+      await app.refreshAccount();
+      await tester.pumpAndSettle();
+      // Use the stable account shortcut instead of an ambiguous text label.
+      await tapVisible(tester, find.byKey(const ValueKey('account-greeting')));
+      expect(find.text('Your account'), findsOneWidget);
+      await tapVisible(
+        tester,
+        find.widgetWithText(OutlinedButton, 'Open business'),
+      );
+      await tester.pumpAndSettle();
+      expect(app.businessId, 'p1');
+      expect(app.visits.single['status'], 'waiting');
+      expect(find.text('Harbour Cuts'), findsWidgets);
+      await tapVisible(tester, find.widgetWithText(FilledButton, 'Start'));
+      expect(backend.visits.single['status'], 'serving');
+      expect(find.widgetWithText(FilledButton, 'Start'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Finish'), findsOneWidget);
+      await tapVisible(tester, find.widgetWithText(FilledButton, 'Finish'));
+      expect(backend.visits.single['status'], 'completed');
+      // The business workspace is a separate route above the customer tabs.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      backend.userId = 'customer';
+      await app.refreshAccount();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('My Bookings').last);
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('Completed'));
+      expect(find.text('completed'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      app.dispose();
+    },
+  );
+  testWidgets('discovery and navigation fit small phones and desktop', (
+    tester,
+  ) async {
     for (final size in [
       const Size(320, 700),
       const Size(390, 844),
-      const Size(1200, 900)
+      const Size(1200, 900),
     ]) {
       await tester.binding.setSurfaceSize(size);
       final backend = TestBackend();
-      backend.profiles['customer']!['display_name'] =
-          List.filled(20, 'Long name').join(' ');
+      backend.profiles['customer']!['display_name'] = List.filled(
+        20,
+        'Long name',
+      ).join(' ');
       final store = AppStore(backend);
       await store.refreshAccount();
       await tester.pumpWidget(
-          SpicySelfApp(key: ValueKey(size), store: store, mapsEnabled: false));
+        SpicySelfApp(key: ValueKey(size), store: store, mapsEnabled: false),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Find your next look.'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -526,8 +558,12 @@ void main() {
   });
   test('loaded history survives live refreshes', () async {
     final backend = TestBackend();
-    backend.visits.addAll(List.generate(
-        205, (i) => <String, dynamic>{'id': 'v$i', 'status': 'completed'}));
+    backend.visits.addAll(
+      List.generate(
+        205,
+        (i) => <String, dynamic>{'id': 'v$i', 'status': 'completed'},
+      ),
+    );
     final store = AppStore(backend);
     await store.refreshAccount();
     expect(store.visits.length, 200);
@@ -538,8 +574,9 @@ void main() {
     expect(store.moreVisits, false);
     store.dispose();
   });
-  testWidgets('missing service configuration never shows fake listings',
-      (tester) async {
+  testWidgets('missing service configuration never shows fake listings', (
+    tester,
+  ) async {
     final store = AppStore(null);
     await tester.pumpWidget(SpicySelfApp(store: store));
     await tester.pumpAndSettle();

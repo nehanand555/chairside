@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:chairside/data/store.dart';
 import 'package:chairside/data/backend.dart';
 import 'package:chairside/screens/business.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'redesign_test.dart' as fixtures;
 
 class EditorBackend extends fixtures.RoleBackend {
@@ -33,11 +35,15 @@ class EditorBackend extends fixtures.RoleBackend {
 }
 
 void main() {
-  testWidgets('pending editor saves the existing application and notifies',
-      (tester) async {
+  testWidgets('pending editor saves the existing application and notifies', (
+    tester,
+  ) async {
     final backend = EditorBackend()..owner = true;
     final store = await fixtures.mount(
-        tester, backend, (store) => PendingApplicationEditor(store: store));
+      tester,
+      backend,
+      (store) => PendingApplicationEditor(store: store),
+    );
     expect(find.text('Test studio'), findsOneWidget);
     final save = find.text('Save and resubmit for review');
     await tester.ensureVisible(save);
@@ -50,23 +56,30 @@ void main() {
     await fixtures.close(tester, store);
   });
 
-  testWidgets('pending editor discards late private data after session changes',
-      (tester) async {
-    final backend = EditorBackend()..owner = true;
-    backend.pending = Completer<Json>();
-    final store = AppStore(backend);
-    await store.refreshAccount();
-    await tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: PendingApplicationEditor(store: store))));
-    await tester.pump();
-    await backend.signOut();
-    await tester.pump();
-    backend.pending!
-        .complete({'business_id': 'p1', 'name': 'Private previous owner'});
-    await tester.pumpAndSettle();
-    expect(find.text('Private previous owner'), findsNothing);
-    expect(find.textContaining('Session changed.'), findsOneWidget);
-    expect(backend.saves, 0);
-    await fixtures.close(tester, store);
-  });
+  testWidgets(
+    'pending editor discards late private data after session changes',
+    (tester) async {
+      final backend = EditorBackend()..owner = true;
+      backend.pending = Completer<Json>();
+      final store = AppStore(backend);
+      await store.refreshAccount();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: PendingApplicationEditor(store: store)),
+        ),
+      );
+      await tester.pump();
+      await backend.signOut();
+      await tester.pump();
+      backend.pending!.complete({
+        'business_id': 'p1',
+        'name': 'Private previous owner',
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('Private previous owner'), findsNothing);
+      expect(find.textContaining('Session changed.'), findsOneWidget);
+      expect(backend.saves, 0);
+      await fixtures.close(tester, store);
+    },
+  );
 }

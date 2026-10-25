@@ -1,16 +1,21 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'backend.dart';
 
 class AppStore extends ChangeNotifier {
   AppStore(this.backend) {
-    _auth = backend?.authChanges.listen((_) {
-      unawaited(refreshAccount());
-    }, onError: (Object e) {
-      error = friendlyError(e);
-      changed();
-    });
+    _auth = backend?.authChanges.listen(
+      (_) {
+        unawaited(refreshAccount());
+      },
+      onError: (Object e) {
+        error = friendlyError(e);
+        changed();
+      },
+    );
     if (signedIn) unawaited(refreshAccount());
   }
   final Backend? backend;
@@ -117,8 +122,10 @@ class AppStore extends ChangeNotifier {
         await backend!.initializeProfile(user, suggestedName);
         profiles = await backend!.rows('profiles', filters: {'id': user});
       }
-      final saved =
-          await backend!.rows('favorites', filters: {'customer_id': user});
+      final saved = await backend!.rows(
+        'favorites',
+        filters: {'customer_id': user},
+      );
       if (_disposed || revision != _revision || backend!.userId != user) return;
       account = Json.from(context);
       profile = profiles.isEmpty ? {} : profiles.first;
@@ -150,7 +157,8 @@ class AppStore extends ChangeNotifier {
         if (!isCurrentSession(session, user) || revision != _visitRevision)
           return;
         final rows = List<Json>.from(
-            await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
+          await backend!.rpc('my_visits', {'p_offset': page * 200}) as List,
+        );
         result.addAll(rows);
         count = rows.length;
         if (count < 200) break;
@@ -175,10 +183,12 @@ class AppStore extends ChangeNotifier {
     final revision = _visitRevision;
     final page = _visitPages;
     final result = List<Json>.from(
-        await backend!.rpc('my_visits', {'p_offset': page * 200}) as List);
+      await backend!.rpc('my_visits', {'p_offset': page * 200}) as List,
+    );
     if (!isCurrentSession(session, user) ||
         revision != _visitRevision ||
-        page != _visitPages) return;
+        page != _visitPages)
+      return;
     _visitPages++;
     final known = visits.map((v) => v['id']).toSet();
     visits.addAll(result.where((v) => !known.contains(v['id'])));
@@ -192,7 +202,7 @@ class AppStore extends ChangeNotifier {
       'id': backend!.userId,
       'display_name': name.trim(),
       'sms_updates': sms,
-      'marketing_consent': marketing
+      'marketing_consent': marketing,
     });
     await refreshAccount();
   }
