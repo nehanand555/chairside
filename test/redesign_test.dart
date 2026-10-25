@@ -30,7 +30,8 @@ class RoleBackend extends fixtures.TestBackend {
             status == 'rejected' ? 'Please provide ownership evidence.' : '',
       };
     if (name == 'operator_business') operatorCalls++;
-    if (name == 'admin_email_overview') return {'pending': 0, 'accepted': 0, 'delivered': 0, 'failed': 0};
+    if (name == 'admin_email_overview')
+      return {'pending': 0, 'accepted': 0, 'delivered': 0, 'failed': 0};
     if (name == 'admin_email_events') return <Json>[];
     if (name == 'admin_overview' || name == 'admin_health') {
       adminCalls++;
@@ -52,14 +53,21 @@ class RoleBackend extends fixtures.TestBackend {
   Future<Json> invoke(String name, Json data) async {
     if (name == 'business-address') {
       if (data['action'] == 'suggest') {
-        return {'suggestions': [
-          {'place_id': 'test-address-123', 'description': '12 Test Street, Auckland, New Zealand'}
-        ]};
+        return {
+          'suggestions': [
+            {
+              'place_id': 'test-address-123',
+              'description': '12 Test Street, Auckland, New Zealand'
+            }
+          ]
+        };
       }
       if (data['action'] == 'select') {
         return {
           'address': '12 Test Street, Auckland, New Zealand',
-          'suburb': 'Auckland', 'lat': -36.85, 'lng': 174.76,
+          'suburb': 'Auckland',
+          'lat': -36.85,
+          'lng': 174.76,
           'place_id': 'test-address-123'
         };
       }
@@ -302,14 +310,17 @@ void main() {
     expect(find.text('Pin latitude'), findsNothing);
     expect(find.text('Pin longitude'), findsNothing);
     expect(find.text('Google Place ID (optional)'), findsNothing);
-    await tester.enterText(find.widgetWithText(TextFormField, 'Business street address'),
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Business street address'),
         '12 Test Street');
     await fixtures.tapVisible(tester, find.text('Continue'));
     expect(find.text('Step 3 of 4 · Location'), findsOneWidget);
-    expect(find.text('Choose a suggested address or confirm the map pin'), findsOneWidget);
+    expect(find.text('Choose a suggestion or confirm the map pin'),
+        findsOneWidget);
     await tester.pump(const Duration(milliseconds: 450));
     await tester.pumpAndSettle();
-    await fixtures.tapVisible(tester, find.text('12 Test Street, Auckland, New Zealand'));
+    await fixtures.tapVisible(
+        tester, find.text('12 Test Street, Auckland, New Zealand'));
     await fixtures.tapVisible(tester, find.text('Continue'));
     expect(find.text('Step 4 of 4 · Review'), findsOneWidget);
     await fixtures.tapVisible(tester, find.byType(CheckboxListTile).first);
@@ -317,6 +328,12 @@ void main() {
     await fixtures.tapVisible(tester, find.text('Submit business application'));
     expect(backend.applications, 1);
     expect(backend.application?['contact_email'], 'owner@example.com');
+    expect(backend.application?['address'],
+        '12 Test Street, Auckland, New Zealand');
+    expect(backend.application?['suburb'], 'Auckland');
+    expect(backend.application?['lat'], -36.85);
+    expect(backend.application?['lng'], 174.76);
+    expect(backend.application?['place_id'], 'test-address-123');
     expect(find.text('Application under review'), findsOneWidget);
     expect(store.applicationNotificationMessage, contains('Application saved'));
     expect(backend.operatorCalls, 0);

@@ -541,10 +541,13 @@ void main() {
     await fill('Business contact email', 'owner@example.com');
     await fill('Business contact phone', '021 123 4567');
     await fixtures.tapVisible(tester, find.text('Continue'));
-    await fill('Full business address', '12 Test Street');
-    await fill('Suburb / town', 'Auckland');
-    await fill('Pin latitude', '-36.85');
-    await fill('Pin longitude', '174.76');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Business street address'),
+        '12 Test Street');
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+    await fixtures.tapVisible(
+        tester, find.text('12 Test Street, Auckland, New Zealand'));
     await fixtures.tapVisible(tester, find.text('Continue'));
     await fixtures.tapVisible(tester, find.byType(CheckboxListTile).first);
     await fixtures.tapVisible(tester, find.byType(CheckboxListTile).last);
