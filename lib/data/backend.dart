@@ -115,7 +115,7 @@ class SupabaseBackend extends Backend {
   Future<void> signInWithGoogle() async {
     final launched = await client.auth.signInWithOAuth(
       OAuthProvider.google,
-      queryParams: {'prompt': 'select_account consent'} ,
+      queryParams: {'prompt': 'select_account consent'},
       redirectTo: kIsWeb
           ? '${Uri.base.origin}/'
           : 'nz.nehanand.spicyself://login-callback/',
