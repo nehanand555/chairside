@@ -16,6 +16,7 @@ class TestBackend extends Backend {
   @override
   Stream<void> get authChanges => authEvents?.stream ?? const Stream.empty();
   int googleSignIns = 0;
+  final List<String> emailSignIns = [];
   Object? googleError;
   final Map<String, String> googleNames = {};
   @override
@@ -185,6 +186,11 @@ class TestBackend extends Backend {
   }
 
   @override
+  Future<void> signInWithEmail(String email) async {
+    emailSignIns.add(email);
+  }
+
+  @override
   Future<void> signOut() async {
     userId = null;
   }
@@ -296,6 +302,44 @@ void main() {
     store.dispose();
     await events.close();
   });
+  testWidgets('email sign-in requires consent and clears session on sign-out',
+      (tester) async {
+    final backend = TestBackend()..userId = null;
+    final events = StreamController<void>.broadcast();
+    backend.authEvents = events;
+    final store = AppStore(backend);
+    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profile').last);
+    await tester.pumpAndSettle();
+
+    final emailField = find.widgetWithText(TextField, 'Email address');
+    await tester.enterText(emailField, 'customer@example.com');
+    await tapVisible(tester, find.text('Send sign-in link'));
+    expect(backend.emailSignIns, isEmpty);
+    expect(find.textContaining('Please read and accept'), findsOneWidget);
+
+    await tapVisible(tester, find.byType(CheckboxListTile));
+    await tapVisible(tester, find.text('Send sign-in link'));
+    expect(backend.emailSignIns, ['customer@example.com']);
+    expect(store.signedIn, false);
+    expect(find.textContaining('Check your inbox'), findsOneWidget);
+
+    backend.userId = 'customer';
+    events.add(null);
+    await tester.pumpAndSettle();
+    expect(store.signedIn, true);
+    await tapVisible(tester, find.text('Sign out'));
+    expect(store.signedIn, false);
+    final input = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Email address'));
+    expect(input.controller!.text, isEmpty);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    store.dispose();
+    await events.close();
+  });
+
   testWidgets(
       'Google launch and callback failures leave sign-in available to retry',
       (tester) async {
