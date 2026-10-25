@@ -87,6 +87,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   void didUpdateWidget(covariant DiscoverScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.mapMode || !mapAvailable) controller = null;
+    // Returning to the map should show businesses approved since the last
+    // discovery request, without requiring the visitor to press Refresh.
+    if (widget.mapMode && !oldWidget.mapMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(load(text: textSearch));
+      });
+    }
   }
 
   @override
