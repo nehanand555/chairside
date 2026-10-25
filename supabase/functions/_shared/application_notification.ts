@@ -16,7 +16,7 @@ export function reviewEmailHtml(email: Pick<ReviewEmail, "businessName" | "busin
   const id = escapeEmailHtml(email.businessId);
   // A link opens the application, never authorises approval. The admin
   // console still requires a signed-in admin and MFA.
-  const url = (Deno.env.get("SPICYSELF_ADMIN_URL") ?? "https://chairside-staging.pages.dev").replace(/\/$/, "");
+  const url = (Deno.env.get("SPICYSELF_ADMIN_URL") ?? "https://www.spicyself.com").replace(/\/$/, "");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"></head>
 <body style="margin:0;background:#f8f7f0;font-family:Arial,sans-serif;color:#163e35">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:36px 16px">
