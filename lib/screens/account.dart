@@ -274,11 +274,20 @@ class _MfaPanelState extends State<MfaPanel> {
   String? factorUser;
   int? factorSession;
 
-  String _qrSvg(String source) {
-    if (source.startsWith('data:image/svg+xml')) {
-      return UriData.fromUri(Uri.parse(source)).contentAsString();
+  String? _qrSvg(String source) {
+    try {
+      final svg = source.startsWith('data:image/svg+xml')
+          ? UriData.fromUri(Uri.parse(source)).contentAsString()
+          : source;
+      // Only accept the SVG format provided by Supabase. Never load remote URLs
+      // that might disclose this private TOTP enrollment payload.
+      return svg.trimLeft().startsWith('<svg') ||
+              svg.trimLeft().startsWith('<?xml')
+          ? svg
+          : null;
+    } catch (_) {
+      return null;
     }
-    return source;
   }
 
   @override
@@ -338,17 +347,32 @@ class _MfaPanelState extends State<MfaPanel> {
                   const Text(
                       'Scan this QR code with Microsoft Authenticator or Google Authenticator. In Microsoft Authenticator, tap +, then Other account, then Scan QR code.'),
                   const SizedBox(height: 16),
-                  if ((enrollment!['qr_code'] as String?)?.isNotEmpty == true)
+                  if (_qrSvg((enrollment!['qr_code'] as String?) ?? '') case final svg?)
                     Center(
                       child: Semantics(
                         label: 'Authenticator QR setup code. Keep private.',
-                        child: Container(
-                          color: Colors.white,
-                          padding: const EdgeInsets.all(16),
-                          child: SvgPicture.string(
-                            _qrSvg(enrollment!['qr_code'] as String),
-                            width: 220,
-                            height: 220,
+                        child: SizedBox(
+                          width: 252,
+                          height: 252,
+                          child: ColoredBox(
+                            color: Colors.white,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: SvgPicture.string(
+                                svg,
+                                width: 220,
+                                height: 220,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Center(
+                                      child: Text(
+                                        'QR could not be displayed. Use the manual setup key below.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: Colors.black),
+                                      ),
+                                    ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
