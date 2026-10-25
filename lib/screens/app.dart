@@ -205,12 +205,17 @@ class DetailScaffold extends StatelessWidget {
           ])));
 }
 
-Future<void> openBusinessWorkspace(BuildContext context, AppStore store) =>
-    Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => DetailScaffold(
-            store: store,
-            title: 'SpicySelf for business',
-            child: BusinessScreen(store: store))));
+Future<void> openBusinessWorkspace(BuildContext context, AppStore store) async {
+  // Recheck the server-side decision before choosing application vs dashboard.
+  // Approval emails can arrive while the owner still has the app open.
+  if (store.signedIn) await store.refreshAccount();
+  if (!context.mounted) return;
+  await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => DetailScaffold(
+          store: store,
+          title: 'SpicySelf for business',
+          child: BusinessScreen(store: store))));
+}
 
 Future<void> openAccount(BuildContext context, AppStore store) =>
     Navigator.of(context).push(MaterialPageRoute<void>(
