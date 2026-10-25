@@ -396,9 +396,7 @@ void main() {
       await events.close();
     },
   );
-  test(
-      'Google names initialize missing profiles without replacing saved names or consent',
-      () async {
+  test('Google names initialize missing profiles without replacing saved names or consent', () async {
     final backend = TestBackend()..userId = 'fresh-google';
     backend.googleNames['fresh-google'] = 'Nikita';
     final store = AppStore(backend);
