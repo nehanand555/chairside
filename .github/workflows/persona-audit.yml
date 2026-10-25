@@ -25,6 +25,8 @@ jobs:
           channel: stable
           flutter-version: '3.47.7'
           cache: true
+      - name: Generate platform configuration
+        run: python3 tool/bootstrap.py
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
       - name: Format and commit with resolved dependencies
