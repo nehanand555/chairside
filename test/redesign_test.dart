@@ -30,6 +30,8 @@ class RoleBackend extends fixtures.TestBackend {
             status == 'rejected' ? 'Please provide ownership evidence.' : '',
       };
     if (name == 'operator_business') operatorCalls++;
+    if (name == 'admin_email_overview') return {'pending': 0, 'accepted': 0, 'delivered': 0, 'failed': 0};
+    if (name == 'admin_email_events') return <Json>[];
     if (name == 'admin_overview' || name == 'admin_health') {
       adminCalls++;
       return name == 'admin_overview'
@@ -52,7 +54,7 @@ class RoleBackend extends fixtures.TestBackend {
       notifications++;
       if (alreadyProcessed) return {'already_processed': true};
       if (notificationFails) throw Exception('Verified sender required');
-      return {'email_sent': true};
+      return {'email_queued': true};
     }
     return super.invoke(name, data);
   }
@@ -82,8 +84,8 @@ void main() {
     final store = AppStore(backend);
     await store.refreshAccount();
     await sendApplicationNotification(store, 'p1');
-    expect(store.applicationNotificationMessage, contains('no pending'));
-    expect(store.applicationNotificationMessage, isNot(contains('accepted')));
+    expect(store.applicationNotificationMessage, contains('no outstanding'));
+    expect(store.applicationNotificationMessage, isNot(contains('queued')));
     store.dispose();
   });
 
@@ -293,7 +295,7 @@ void main() {
     expect(store.applicationNotificationMessage, contains('Application saved'));
     expect(backend.operatorCalls, 0);
     backend.notificationFails = false;
-    await fixtures.tapVisible(tester, find.text('Retry review email'));
+    await fixtures.tapVisible(tester, find.text('Check notification'));
     expect(backend.applications, 1);
     expect(backend.notifications, 2);
     expect(store.applicationNotificationMessage, contains('accepted'));
