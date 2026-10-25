@@ -21,12 +21,14 @@ Future<void> sendApplicationNotification(
     final result = await store.backend!
         .invoke('business-application-notify', {'business_id': businessId});
     if (!store.isCurrentSession(session, user)) return;
-    if (result['email_sent'] == true) {
+    if (result['email_queued'] == true) {
+      store.applicationNotificationMessage = 'Your application is saved and emails are queued for delivery.';
+    } else if (result['email_sent'] == true) {
       store.applicationNotificationMessage =
           'Your application is saved and the review notification has been accepted. Delivery to the inbox is not guaranteed.';
     } else if (result['already_processed'] == true) {
       store.applicationNotificationMessage =
-          'Your application is saved. There is no pending review notification to send.';
+          'Your application is saved. There is no outstanding review notification to queue.';
     } else if (result['configuration_required'] == true) {
       throw Exception(
           'Application saved. Review email needs a verified sender configured by the platform. You can retry without reapplying.');
@@ -101,7 +103,7 @@ class BusinessScreen extends StatelessWidget {
                 : () => store.run(() =>
                     sendApplicationNotification(store, store.businessId!)),
             icon: const Icon(Icons.mail_outline),
-            label: const Text('Retry review email'),
+            label: const Text('Check notification'),
           ),
         OutlinedButton.icon(
           onPressed: store.busy ? null : () => store.run(store.refreshAccount),

@@ -40,3 +40,9 @@ verify_jwt = false
 verify_jwt = false
 [functions.delete-account]
 verify_jwt = false
+
+# Worker authenticates with x-worker-secret; webhook validates Resend signature.
+[functions.email-worker]
+verify_jwt = false
+[functions.resend-webhook]
+verify_jwt = false

@@ -40,3 +40,17 @@ Deno.test("review email escapes applicant-controlled HTML and uses a protected a
     throw new Error("Unsafe or incomplete review email");
   }
 });
+
+Deno.test("review email honors configured admin URL", async () => {
+  const { reviewEmailHtml } = await import("./application_notification.ts");
+  const previous = Deno.env.get("SPICYSELF_ADMIN_URL");
+  try {
+    Deno.env.set("SPICYSELF_ADMIN_URL", "https://spicyself.com/");
+    const html = reviewEmailHtml({businessName: "Test", businessId: "unit-test"});
+    if (!html.includes('href="https://spicyself.com"'))
+      throw new Error("Configured admin URL was not used");
+  } finally {
+    if (previous === undefined) Deno.env.delete("SPICYSELF_ADMIN_URL");
+    else Deno.env.set("SPICYSELF_ADMIN_URL", previous);
+  }
+});
