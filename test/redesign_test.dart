@@ -26,9 +26,8 @@ class RoleBackend extends fixtures.TestBackend {
         'aal2': mfa,
         'business_id': owner ? 'p1' : null,
         'business_status': owner ? status : null,
-        'business_review_note': status == 'rejected'
-            ? 'Please provide ownership evidence.'
-            : '',
+        'business_review_note':
+            status == 'rejected' ? 'Please provide ownership evidence.' : '',
       };
     if (name == 'operator_business') operatorCalls++;
     if (name == 'admin_email_overview')
@@ -249,9 +248,8 @@ void main() {
   ) async {
     for (final width in [320.0, 390.0, 900.0]) {
       await tester.binding.setSurfaceSize(Size(width, 900));
-      tester.platformDispatcher.textScaleFactorTestValue = width == 320
-          ? 1.6
-          : 1;
+      tester.platformDispatcher.textScaleFactorTestValue =
+          width == 320 ? 1.6 : 1;
       final backend = RoleBackend();
       final store = AppStore(backend);
       await store.refreshAccount();

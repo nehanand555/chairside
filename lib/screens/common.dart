@@ -19,17 +19,17 @@ class LocationSearchBar extends StatelessWidget {
   final VoidCallback onSearch;
   @override
   Widget build(BuildContext context) => TextField(
-    controller: controller,
-    maxLength: 100,
-    textInputAction: TextInputAction.search,
-    onSubmitted: (_) => onSearch(),
-    decoration: const InputDecoration(
-      hintText: 'Search suburb, town or postcode',
-      counterText: '',
-      prefixIcon: Icon(Icons.search),
-      labelText: 'Where are you looking?',
-    ),
-  );
+        controller: controller,
+        maxLength: 100,
+        textInputAction: TextInputAction.search,
+        onSubmitted: (_) => onSearch(),
+        decoration: const InputDecoration(
+          hintText: 'Search suburb, town or postcode',
+          counterText: '',
+          prefixIcon: Icon(Icons.search),
+          labelText: 'Where are you looking?',
+        ),
+      );
 }
 
 ThemeData spicyTheme() {
@@ -120,28 +120,30 @@ class SectionHeader extends StatelessWidget {
   final Widget? action;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 8, bottom: 16),
-    child: Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 16,
-      runSpacing: 8,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.only(top: 8, bottom: 16),
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          runSpacing: 8,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w800),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                if (subtitle != null) Text(subtitle!),
+              ],
             ),
-            if (subtitle != null) Text(subtitle!),
+            if (action != null) action!,
           ],
         ),
-        if (action != null) action!,
-      ],
-    ),
-  );
+      );
 }
 
 class StatusPill extends StatelessWidget {
@@ -150,23 +152,23 @@ class StatusPill extends StatelessWidget {
   final IconData icon;
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: lime.withValues(alpha: .45),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 6,
-      children: [
-        Icon(icon, size: 16, color: ink),
-        Text(
-          label,
-          style: const TextStyle(color: ink, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: lime.withValues(alpha: .45),
+          borderRadius: BorderRadius.circular(16),
         ),
-      ],
-    ),
-  );
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 6,
+          children: [
+            Icon(icon, size: 16, color: ink),
+            Text(
+              label,
+              style: const TextStyle(color: ink, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
 }
 
 class BrandPlaceholder extends StatelessWidget {
@@ -175,53 +177,53 @@ class BrandPlaceholder extends StatelessWidget {
   final double height;
   @override
   Widget build(BuildContext context) => Container(
-    height: height,
-    width: double.infinity,
-    decoration: BoxDecoration(
-      color: cream,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Center(
-      child: Icon(
-        home ? Icons.home_outlined : Icons.content_cut,
-        size: 40,
-        color: ink,
-      ),
-    ),
-  );
+        height: height,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: cream,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Icon(
+            home ? Icons.home_outlined : Icons.content_cut,
+            size: 40,
+            color: ink,
+          ),
+        ),
+      );
 }
 
 class DiscoverySkeleton extends StatelessWidget {
   const DiscoverySkeleton({super.key});
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Loading nearby businesses',
-    child: Column(
-      children: [
-        const LinearProgressIndicator(),
-        const SizedBox(height: 16),
-        for (var i = 0; i < 2; i++)
-          Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: cream,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+        label: 'Loading nearby businesses',
+        child: Column(
+          children: [
+            const LinearProgressIndicator(),
+            const SizedBox(height: 16),
+            for (var i = 0; i < 2; i++)
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: cream,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(height: 16, width: 180, color: cream),
+                    const SizedBox(height: 8),
+                    Container(height: 12, width: 120, color: cream),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Container(height: 16, width: 180, color: cream),
-                const SizedBox(height: 8),
-                Container(height: 12, width: 120, color: cream),
-              ],
-            ),
-          ),
-      ],
-    ),
-  );
+              ),
+          ],
+        ),
+      );
 }
 
 class WorkspaceGroup extends StatelessWidget {
@@ -236,17 +238,18 @@ class WorkspaceGroup extends StatelessWidget {
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 16),
-    clipBehavior: Clip.antiAlias,
-    child: ExpansionTile(
-      key: PageStorageKey(title),
-      leading: Icon(icon, color: ink),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-      children: children,
-    ),
-  );
+        margin: const EdgeInsets.only(bottom: 16),
+        clipBehavior: Clip.antiAlias,
+        child: ExpansionTile(
+          key: PageStorageKey(title),
+          leading: Icon(icon, color: ink),
+          title:
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          childrenPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      );
 }
 
 /// Shared scissors artwork and wordmark for configured and setup screens.
@@ -255,43 +258,44 @@ class SpicySelfBrand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'spicyself',
-    image: true,
-    child: ExcludeSemantics(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset('assets/branding/scissors.png', width: 56, height: 56),
-          const SizedBox(width: 4),
-          const Flexible(
-            child: Text(
-              'spicyself',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: ink,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1,
+        label: 'spicyself',
+        image: true,
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset('assets/branding/scissors.png',
+                  width: 56, height: 56),
+              const SizedBox(width: 4),
+              const Flexible(
+                child: Text(
+                  'spicyself',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: ink,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
 
 String money(dynamic cents) => NumberFormat.currency(
-  locale: 'en_NZ',
-  symbol: '\$',
-).format((cents as num) / 100);
+      locale: 'en_NZ',
+      symbol: '\$',
+    ).format((cents as num) / 100);
 tz.TZDateTime nzNow() => tz.TZDateTime.now(tz.getLocation('Pacific/Auckland'));
 String nzTime(dynamic iso) => DateFormat('EEE d MMM, h:mm a').format(
-  tz.TZDateTime.from(
-    DateTime.parse(iso as String),
-    tz.getLocation('Pacific/Auckland'),
-  ),
-);
+      tz.TZDateTime.from(
+        DateTime.parse(iso as String),
+        tz.getLocation('Pacific/Auckland'),
+      ),
+    );
 String dayKey(DateTime date) => DateFormat('yyyy-MM-dd').format(date);
 String normalizePhone(String raw) {
   final value = raw.replaceAll(RegExp(r'[\s()-]'), '');
@@ -311,8 +315,7 @@ Future<void> openLink(String url) async {
     uri,
     mode: LaunchMode.platformDefault,
     webOnlyWindowName: '_self',
-  ))
-    throw Exception('Could not open the link');
+  )) throw Exception('Could not open the link');
 }
 
 Future<T?> showSessionDialog<T>(
@@ -386,19 +389,19 @@ class PageBody extends StatelessWidget {
   final double width;
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: width),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: children,
+        padding: const EdgeInsets.all(20),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: width),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: children,
+              ),
+            ),
           ),
-        ),
-      ),
-    ],
-  );
+        ],
+      );
 }
 
 class PageHeading extends StatelessWidget {
@@ -407,22 +410,24 @@ class PageHeading extends StatelessWidget {
   final Widget? action;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineMedium
-              ?.copyWith(fontWeight: FontWeight.w800, color: ink),
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.w800, color: ink),
+            ),
+            const SizedBox(height: 8),
+            Text(subtitle),
+            if (action != null)
+              Padding(padding: const EdgeInsets.only(top: 12), child: action),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(subtitle),
-        if (action != null)
-          Padding(padding: const EdgeInsets.only(top: 12), child: action),
-      ],
-    ),
-  );
+      );
 }
 
 class Panel extends StatelessWidget {
@@ -430,9 +435,9 @@ class Panel extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 16),
-    child: Padding(padding: const EdgeInsets.all(20), child: child),
-  );
+        margin: const EdgeInsets.only(bottom: 16),
+        child: Padding(padding: const EdgeInsets.all(20), child: child),
+      );
 }
 
 class Notice extends StatelessWidget {
@@ -441,15 +446,15 @@ class Notice extends StatelessWidget {
   final Widget? action;
   @override
   Widget build(BuildContext context) => Panel(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(text),
-        if (action != null)
-          Padding(padding: const EdgeInsets.only(top: 12), child: action),
-      ],
-    ),
-  );
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(text),
+            if (action != null)
+              Padding(padding: const EdgeInsets.only(top: 12), child: action),
+          ],
+        ),
+      );
 }
 
 class FormFieldBox extends StatelessWidget {
@@ -472,24 +477,23 @@ class FormFieldBox extends StatelessWidget {
   final String? Function(String?)? validator;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: TextFormField(
-      key: ValueKey(label),
-      controller: controller,
-      keyboardType: keyboard,
-      maxLines: lines,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        border: const OutlineInputBorder(),
-      ),
-      validator:
-          validator ??
-          (v) => required && (v == null || v.trim().isEmpty)
-              ? 'Enter $label'
-              : null,
-    ),
-  );
+        padding: const EdgeInsets.only(bottom: 16),
+        child: TextFormField(
+          key: ValueKey(label),
+          controller: controller,
+          keyboardType: keyboard,
+          maxLines: lines,
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            border: const OutlineInputBorder(),
+          ),
+          validator: validator ??
+              (v) => required && (v == null || v.trim().isEmpty)
+                  ? 'Enter $label'
+                  : null,
+        ),
+      );
 }
 
 class ActionButton extends StatelessWidget {
@@ -508,16 +512,16 @@ class ActionButton extends StatelessWidget {
   final IconData? icon;
   @override
   Widget build(BuildContext context) => FilledButton.icon(
-    onPressed: store.busy ? null : () => store.run(action),
-    icon: store.busy && busyLabel != null
-        ? const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        : Icon(icon ?? Icons.arrow_forward, size: 18),
-    label: Text(store.busy ? busyLabel ?? label : label),
-  );
+        onPressed: store.busy ? null : () => store.run(action),
+        icon: store.busy && busyLabel != null
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icon ?? Icons.arrow_forward, size: 18),
+        label: Text(store.busy ? busyLabel ?? label : label),
+      );
 }
 
 class AsyncPanel<T> extends StatelessWidget {
@@ -532,23 +536,24 @@ class AsyncPanel<T> extends StatelessWidget {
   final VoidCallback? retry;
   @override
   Widget build(BuildContext context) => FutureBuilder<T>(
-    future: future,
-    builder: (context, snapshot) {
-      if (snapshot.hasError)
-        return Notice(
-          friendlyError(snapshot.error!),
-          action: retry == null
-              ? null
-              : TextButton(onPressed: retry, child: const Text('Try again')),
-        );
-      if (!snapshot.hasData)
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: CircularProgressIndicator(),
-          ),
-        );
-      return builder(snapshot.data as T);
-    },
-  );
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.hasError)
+            return Notice(
+              friendlyError(snapshot.error!),
+              action: retry == null
+                  ? null
+                  : TextButton(
+                      onPressed: retry, child: const Text('Try again')),
+            );
+          if (!snapshot.hasData)
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          return builder(snapshot.data as T);
+        },
+      );
 }

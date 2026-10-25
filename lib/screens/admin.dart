@@ -39,9 +39,9 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.store,
-    builder: (context, _) => buildConsole(context),
-  );
+        listenable: widget.store,
+        builder: (context, _) => buildConsole(context),
+      );
 
   Widget buildConsole(BuildContext context) {
     final s = widget.store;
@@ -105,8 +105,7 @@ class _AdminScreenState extends State<AdminScreen> {
                             subtitle: Text(
                               "State: ${event['state']} · Attempts: ${event['attempts']}${error == null ? '' : ' · ' + error}",
                             ),
-                            trailing:
-                                error != null &&
+                            trailing: error != null &&
                                     error.startsWith('http_') &&
                                     (event['state'] == 'failed' ||
                                         event['state'] == 'dead')
@@ -114,12 +113,12 @@ class _AdminScreenState extends State<AdminScreen> {
                                     onPressed: s.busy
                                         ? null
                                         : () => s.run(() async {
-                                            await s.backend!.rpc(
-                                              'admin_retry_email',
-                                              {'p_id': event['id']},
-                                            );
-                                            if (mounted) setState(reload);
-                                          }),
+                                              await s.backend!.rpc(
+                                                'admin_retry_email',
+                                                {'p_id': event['id']},
+                                              );
+                                              if (mounted) setState(reload);
+                                            }),
                                     child: const Text('Retry'),
                                   )
                                 : null,
@@ -236,8 +235,8 @@ class _AdminScreenState extends State<AdminScreen> {
                                           status == 'approved'
                                               ? 'Approve'
                                               : status == 'rejected'
-                                              ? 'Reject'
-                                              : 'Suspend',
+                                                  ? 'Reject'
+                                                  : 'Suspend',
                                         ),
                                       ),
                                     TextButton(
@@ -339,8 +338,8 @@ class _AdminScreenState extends State<AdminScreen> {
                   lines: 4,
                   validator: (v) =>
                       (v ?? '').trim().length < 10 || (v ?? '').length > 2000
-                      ? 'Use 10–2000 characters to explain the decision'
-                      : null,
+                          ? 'Use 10–2000 characters to explain the decision'
+                          : null,
                 ),
               ],
             ),
@@ -377,11 +376,7 @@ class _AdminScreenState extends State<AdminScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                "${business['name']} ${status == 'approved'
-                    ? 'approved'
-                    : status == 'rejected'
-                    ? 'rejected'
-                    : 'suspended'} successfully. The owner will be notified by email when delivery completes.",
+                "${business['name']} ${status == 'approved' ? 'approved' : status == 'rejected' ? 'rejected' : 'suspended'} successfully. The owner will be notified by email when delivery completes.",
               ),
             ),
           );

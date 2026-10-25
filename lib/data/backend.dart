@@ -100,13 +100,11 @@ class SupabaseBackend extends Backend {
   Future<void> initializeProfile(String user, String displayName) async {
     if (userId != user) return;
     // A simultaneous profile save wins. Never reset names or consent preferences.
-    await client
-        .from('profiles')
-        .upsert(
-          {'id': user, 'display_name': displayName},
-          onConflict: 'id',
-          ignoreDuplicates: true,
-        );
+    await client.from('profiles').upsert(
+      {'id': user, 'display_name': displayName},
+      onConflict: 'id',
+      ignoreDuplicates: true,
+    );
     await client
         .from('profiles')
         .update({'display_name': displayName})
@@ -146,9 +144,8 @@ class SupabaseBackend extends Backend {
       redirectTo: kIsWeb
           ? webAuthRedirect(Uri.base)
           : 'nz.nehanand.spicyself://login-callback/',
-      authScreenLaunchMode: kIsWeb
-          ? LaunchMode.platformDefault
-          : LaunchMode.externalApplication,
+      authScreenLaunchMode:
+          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
     );
     if (!launched)
       throw Exception('Could not open Google sign-in. Please try again.');
@@ -234,9 +231,7 @@ class SupabaseBackend extends Backend {
     if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension))
       throw Exception('Choose a JPG, PNG or WebP image');
     final type = extension == 'jpg' ? 'jpeg' : extension;
-    await client.storage
-        .from('portfolios')
-        .uploadBinary(
+    await client.storage.from('portfolios').uploadBinary(
           '$business/${DateTime.now().microsecondsSinceEpoch}.$extension',
           bytes,
           fileOptions: FileOptions(contentType: 'image/$type'),

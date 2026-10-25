@@ -48,9 +48,8 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   void reload() {
-    details = widget.store.backend!
-        .rpc('business_detail', {'p_business': widget.businessId})
-        .then((v) => Json.from(v as Map));
+    details = widget.store.backend!.rpc('business_detail',
+        {'p_business': widget.businessId}).then((v) => Json.from(v as Map));
     photos = widget.store.backend!
         .photos(widget.businessId)
         .catchError((_) => <String>[]);
@@ -58,24 +57,20 @@ class _BookingScreenState extends State<BookingScreen> {
 
   void loadEstimates() {
     if (service != null)
-      estimates = widget.store.backend!
-          .rpc('queue_estimates', {
-            'p_business': widget.businessId,
-            'p_service': service,
-          })
-          .then((v) => List<Json>.from(v as List));
+      estimates = widget.store.backend!.rpc('queue_estimates', {
+        'p_business': widget.businessId,
+        'p_service': service,
+      }).then((v) => List<Json>.from(v as List));
   }
 
   void loadSlots() {
     selected = null;
     if (service != null)
-      slots = widget.store.backend!
-          .rpc('available_slots', {
-            'p_business': widget.businessId,
-            'p_service': service,
-            'p_day': dayKey(day),
-          })
-          .then((v) => List<Json>.from(v as List));
+      slots = widget.store.backend!.rpc('available_slots', {
+        'p_business': widget.businessId,
+        'p_service': service,
+        'p_day': dayKey(day),
+      }).then((v) => List<Json>.from(v as List));
   }
 
   Future<void> book(Json business) async {
@@ -134,9 +129,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.store,
-    builder: (context, _) => buildDetails(context),
-  );
+        listenable: widget.store,
+        builder: (context, _) => buildDetails(context),
+      );
 
   Widget buildDetails(BuildContext context) {
     if (bookingSession != widget.store.sessionRevision) {
@@ -151,9 +146,8 @@ class _BookingScreenState extends State<BookingScreen> {
           builder: (b) {
             final services = List<Json>.from(b['services'] as List);
             final resources = List<Json>.from(b['resources'] as List);
-            resource ??= resources.isEmpty
-                ? null
-                : resources.first['id'] as String;
+            resource ??=
+                resources.isEmpty ? null : resources.first['id'] as String;
             final visit = widget.store.visits
                 .where((v) => v['id'] == created)
                 .firstOrNull;
@@ -240,7 +234,15 @@ class _BookingScreenState extends State<BookingScreen> {
                     for (final h in b['hours'] as List)
                       Chip(
                         label: Text(
-                          '${const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][(h['weekday'] as int) - 1]} ${(h['opens'] as String).substring(0, 5)}–${(h['closes'] as String).substring(0, 5)}',
+                          '${const [
+                            'Mon',
+                            'Tue',
+                            'Wed',
+                            'Thu',
+                            'Fri',
+                            'Sat',
+                            'Sun'
+                          ][(h['weekday'] as int) - 1]} ${(h['opens'] as String).substring(0, 5)}–${(h['closes'] as String).substring(0, 5)}',
                         ),
                       ),
                   ],
@@ -413,9 +415,9 @@ class _BookingScreenState extends State<BookingScreen> {
                                               ),
                                               selected:
                                                   selected?['resource_id'] ==
-                                                      v['resource_id'] &&
-                                                  selected?['starts_at'] ==
-                                                      v['starts_at'],
+                                                          v['resource_id'] &&
+                                                      selected?['starts_at'] ==
+                                                          v['starts_at'],
                                               onSelected: (_) =>
                                                   setState(() => selected = v),
                                             ),
@@ -431,8 +433,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         const SizedBox(height: 20),
                         FilledButton.icon(
                           key: const ValueKey('confirm-visit'),
-                          onPressed:
-                              widget.store.busy ||
+                          onPressed: widget.store.busy ||
                                   confirming ||
                                   services.isEmpty
                               ? null
@@ -472,7 +473,8 @@ class _BookingScreenState extends State<BookingScreen> {
                           maxLength: 2000,
                           maxLines: 4,
                           decoration: const InputDecoration(
-                            hintText: 'Please describe what happened (at least 10 characters)',
+                            hintText:
+                                'Please describe what happened (at least 10 characters)',
                           ),
                         ),
                         actions: [

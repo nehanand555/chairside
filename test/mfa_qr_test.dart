@@ -4,7 +4,8 @@ import 'package:chairside/data/mfa_qr.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('accepts local TOTP enrollment and rejects external or empty payloads', () {
+  test('accepts local TOTP enrollment and rejects external or empty payloads',
+      () {
     const payload =
         'otpauth://totp/spicyself:test?secret=JBSWY3DPEHPK3PXP&issuer=spicyself';
     expect(enrollmentOtpUri(payload), payload);

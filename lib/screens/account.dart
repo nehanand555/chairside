@@ -32,9 +32,9 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.store,
-    builder: (context, _) => buildAccount(context),
-  );
+        listenable: widget.store,
+        builder: (context, _) => buildAccount(context),
+      );
 
   Widget buildAccount(BuildContext context) {
     final s = widget.store;
@@ -64,9 +64,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: accepted,
-                  onChanged: s.busy
-                      ? null
-                      : (v) => setState(() => accepted = v!),
+                  onChanged:
+                      s.busy ? null : (v) => setState(() => accepted = v!),
                   title: const Text(
                     'I agree to the booking terms and privacy notice.',
                   ),
@@ -196,8 +195,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 s.businessId == null
                     ? 'Get discovered by local customers. Claim or register your barber shop, salon or home studio for free.'
                     : s.account['business_status'] == 'approved'
-                    ? 'Manage your services, opening hours, bookings and live queue in one place.'
-                    : 'Track your application while our team reviews your business details.',
+                        ? 'Manage your services, opening hours, bookings and live queue in one place.'
+                        : 'Track your application while our team reviews your business details.',
               ),
               if (s.businessId == null) ...[
                 const SizedBox(height: 12),
@@ -216,8 +215,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed:
-                    widget.onBusinessTap ??
+                onPressed: widget.onBusinessTap ??
                     () => openBusinessWorkspace(context, s),
                 icon: const Icon(Icons.storefront_outlined),
                 label: Text(
@@ -253,23 +251,23 @@ class _AccountScreenState extends State<AccountScreen> {
           onPressed: s.busy
               ? null
               : () => s.run(() async {
-                  await s.backend!.signOut();
-                  await s.refreshAccount();
-                  if (context.mounted) {
-                    setState(() {
-                      loadedUser = null;
-                      signInEmail.clear();
-                      emailSent = false;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Signed out of spicyself. Your Google account may still be signed in on this device; choose the account you want next time.',
+                    await s.backend!.signOut();
+                    await s.refreshAccount();
+                    if (context.mounted) {
+                      setState(() {
+                        loadedUser = null;
+                        signInEmail.clear();
+                        emailSent = false;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Signed out of spicyself. Your Google account may still be signed in on this device; choose the account you want next time.',
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                }),
+                      );
+                    }
+                  }),
           child: const Text('Sign out'),
         ),
         const SizedBox(height: 16),
