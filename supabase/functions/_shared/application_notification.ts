@@ -3,6 +3,35 @@ export type ReviewEmail = {
   businessName: string; text: string;
 };
 
+
+// Escape application-controlled fields before including them in HTML email.
+export function escapeEmailHtml(value: string): string {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+export function reviewEmailHtml(email: Pick<ReviewEmail, "businessName" | "businessId">): string {
+  const business = escapeEmailHtml(email.businessName);
+  const id = escapeEmailHtml(email.businessId);
+  // A link opens the application, never authorises approval. The admin
+  // console still requires a signed-in admin and MFA.
+  const url = "https://chairside-staging.pages.dev";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;background:#f8f7f0;font-family:Arial,sans-serif;color:#163e35">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:36px 16px">
+<table role="presentation" width="100%" style="max-width:560px;background:white;border-radius:18px" cellpadding="0" cellspacing="0">
+<tr><td style="padding:32px">
+<p style="font-size:14px;font-weight:bold;letter-spacing:1px">SPICYSELF FOR BUSINESS</p>
+<h1 style="font-size:26px;margin:16px 0">New application to review</h1>
+<p style="font-size:16px;line-height:1.6">A business has applied to join SpicySelf. Verify its details before approving.</p>
+<p style="font-size:18px"><strong>${business}</strong></p>
+<p style="font-size:13px;color:#52635c">Application ID: ${id}</p>
+<p style="margin:28px 0"><a href="${url}" style="background:#163e35;color:white;text-decoration:none;padding:14px 22px;border-radius:9px;display:inline-block">Open SpicySelf admin portal</a></p>
+<p style="font-size:13px;color:#52635c;line-height:1.6">Sign in with an authorised admin account and complete MFA. Open Admin → Pending to review. This email does not approve the business.</p>
+</td></tr></table></td></tr></table></body></html>`;
+}
+
 /** Provider acceptance is independent of application persistence and inbox delivery. */
 export async function deliverReviewEmail(email: ReviewEmail, request: typeof fetch = fetch) {
   let response: Response;
@@ -12,7 +41,7 @@ export async function deliverReviewEmail(email: ReviewEmail, request: typeof fet
       headers: { Authorization: "Bearer " + email.apiKey, "Content-Type": "application/json",
         "Idempotency-Key": `business-application/${email.businessId}` },
       body: JSON.stringify({from: email.from, to: [email.to],
-        subject: "New SpicySelf business application: " + email.businessName, text: email.text}),
+        subject: "New SpicySelf business application: " + email.businessName, text: email.text, html: reviewEmailHtml(email)}),
     });
   } catch {
     throw new Error("Application saved. The review email service could not be reached; retry later.");
