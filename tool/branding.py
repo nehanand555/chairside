@@ -9,7 +9,7 @@ from xml.etree import ElementTree as ET
 ASSETS = Path(__file__).resolve().parents[1] / "assets/branding/icons"
 CREAM = "#faf9f0"
 GREEN = "#153e37"
-DESCRIPTION = "SpicySelf — discover local style professionals and book services."
+DESCRIPTION = "spicyself — discover local style professionals and book services."
 
 
 def apply_branding(root):
@@ -28,7 +28,7 @@ def apply_branding(root):
                 icon(size, web / "icons" / name)
         manifest_path = web / "manifest.json"
         manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
-        manifest.update(name="SpicySelf", short_name="spicyself", start_url=".",
+        manifest.update(name="spicyself", short_name="spicyself", start_url=".",
                         display="standalone", background_color=CREAM, theme_color=GREEN,
                         description=DESCRIPTION)
         manifest["icons"] = [
@@ -40,9 +40,9 @@ def apply_branding(root):
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
         index = web / "index.html"
         if index.exists():
-            html = re.sub(r"<title>.*?</title>", "<title>SpicySelf — find your next look</title>", index.read_text())
+            html = re.sub(r"<title>.*?</title>", "<title>spicyself — find your next look</title>", index.read_text())
             for name, value in (("description", DESCRIPTION),
-                                ("apple-mobile-web-app-title", "SpicySelf"),
+                                ("apple-mobile-web-app-title", "spicyself"),
                                 ("theme-color", GREEN)):
                 tag = f'<meta name="{name}" content="{value}">'
                 pattern = rf'<meta\s+name="{name}"[^>]*>'

@@ -141,7 +141,11 @@ class SupabaseBackend extends Backend {
       client.auth.currentUser?.phoneConfirmedAt != null &&
       (client.auth.currentUser?.phone ?? '').isNotEmpty;
   @override
-  Future<void> signOut() => client.auth.signOut();
+  Future<void> signOut() {
+    stopWatching();
+    return client.auth.signOut(scope: SignOutScope.local);
+  }
+
   @override
   Future<List<Json>> factors() async {
     final result = await client.auth.mfa.listFactors();

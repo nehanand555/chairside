@@ -80,6 +80,7 @@ jobs:
           python3 tool/bootstrap.py --platform=web
           flutter pub get --enforce-lockfile
           flutter build web --release --dart-define-from-file=build-config.json --output=build/web
+          python3 -c 'import json,os,pathlib; pathlib.Path("build/web/version.json").write_text(json.dumps({"commit":os.environ["GITHUB_SHA"]})+"\n")'
       - uses: cloudflare/wrangler-action@v3
         if: github.event_name == 'push' || inputs.target == 'web'
         with:

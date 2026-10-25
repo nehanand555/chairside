@@ -31,3 +31,11 @@ Deno.test("invalid redirect destinations are rejected", () => {
     if(!rejected)throw Error("Unsafe email URL accepted");
   }
 });
+
+Deno.test("legacy queued brand text and headings render in lowercase", () => {
+  const mail = {kind:"application_review",admin:true,subject:"SpicySelf review",body:"Thanks for applying to SpicySelf"};
+  for (const output of [appEmailHtml(mail), appEmailText(mail)]) {
+    if (/SpicySelf|SPICYSELF/.test(output)) throw Error("Mixed-case branding remains");
+    if (!output.includes("https://www.spicyself.com")) throw Error("Missing official portal URL");
+  }
+});

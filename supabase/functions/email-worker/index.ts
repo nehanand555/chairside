@@ -1,6 +1,6 @@
 import { rpc, service } from "../_shared/http.ts";
 
-import { appEmailHtml, appEmailText, APP_URL } from "../_shared/email_templates.ts";
+import { appEmailHtml, appEmailText, APP_URL, normalizeBrand } from "../_shared/email_templates.ts";
 
 // Admin links navigate to the public app; authorisation and MFA remain enforced in-app.
 function adminPortalUrl(): string {
@@ -22,7 +22,7 @@ export function adminNotificationHtml(subject: string, message: string, url: str
   return `<!doctype html><html lang="en"><body style="margin:0;background:#f8f7f2;color:#163e35;font-family:Arial,sans-serif">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
   <table role="presentation" width="100%" style="max-width:600px;background:#fff;border-radius:16px"><tr><td style="padding:32px">
-  <p style="font-size:14px;font-weight:bold;letter-spacing:1px">SPICYSELF ADMIN</p>
+  <p style="font-size:14px;font-weight:bold;letter-spacing:1px">spicyself admin</p>
   <h1 style="font-size:24px">${escapeHtml(subject)}</h1>
   <p style="line-height:1.7;color:#354e46">${safeText}</p>
   <p style="margin:30px 0"><a href="${safeUrl}" style="background:#163e35;color:#fff;text-decoration:none;border-radius:8px;padding:14px 22px;display:inline-block;font-weight:bold">Open spicyself Admin Portal</a></p>
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         method: "POST", signal: AbortSignal.timeout(15000),
         headers: {"Authorization": "Bearer " + apiKey, "Content-Type": "application/json",
           "Idempotency-Key": task.id},
-        body: JSON.stringify({from: sender, to: [recipient], subject: task.subject,
+        body: JSON.stringify({from: sender, to: [recipient], subject: normalizeBrand(task.subject),
           text: appEmailText({kind:task.kind,subject:task.subject,body:task.body,admin:isAdminAlert}, isAdminAlert ? adminPortalUrl() : APP_URL),
           html: appEmailHtml({kind:task.kind,subject:task.subject,body:task.body,admin:isAdminAlert}, isAdminAlert ? adminPortalUrl() : APP_URL)}),
       });

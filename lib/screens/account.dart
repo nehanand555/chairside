@@ -77,8 +77,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const [AutofillHints.email],
                 decoration: const InputDecoration(
-                    labelText: 'Email address',
-                    border: OutlineInputBorder()),
+                    labelText: 'Email address', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 10),
               ActionButton(s, 'Send sign-in link', () async {
@@ -90,17 +89,21 @@ class _AccountScreenState extends State<AccountScreen> {
                     !email.split('@').last.contains('.')) {
                   throw Exception('Enter a valid email address');
                 }
+                final session = s.sessionRevision;
+                final user = s.backend!.userId;
                 await s.backend!.signInWithEmail(email);
-                if (mounted) setState(() => emailSent = true);
+                if (mounted && s.isCurrentSession(session, user))
+                  setState(() => emailSent = true);
               }, icon: Icons.mail_outline),
               if (emailSent)
-                const Notice(
-                    'Check your inbox for a spicyself sign-in link.'),
+                const Notice('Check your inbox for a spicyself sign-in link.'),
             ])),
         const Text(
             'When you choose Google, we ask Google to show the account picker. Google may still remember signed-in accounts on your device. Email sign-in uses a one-time link.'),
       ]);
-    if (loadedUser != s.backend!.userId && s.profile.isNotEmpty) {
+    if (loadedUser != s.backend!.userId &&
+        s.hasCurrentAccount &&
+        s.profile.isNotEmpty) {
       loadedUser = s.backend!.userId;
       if (name.text.isEmpty) name.text = s.displayName;
       sms = s.profile['sms_updates'] == true;
@@ -204,8 +207,9 @@ class _AccountScreenState extends State<AccountScreen> {
                         emailSent = false;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text(
-                          'Signed out of spicyself. Your Google account may still be signed in on this device; choose the account you want next time.')),
+                        const SnackBar(
+                            content: Text(
+                                'Signed out of spicyself. Your Google account may still be signed in on this device; choose the account you want next time.')),
                       );
                     }
                   }),
@@ -350,22 +354,27 @@ class _MfaPanelState extends State<MfaPanel> {
                       ),
                     )
                   else
-                    const Notice('QR unavailable. Use the manual setup key below.'),
+                    const Notice(
+                        'QR unavailable. Use the manual setup key below.'),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () => setState(() => showManualKey = !showManualKey),
+                    onPressed: () =>
+                        setState(() => showManualKey = !showManualKey),
                     child: Text(showManualKey
                         ? 'Hide manual setup key'
                         : 'Cannot scan? Show manual setup key'),
                   ),
-                  if (showManualKey || (enrollment!['qr_code'] as String?)?.isNotEmpty != true) ...[
+                  if (showManualKey ||
+                      (enrollment!['qr_code'] as String?)?.isNotEmpty !=
+                          true) ...[
                     const Text(
                         'Enter this key in your authenticator as a time-based code. Do not share it.'),
                     const SizedBox(height: 8),
                     SelectableText(enrollment!['secret'] as String),
                   ],
                   const SizedBox(height: 12),
-                  const Text('Then enter the six-digit code from your authenticator below.'),
+                  const Text(
+                      'Then enter the six-digit code from your authenticator below.'),
                   const SizedBox(height: 12)
                 ],
                 if (verified.isNotEmpty || enrollment != null) ...[

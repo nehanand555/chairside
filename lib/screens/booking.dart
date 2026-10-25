@@ -143,11 +143,11 @@ class _BookingScreenState extends State<BookingScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   PageHeading(b['name'] as String,
-                      '${b['suburb']} • ${b['kind'] == 'home' ? 'Home studio' : 'SpicySelf member'}'),
+                      '${b['suburb']} • ${b['kind'] == 'home' ? 'Home studio' : 'spicyself member'}'),
                   if (b['status'] == 'approved')
                     const Padding(
                         padding: EdgeInsets.only(bottom: 16),
-                        child: StatusPill('Verified SpicySelf business',
+                        child: StatusPill('Verified spicyself business',
                             icon: Icons.verified_outlined)),
                   OutlinedButton.icon(
                       onPressed: () async {

@@ -1,3 +1,6 @@
+-- Moved from the duplicate 20261025090000 version.
+-- Keep that original version assigned to transactional_email_outbox.
+-- Inspect existing managed migration history before applying this upgrade.
 -- Supabase-native email scheduler; skip Supabase-specific extensions when running
 -- ordinary PostgreSQL tests. Supabase staging has this scheduler deployed.
 DO $outer$

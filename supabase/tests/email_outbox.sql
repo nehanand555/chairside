@@ -1,0 +1,38 @@
+begin;
+create function pg_temp.check_true(ok boolean,label text) returns void language plpgsql as $$ begin if not coalesce(ok,false) then raise exception 'FAIL: %',label; end if; raise notice 'PASS: %',label; end $$;
+insert into auth.users(id,email,email_confirmed_at,phone,phone_confirmed_at) values
+('40000000-0000-4000-8000-000000000001','owner@example.test',now(),'+64214444444',now()),
+('40000000-0000-4000-8000-000000000002','spicynetwork75@gmail.com',now(),'+64215555555',now());
+insert into private.admins values('40000000-0000-4000-8000-000000000002');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"40000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
+select set_config('email.shop',public.apply_business('{"name":"Email studio","kind":"home","suburb":"Auckland","lat":-36.85,"lng":174.76,"address":"12 Test Street","publish_consent":true,"operating_declaration":true,"registration_number":"Not applicable","contact_name":"Test Owner","contact_email":"owner@example.test","contact_phone":"+64211234567"}')::text,true);
+reset role;
+select pg_temp.check_true((select count(*)=2 from private.email_outbox),'application queues applicant acknowledgement and admin review');
+select pg_temp.check_true((select count(distinct event_type)=2 from private.email_outbox),'application event kinds are distinct');
+select pg_temp.check_true(not exists(select 1 from private.email_outbox where subject like '%SpicySelf%' or body like '%SpicySelf%'),'new queued messages use lowercase branding');
+set local role authenticated;
+select public.update_pending_business_application(current_setting('email.shop')::uuid,'{"name":"Updated studio","description":"Updated details","registration_number":"Not applicable","contact_name":"Test Owner","contact_email":"owner@example.test","contact_phone":"+64211234567"}');
+reset role;
+select pg_temp.check_true((select count(*)=1 from public.businesses),'resubmission updates the same business');
+select pg_temp.check_true((select count(*)=1 from private.email_outbox where event_type='application_updated'),'revision queues updated admin notice');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"40000000-0000-4000-8000-000000000002","aal":"aal2"}',true);
+select public.admin_review(current_setting('email.shop')::uuid,'approved','Verified operating permissions');
+reset role;
+select pg_temp.check_true((select count(*)=1 from private.email_outbox where event_type='decision_approved'),'approved decision queues applicant mail');
+select pg_temp.check_true(not has_function_privilege('authenticated','public.email_claim_batch(integer)','execute'),'clients cannot claim queued messages');
+select pg_temp.check_true(not has_function_privilege('anon','public.email_mark_result(uuid,text,text,text)','execute'),'anonymous clients cannot fake provider acceptance');
+set local role service_role;
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select pg_temp.check_true(jsonb_array_length(public.email_claim_batch())=4,'service worker claims each queued event once');
+select pg_temp.check_true(jsonb_array_length(public.email_claim_batch())=0,'claimed events are not claimed again');
+reset role;
+select set_config('email.event',(select id::text from private.email_outbox where event_type='application_received'),true);
+set local role service_role;
+select public.email_mark_result(current_setting('email.event')::uuid,'accepted','provider-test-id');
+select public.email_mark_delivery('provider-test-id','delivered');
+reset role;
+select pg_temp.check_true((select state='delivered' and accepted_at is not null and delivered_at is not null from private.email_outbox where id=current_setting('email.event')::uuid),'acceptance and delivery are stored separately');
+select pg_temp.check_true(not exists(select 1 from private.email_outbox where event_type in ('booking_confirmed','booking_reminder')),'business workflow does not claim to send customer booking templates');
+rollback;

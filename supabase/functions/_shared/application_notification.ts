@@ -22,7 +22,7 @@ export function reviewEmailHtml(email: Pick<ReviewEmail, "businessName" | "busin
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:36px 16px">
 <table role="presentation" width="100%" style="max-width:560px;background:white;border-radius:18px" cellpadding="0" cellspacing="0">
 <tr><td style="padding:32px">
-<p style="font-size:14px;font-weight:bold;letter-spacing:1px">SPICYSELF FOR BUSINESS</p>
+<p style="font-size:14px;font-weight:bold;letter-spacing:1px">spicyself for business</p>
 <h1 style="font-size:26px;margin:16px 0">New application to review</h1>
 <p style="font-size:16px;line-height:1.6">A business has applied to join spicyself. Verify its details before approving.</p>
 <p style="font-size:18px"><strong>${business}</strong></p>

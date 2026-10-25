@@ -12,6 +12,7 @@ insert into auth.users(id,phone,phone_confirmed_at) values
 ('00000000-0000-4000-8000-000000000003','+64210000003',now()),
 ('00000000-0000-4000-8000-000000000004','+64210000004',now()),
 ('00000000-0000-4000-8000-000000000005','+64210000005',now());
+update auth.users set email='spicynetwork75@gmail.com',email_confirmed_at=now() where id='00000000-0000-4000-8000-000000000005';
 insert into private.admins values('00000000-0000-4000-8000-000000000005');
 insert into public.profiles(id,display_name) select id,'Customer '||right(id::text,1) from auth.users;
 set local role authenticated;

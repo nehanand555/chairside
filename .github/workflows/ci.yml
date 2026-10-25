@@ -25,7 +25,7 @@ jobs:
       - name: Generate platform configuration
         run: python3 tool/bootstrap.py
       - run: flutter pub get --enforce-lockfile
-      - run: dart format lib test
+      - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test --reporter expanded
       - run: flutter build web --release --dart-define-from-file=build-config.json
@@ -63,6 +63,8 @@ jobs:
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/core.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/integrations.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/google_auth.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/admin_security.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/email_outbox.sql
       - run: python3 supabase/tests/concurrency.py
   functions:
     runs-on: ubuntu-latest

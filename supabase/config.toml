@@ -20,7 +20,7 @@ minimum_password_length = 12
 # Google is the app login. Enable SMS only after choosing a paid provider.
 enable_signup = false
 enable_confirmations = false
-template = "Your Chairside verification code is {{ .Code }}"
+template = "Your spicyself verification code is {{ .Code }}"
 max_frequency = "60s"
 
 [auth.mfa]
@@ -33,6 +33,8 @@ verify_enabled = true
 [functions.discover]
 verify_jwt = false
 [functions.business-address]
+verify_jwt = false
+[functions.business-application-notify]
 verify_jwt = false
 [functions.payments]
 verify_jwt = false

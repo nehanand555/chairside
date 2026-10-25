@@ -23,7 +23,8 @@ Future<void> sendApplicationNotification(
         .invoke('business-application-notify', {'business_id': businessId});
     if (!store.isCurrentSession(session, user)) return;
     if (result['email_queued'] == true) {
-      store.applicationNotificationMessage = 'Your application is saved and emails are queued for delivery.';
+      store.applicationNotificationMessage =
+          'Your application is saved and emails are queued for delivery.';
     } else if (result['email_sent'] == true) {
       store.applicationNotificationMessage =
           'Your application is saved and the review notification has been accepted. Delivery to the inbox is not guaranteed.';
@@ -320,20 +321,24 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     addressDebounce = Timer(const Duration(milliseconds: 400), () async {
       try {
         final result = await widget.store.backend!.invoke('business-address', {
-          'action': 'suggest', 'query': value.trim(),
+          'action': 'suggest',
+          'query': value.trim(),
           'session_token': sessionToken,
         });
         if (!mounted || revision != searchRevision) return;
         setState(() {
           searching = false;
           suggestions = List<Json>.from(result['suggestions'] as List);
-          if (suggestions.isEmpty) locationError = 'No matching address. Try adding your street number and town.';
+          if (suggestions.isEmpty)
+            locationError =
+                'No matching address. Try adding your street number and town.';
         });
       } catch (_) {
         if (!mounted || revision != searchRevision) return;
         setState(() {
           searching = false;
-          locationError = 'Address suggestions are unavailable. Try again or use the map pin.';
+          locationError =
+              'Address suggestions are unavailable. Try again or use the map pin.';
         });
       }
     });
@@ -342,15 +347,20 @@ class _BusinessApplicationState extends State<BusinessApplication> {
   Future<void> selectAddress(Json suggestion) async {
     addressDebounce?.cancel();
     final revision = ++searchRevision;
-    setState(() { searching = true; suggestions = []; locationError = null; });
+    setState(() {
+      searching = true;
+      suggestions = [];
+      locationError = null;
+    });
     try {
       final data = await widget.store.backend!.invoke('business-address', {
-        'action': 'select', 'place_id': suggestion['place_id'],
+        'action': 'select',
+        'place_id': suggestion['place_id'],
         'session_token': sessionToken,
       });
       if (!mounted || revision != searchRevision) return;
-      final value = LatLng((data['lat'] as num).toDouble(),
-          (data['lng'] as num).toDouble());
+      final value = LatLng(
+          (data['lat'] as num).toDouble(), (data['lng'] as num).toDouble());
       setState(() {
         address.text = data['address'] as String;
         suburb.text = data['suburb'] as String;
@@ -366,7 +376,8 @@ class _BusinessApplicationState extends State<BusinessApplication> {
       if (!mounted || revision != searchRevision) return;
       setState(() {
         searching = false;
-        locationError = 'That location could not be confirmed. Select another suggestion.';
+        locationError =
+            'That location could not be confirmed. Select another suggestion.';
       });
     }
   }
@@ -408,7 +419,8 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     if (!consent || !declaration)
       throw Exception('Confirm business authority and publication consent.');
     if (submittedApplication != null) return;
-    if (!locationConfirmed) throw Exception('Choose a suggested address or set the map pin.');
+    if (!locationConfirmed)
+      throw Exception('Choose a suggested address or set the map pin.');
     final session = s.sessionRevision;
     final user = s.backend!.userId;
     final applicationId = await s.backend!.rpc('apply_business', {
@@ -535,7 +547,6 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                 ],
                 if (step == 2) ...[
                   const SectionHeader('Where the good hair happens'),
-
                   TextFormField(
                     controller: address,
                     onChanged: addressEdited,
@@ -546,7 +557,9 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                     ),
                     validator: (v) => (v ?? '').trim().length < 5
                         ? 'Enter a street address'
-                        : !locationConfirmed ? 'Choose a suggestion or confirm the map pin' : null,
+                        : !locationConfirmed
+                            ? 'Choose a suggestion or confirm the map pin'
+                            : null,
                   ),
                   if (searching) const LinearProgressIndicator(),
                   if (locationError != null) Notice(locationError!),
@@ -570,7 +583,8 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                         child: SizedBox(
                             height: 240,
                             child: GoogleMap(
-                                key: ValueKey('${pin.latitude}:${pin.longitude}'),
+                                key: ValueKey(
+                                    '${pin.latitude}:${pin.longitude}'),
                                 initialCameraPosition:
                                     CameraPosition(target: pin, zoom: 12),
                                 onTap: setPin,
@@ -615,7 +629,8 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                       label: const Text('Use my current business location')),
                   const SizedBox(height: 16),
                   if (locationConfirmed)
-                    const Notice('Location confirmed. Map coordinates have been saved automatically.'),
+                    const Notice(
+                        'Location confirmed. Map coordinates have been saved automatically.'),
                 ],
                 if (step == 3) ...[
                   const SectionHeader('One last look'),
@@ -822,7 +837,8 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     ]),
                     const SizedBox(height: 20),
                     if (section == 4) ...[
-                      Panel(child: CalendarDatePicker(
+                      Panel(
+                          child: CalendarDatePicker(
                         initialDate: calendarDay,
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2035),
@@ -830,26 +846,31 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                             setState(() => calendarDay = day),
                       )),
                       const SizedBox(height: 12),
-                      Text('Appointments for ${calendarDay.day}/${calendarDay.month}/${calendarDay.year}',
+                      Text(
+                          'Appointments for ${calendarDay.day}/${calendarDay.month}/${calendarDay.year}',
                           style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 8),
                       if (!visits.any((v) =>
                           v['kind'] == 'appointment' &&
                           dayKey(tz.TZDateTime.from(
-                              DateTime.parse(v['starts_at'] as String),
-                              tz.getLocation('Pacific/Auckland'))) ==
+                                  DateTime.parse(v['starts_at'] as String),
+                                  tz.getLocation('Pacific/Auckland'))) ==
                               dayKey(tz.TZDateTime(
-                                tz.getLocation('Pacific/Auckland'),
-                                calendarDay.year, calendarDay.month, calendarDay.day))))
+                                  tz.getLocation('Pacific/Auckland'),
+                                  calendarDay.year,
+                                  calendarDay.month,
+                                  calendarDay.day))))
                         const Notice('No appointments on this date.'),
                       for (final v in visits.where((v) =>
                           v['kind'] == 'appointment' &&
                           dayKey(tz.TZDateTime.from(
-                              DateTime.parse(v['starts_at'] as String),
-                              tz.getLocation('Pacific/Auckland'))) ==
+                                  DateTime.parse(v['starts_at'] as String),
+                                  tz.getLocation('Pacific/Auckland'))) ==
                               dayKey(tz.TZDateTime(
-                                tz.getLocation('Pacific/Auckland'),
-                                calendarDay.year, calendarDay.month, calendarDay.day))))
+                                  tz.getLocation('Pacific/Auckland'),
+                                  calendarDay.year,
+                                  calendarDay.month,
+                                  calendarDay.day))))
                         VisitCard(store: s, visit: v, operator: true),
                     ],
                     if (section == 0 || section == 3) ...[

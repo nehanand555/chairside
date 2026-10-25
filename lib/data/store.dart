@@ -36,19 +36,19 @@ class AppStore extends ChangeNotifier {
   bool get signedIn => backend?.userId != null;
   String get displayName {
     if (!signedIn) return '';
+    if (!_accountMatchesUser) return backend?.suggestedName ?? '';
     final saved = (profile['display_name'] as String? ?? '').trim();
     return saved.isNotEmpty ? saved : backend?.suggestedName ?? '';
   }
 
   // Never reuse privileged UI state across sign-out or an account switch.
   // The server independently enforces role and MFA on every admin RPC.
-  bool get _accountMatchesUser =>
-      signedIn && _lastUser == backend?.userId;
+  bool get _accountMatchesUser => signedIn && _lastUser == backend?.userId;
+  bool get hasCurrentAccount => _accountMatchesUser;
   bool get unlocked => _accountMatchesUser && account['aal2'] == true;
   bool get isAdmin => _accountMatchesUser && account['is_admin'] == true;
-  String? get businessId => _accountMatchesUser
-      ? account['business_id'] as String?
-      : null;
+  String? get businessId =>
+      _accountMatchesUser ? account['business_id'] as String? : null;
   void changed() {
     if (!_disposed) notifyListeners();
   }

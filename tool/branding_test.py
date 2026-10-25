@@ -43,7 +43,9 @@ class BrandingTests(unittest.TestCase):
             self.assertEqual(len(ET.parse(manifest).findall('.//intent-filter')), 1)
             self.assertEqual(len(ET.parse(manifest).findall('.//meta-data')), 1)
             web = json.loads((root / 'web/manifest.json').read_text())
-            self.assertEqual(web['name'], 'SpicySelf')
+            self.assertEqual(web['name'], 'spicyself')
+            self.assertNotIn('SpicySelf', index.read_text())
+            self.assertIn('<title>spicyself', index.read_text())
             self.assertEqual(web['background_color'], branding.CREAM)
             for item in web['icons']:
                 self.assertEqual(png_size(root / 'web' / item['src'].split('?')[0]),

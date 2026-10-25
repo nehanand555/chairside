@@ -40,7 +40,11 @@ export function uuid(value: unknown): string {
 export function endpoint(handler: (req: Request) => Promise<unknown>) {
   return async (req: Request): Promise<Response> => {
     const origin = req.headers.get("origin");
-    const allowed = (Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map(x => x.trim()).filter(Boolean);
+    // These are the two public origins owned by this application. Additional
+    // preview/staging origins remain explicitly configured on the server.
+    // CORS never substitutes for authenticated() or database authorization.
+    const allowed = ["https://www.spicyself.com", "https://spicyself.com",
+      ...(Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map(x => x.trim()).filter(Boolean)];
     const headers = new Headers({ "content-type": "application/json", "cache-control": "no-store", "vary": "Origin", "access-control-allow-headers": "authorization, apikey, content-type, x-client-info", "access-control-allow-methods": "POST, OPTIONS" });
     if (origin && !allowed.includes(origin)) return new Response(JSON.stringify({ error: "Origin not allowed" }), { status: 403, headers });
     if (origin) headers.set("access-control-allow-origin", origin);

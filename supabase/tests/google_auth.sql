@@ -8,7 +8,7 @@ begin
 end $$;
 -- Real Auth can store an absent phone as NULL or an empty string. Cover both.
 insert into auth.users(id,phone,email,email_confirmed_at) values
-('20000000-0000-4000-8000-000000000001','','owner@example.test',now()),
+('20000000-0000-4000-8000-000000000001','','spicynetwork75@gmail.com',now()),
 ('20000000-0000-4000-8000-000000000002',null,'customer@example.test',now()),
 ('20000000-0000-4000-8000-000000000003',null,'unverified@example.test',null),
 ('20000000-0000-4000-8000-000000000004',null,'email-only@example.test',now()),
@@ -39,7 +39,7 @@ select public.configure_business(current_setting('google.shop')::uuid,'service',
 select public.configure_business(current_setting('google.shop')::uuid,'hours','{"hours":[{"weekday":1,"opens":"00:00","closes":"23:59"},{"weekday":2,"opens":"00:00","closes":"23:59"},{"weekday":3,"opens":"00:00","closes":"23:59"},{"weekday":4,"opens":"00:00","closes":"23:59"},{"weekday":5,"opens":"00:00","closes":"23:59"},{"weekday":6,"opens":"00:00","closes":"23:59"},{"weekday":7,"opens":"00:00","closes":"23:59"}]}');
 select set_config('google.resource',(select id::text from public.resources where business_id=current_setting('google.shop')::uuid),true);
 select set_config('google.service',(select id::text from public.services where business_id=current_setting('google.shop')::uuid),true);
-select pg_temp.check_true(public.admin_overview()->'businesses'->0->>'owner_email'='owner@example.test','only authorised admins receive Google owner contact email');
+select pg_temp.check_true(public.admin_overview()->'businesses'->0->>'owner_email'='spicynetwork75@gmail.com','only authorised admins receive Google owner contact email');
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000001","aal":"aal1"}',true);
 select pg_temp.must_fail('select public.admin_overview()','Admin access denied');
 select pg_temp.must_fail($q$select public.operator_business(current_setting('google.shop')::uuid)$q$,'authenticator');
