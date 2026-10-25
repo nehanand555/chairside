@@ -289,10 +289,12 @@ void main() {
     expect(find.text('Cannot scan? Show manual setup key'), findsOneWidget);
     expect(find.text('private-test-secret'), findsNothing);
     // The QR must be a compact scannable square, not an expanding grey panel.
-    expect(find.byType(SizedBox).evaluate().any((element) {
-      final widget = element.widget as SizedBox;
-      return widget.width == 252 && widget.height == 252;
-    }), isTrue);
+    expect(
+        find.byType(SizedBox).evaluate().any((element) {
+          final widget = element.widget as SizedBox;
+          return widget.width == 252 && widget.height == 252;
+        }),
+        isTrue);
     await fixtures.tapVisible(
         tester, find.text('Cannot scan? Show manual setup key'));
     expect(find.text('private-test-secret'), findsOneWidget);

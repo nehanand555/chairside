@@ -347,7 +347,8 @@ class _MfaPanelState extends State<MfaPanel> {
                   const Text(
                       'Scan this QR code with Microsoft Authenticator or Google Authenticator. In Microsoft Authenticator, tap +, then Other account, then Scan QR code.'),
                   const SizedBox(height: 16),
-                  if (_qrSvg((enrollment!['qr_code'] as String?) ?? '') case final svg?)
+                  if (_qrSvg((enrollment!['qr_code'] as String?) ?? '')
+                      case final svg?)
                     Center(
                       child: Semantics(
                         label: 'Authenticator QR setup code. Keep private.',
@@ -365,12 +366,12 @@ class _MfaPanelState extends State<MfaPanel> {
                                 fit: BoxFit.contain,
                                 errorBuilder: (context, error, stackTrace) =>
                                     const Center(
-                                      child: Text(
-                                        'QR could not be displayed. Use the manual setup key below.',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: Colors.black),
-                                      ),
-                                    ),
+                                  child: Text(
+                                    'QR could not be displayed. Use the manual setup key below.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.black),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
