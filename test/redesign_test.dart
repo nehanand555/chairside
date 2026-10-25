@@ -298,7 +298,7 @@ void main() {
     await fixtures.tapVisible(tester, find.text('Check notification'));
     expect(backend.applications, 1);
     expect(backend.notifications, 2);
-    expect(store.applicationNotificationMessage, contains('accepted'));
+    expect(store.applicationNotificationMessage, contains('queued'));
     await close(tester, store);
   });
 }
