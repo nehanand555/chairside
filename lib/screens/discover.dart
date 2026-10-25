@@ -43,9 +43,9 @@ String? publicBookingUrl(Json place) {
   // product pages are websites, not business booking destinations.
   final providerBooking =
       ((host == 'booksy.com' || host.endsWith('.booksy.com')) &&
-              RegExp(r'^/[a-z]{2}(?:-[a-z]{2})?/\d+').hasMatch(path)) ||
-          ((host == 'fresha.com' || host.endsWith('.fresha.com')) &&
-              path.startsWith('/a/'));
+          RegExp(r'^/[a-z]{2}(?:-[a-z]{2})?/\d+').hasMatch(path)) ||
+      ((host == 'fresha.com' || host.endsWith('.fresha.com')) &&
+          path.startsWith('/a/'));
   return isBookingPath || providerBooking ? website : null;
 }
 
@@ -435,17 +435,17 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   Widget memberCard(Json b) => BusinessCard(
-        business: b,
-        favorite: widget.store.favorites.contains(b['id']),
-        onOpen: () => openBusiness(context, widget.store, b['id'] as String),
-        onFavorite: () {
-          if (!widget.store.signedIn) {
-            openAccount(context, widget.store);
-          } else {
-            widget.store.run(() => widget.store.favorite(b['id'] as String));
-          }
-        },
-      );
+    business: b,
+    favorite: widget.store.favorites.contains(b['id']),
+    onOpen: () => openBusiness(context, widget.store, b['id'] as String),
+    onFavorite: () {
+      if (!widget.store.signedIn) {
+        openAccount(context, widget.store);
+      } else {
+        widget.store.run(() => widget.store.favorite(b['id'] as String));
+      }
+    },
+  );
 }
 
 class ResponsiveCards extends StatelessWidget {
@@ -453,19 +453,18 @@ class ResponsiveCards extends StatelessWidget {
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 720 ? 2 : 1;
-          final width = (constraints.maxWidth - (columns - 1) * 16) / columns;
-          return Wrap(
-            spacing: 16,
-            runSpacing: 0,
-            children: [
-              for (final child in children)
-                SizedBox(width: width, child: child),
-            ],
-          );
-        },
+    builder: (context, constraints) {
+      final columns = constraints.maxWidth >= 720 ? 2 : 1;
+      final width = (constraints.maxWidth - (columns - 1) * 16) / columns;
+      return Wrap(
+        spacing: 16,
+        runSpacing: 0,
+        children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ],
       );
+    },
+  );
 }
 
 class PublicBusinessCard extends StatelessWidget {
@@ -478,43 +477,43 @@ class PublicBusinessCard extends StatelessWidget {
   final AppStore store;
   @override
   Widget build(BuildContext context) => Panel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const StatusPill('Public Google listing', icon: Icons.public),
+        const SizedBox(height: 16),
+        Text(
+          place['name'] as String,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        Text(place['address'] as String),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            const StatusPill('Public Google listing', icon: Icons.public),
-            const SizedBox(height: 16),
-            Text(
-              place['name'] as String,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(place['address'] as String),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (publicBookingUrl(place) != null)
-                  OutlinedButton.icon(
-                    onPressed: () => openLink(publicBookingUrl(place)!),
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Book externally'),
-                  ),
-                if (publicWebsiteUrl(place) != null)
-                  OutlinedButton.icon(
-                    onPressed: () => openLink(publicWebsiteUrl(place)!),
-                    icon: const Icon(Icons.language),
-                    label: const Text('Website'),
-                  ),
-                TextButton(
-                  onPressed: () => showPublicListing(context, store, place),
-                  child: const Text('View details'),
-                ),
-              ],
+            if (publicBookingUrl(place) != null)
+              OutlinedButton.icon(
+                onPressed: () => openLink(publicBookingUrl(place)!),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Book externally'),
+              ),
+            if (publicWebsiteUrl(place) != null)
+              OutlinedButton.icon(
+                onPressed: () => openLink(publicWebsiteUrl(place)!),
+                icon: const Icon(Icons.language),
+                label: const Text('Website'),
+              ),
+            TextButton(
+              onPressed: () => showPublicListing(context, store, place),
+              child: const Text('View details'),
             ),
           ],
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class BusinessCard extends StatelessWidget {
@@ -530,157 +529,155 @@ class BusinessCard extends StatelessWidget {
   final VoidCallback onOpen, onFavorite;
   @override
   Widget build(BuildContext context) => Panel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        BrandPlaceholder(home: business['kind'] == 'home'),
+        const SizedBox(height: 16),
+        Row(
           children: [
-            BrandPlaceholder(home: business['kind'] == 'home'),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: lime,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    business['kind'] == 'home'
-                        ? Icons.home_outlined
-                        : Icons.content_cut,
-                    color: ink,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        business['name'] as String,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${business['suburb']}${business['distance_km'] is num ? ' • ${(business['distance_km'] as num).toStringAsFixed(1)} km' : ''}',
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: onFavorite,
-                  icon: Icon(favorite ? Icons.favorite : Icons.favorite_border),
-                  tooltip: favorite ? 'Remove favourite' : 'Save favourite',
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // The discover endpoint returns approved members only; older responses
-            // omit status. An explicit non-approved status never gets a badge.
-            if (business['status'] == null || business['status'] == 'approved')
-              const StatusPill(
-                'Verified spicyself business',
-                icon: Icons.verified_outlined,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: lime,
+                borderRadius: BorderRadius.circular(14),
               ),
-            const SizedBox(height: 8),
-            Text(
-              business['kind'] == 'home'
-                  ? 'Home studio • approximate map pin'
-                  : business['queue_open'] == true
-                      ? 'Live queue enabled • check services'
-                      : 'Explore services and available times',
+              child: Icon(
+                business['kind'] == 'home'
+                    ? Icons.home_outlined
+                    : Icons.content_cut,
+                color: ink,
+              ),
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: ValueKey('view-${business['id']}'),
-              onPressed: onOpen,
-              child: const Text('Services & availability'),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    business['name'] as String,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${business['suburb']}${business['distance_km'] is num ? ' • ${(business['distance_km'] as num).toStringAsFixed(1)} km' : ''}',
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: onFavorite,
+              icon: Icon(favorite ? Icons.favorite : Icons.favorite_border),
+              tooltip: favorite ? 'Remove favourite' : 'Save favourite',
             ),
           ],
         ),
-      );
+        const SizedBox(height: 12),
+        // The discover endpoint returns approved members only; older responses
+        // omit status. An explicit non-approved status never gets a badge.
+        if (business['status'] == null || business['status'] == 'approved')
+          const StatusPill(
+            'Verified spicyself business',
+            icon: Icons.verified_outlined,
+          ),
+        const SizedBox(height: 8),
+        Text(
+          business['kind'] == 'home'
+              ? 'Home studio • approximate map pin'
+              : business['queue_open'] == true
+              ? 'Live queue enabled • check services'
+              : 'Explore services and available times',
+        ),
+        const SizedBox(height: 12),
+        FilledButton(
+          key: ValueKey('view-${business['id']}'),
+          onPressed: onOpen,
+          child: const Text('Services & availability'),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<void> showPublicListing(
   BuildContext context,
   AppStore store,
   Json place,
-) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => SizedBox(
-        height: 400,
-        child: PageBody(
-          children: [
-            PageHeading(
-                place['name'] as String, 'Public listing from Google Maps'),
-            Text(place['address'] as String),
-            const SizedBox(height: 16),
-            const Text(
-              'This business has not joined spicyself. We do not have verified booking availability, prices or queue times.',
-            ),
-            const SizedBox(height: 16),
-            if (publicBookingUrl(place) != null) ...[
-              FilledButton.icon(
-                onPressed: () => openLink(publicBookingUrl(place)!),
-                icon: const Icon(Icons.event_available),
-                label: const Text('Book externally'),
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (publicWebsiteUrl(place) != null) ...[
-              OutlinedButton.icon(
-                onPressed: () => openLink(publicWebsiteUrl(place)!),
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Website'),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'External links open the business website or booking provider. Bookings are handled outside spicyself; availability is not verified.',
-              ),
-              const SizedBox(height: 12),
-            ],
-            OutlinedButton(
-              onPressed: () => openLink(place['maps_url'] as String),
-              child: const Text('View on Google Maps'),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Own this business? From Profile, include this Google Place ID when applying. Ownership is reviewed before booking is enabled.',
-            ),
-            SelectableText(place['place_id'] as String),
-            const GoogleAttribution(),
-            for (final a in (place['attributions'] as List? ?? []))
-              if ((a['provider'] ?? '').toString().isNotEmpty)
-                TextButton(
-                  onPressed: () => openLink(a['providerUri'] as String),
-                  child: Text(a['provider'] as String),
-                ),
-          ],
+) => showModalBottomSheet<void>(
+  context: context,
+  showDragHandle: true,
+  isScrollControlled: true,
+  builder: (context) => SizedBox(
+    height: 400,
+    child: PageBody(
+      children: [
+        PageHeading(place['name'] as String, 'Public listing from Google Maps'),
+        Text(place['address'] as String),
+        const SizedBox(height: 16),
+        const Text(
+          'This business has not joined spicyself. We do not have verified booking availability, prices or queue times.',
         ),
-      ),
-    );
+        const SizedBox(height: 16),
+        if (publicBookingUrl(place) != null) ...[
+          FilledButton.icon(
+            onPressed: () => openLink(publicBookingUrl(place)!),
+            icon: const Icon(Icons.event_available),
+            label: const Text('Book externally'),
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (publicWebsiteUrl(place) != null) ...[
+          OutlinedButton.icon(
+            onPressed: () => openLink(publicWebsiteUrl(place)!),
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('Website'),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'External links open the business website or booking provider. Bookings are handled outside spicyself; availability is not verified.',
+          ),
+          const SizedBox(height: 12),
+        ],
+        OutlinedButton(
+          onPressed: () => openLink(place['maps_url'] as String),
+          child: const Text('View on Google Maps'),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Own this business? From Profile, include this Google Place ID when applying. Ownership is reviewed before booking is enabled.',
+        ),
+        SelectableText(place['place_id'] as String),
+        const GoogleAttribution(),
+        for (final a in (place['attributions'] as List? ?? []))
+          if ((a['provider'] ?? '').toString().isNotEmpty)
+            TextButton(
+              onPressed: () => openLink(a['providerUri'] as String),
+              child: Text(a['provider'] as String),
+            ),
+      ],
+    ),
+  ),
+);
 
 /// Compact source attribution for Google result cards and listing sheets.
 class GoogleAttribution extends StatelessWidget {
   const GoogleAttribution({super.key});
   @override
   Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
-        child: Text(
-          'Google Maps',
-          maxLines: 1,
-          style: TextStyle(
-            fontFamily: 'Roboto',
-            fontSize: 14,
-            fontStyle: FontStyle.normal,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 0,
-            color: Color(0xff5e5e5e),
-          ),
-        ),
-      );
+    padding: EdgeInsets.fromLTRB(10, 10, 10, 5),
+    child: Text(
+      'Google Maps',
+      maxLines: 1,
+      style: TextStyle(
+        fontFamily: 'Roboto',
+        fontSize: 14,
+        fontStyle: FontStyle.normal,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        color: Color(0xff5e5e5e),
+      ),
+    ),
+  );
 }
