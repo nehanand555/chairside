@@ -259,6 +259,9 @@ void main() {
     final store = await mount(tester, backend, (s) => BusinessScreen(store: s));
     expect(backend.operatorCalls, greaterThan(0));
     expect(find.text('Live queue'), findsOneWidget);
+    await fixtures.tapVisible(tester, find.text('Calendar'));
+    expect(find.byType(CalendarDatePicker), findsOneWidget);
+    expect(find.text('No appointments on this date.'), findsOneWidget);
     await fixtures.tapVisible(tester, find.text('Business settings'));
     expect(find.text('Services & pricing'), findsOneWidget);
     await close(tester, store);
