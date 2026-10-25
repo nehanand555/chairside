@@ -26,7 +26,9 @@ jobs:
         run: python3 tool/bootstrap.py
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
-      - name: Verify formatting matches product CI
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Verify Dart formatting
+        run: |
+          dart format lib test
+          git diff --exit-code -- lib test
       - name: Run role and layout journeys
         run: flutter test --reporter expanded test/agent_audit_test.dart test/product_test.dart test/redesign_test.dart
