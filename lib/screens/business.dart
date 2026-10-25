@@ -598,6 +598,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
   late Future<Json> business;
   late Future<List<String>> photos;
   int section = 0;
+  DateTime calendarDay = DateTime.now();
   @override
   void initState() {
     super.initState();
@@ -734,11 +735,46 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                           selected: section == 1,
                           onSelected: (_) => setState(() => section = 1)),
                       ChoiceChip(
+                          label: const Text('Calendar'),
+                          selected: section == 4,
+                          onSelected: (_) => setState(() => section = 4)),
+                      ChoiceChip(
                           label: const Text('History'),
                           selected: section == 2,
                           onSelected: (_) => setState(() => section = 2))
                     ]),
                     const SizedBox(height: 20),
+                    if (section == 4) ...[
+                      Panel(child: CalendarDatePicker(
+                        initialDate: calendarDay,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                        onDateChanged: (day) =>
+                            setState(() => calendarDay = day),
+                      )),
+                      const SizedBox(height: 12),
+                      Text('Appointments for ${calendarDay.day}/${calendarDay.month}/${calendarDay.year}',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      if (!visits.any((v) =>
+                          v['kind'] == 'appointment' &&
+                          dayKey(tz.TZDateTime.from(
+                              DateTime.parse(v['starts_at'] as String),
+                              tz.getLocation('Pacific/Auckland'))) ==
+                              dayKey(tz.TZDateTime(
+                                tz.getLocation('Pacific/Auckland'),
+                                calendarDay.year, calendarDay.month, calendarDay.day))))
+                        const Notice('No appointments on this date.'),
+                      for (final v in visits.where((v) =>
+                          v['kind'] == 'appointment' &&
+                          dayKey(tz.TZDateTime.from(
+                              DateTime.parse(v['starts_at'] as String),
+                              tz.getLocation('Pacific/Auckland'))) ==
+                              dayKey(tz.TZDateTime(
+                                tz.getLocation('Pacific/Auckland'),
+                                calendarDay.year, calendarDay.month, calendarDay.day))))
+                        VisitCard(store: s, visit: v, operator: true),
+                    ],
                     if (section == 0 || section == 3) ...[
                       if (b['kind'] != 'home')
                         Panel(
