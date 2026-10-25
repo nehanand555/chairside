@@ -51,7 +51,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'SpicySelf',
+        title: 'spicyself',
         debugShowCheckedModeBanner: false,
         theme: spicyTheme(),
         home: ListenableBuilder(
@@ -65,7 +65,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                       const PageHeading('Find your next look.',
                           'Discover local hair, nails, tattoos and beauty professionals.'),
                       Notice(widget.startupError ??
-                          'SpicySelf is being connected to its live services. Please check back soon.'),
+                          'spicyself is being connected to its live services. Please check back soon.'),
                       const Text(
                           'No personal information is collected on this screen.')
                     ]));
@@ -213,7 +213,7 @@ Future<void> openBusinessWorkspace(BuildContext context, AppStore store) async {
   await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => DetailScaffold(
           store: store,
-          title: 'SpicySelf for business',
+          title: 'spicyself for business',
           child: BusinessScreen(store: store))));
 }
 
@@ -231,15 +231,15 @@ Future<void> showLegal(BuildContext context) => showModalBottomSheet<void>(
     builder: (context) => SizedBox(
         height: MediaQuery.sizeOf(context).height * .8,
         child: PageBody(children: [
-          const PageHeading('About SpicySelf',
+          const PageHeading('About spicyself',
               'Hair professionals across Aotearoa New Zealand.'),
           const Text(
-              'SpicySelf connects customers with independent businesses. Public Google listings are directory results; those businesses have not necessarily joined SpicySelf. Booking and live queues are available only for approved SpicySelf members. Approval is a platform review and does not replace any required council permissions.'),
+              'spicyself connects customers with independent businesses. Public Google listings are directory results; those businesses have not necessarily joined spicyself. Booking and live queues are available only for approved spicyself members. Approval is a platform review and does not replace any required council permissions.'),
           const SizedBox(height: 20),
           const Text('Bookings & payments',
               style: TextStyle(fontWeight: FontWeight.bold)),
           const Text(
-              'Prices are in NZD and shown before confirmation. Queue times are estimates and can change. You can cancel an upcoming visit in My Bookings. This release requests a full refund for prepaid visits cancelled before service or marked absent. Refund processing takes additional time. Businesses can also issue a full refund through SpicySelf. Your statutory rights continue to apply.'),
+              'Prices are in NZD and shown before confirmation. Queue times are estimates and can change. You can cancel an upcoming visit in My Bookings. This release requests a full refund for prepaid visits cancelled before service or marked absent. Refund processing takes additional time. Businesses can also issue a full refund through spicyself. Your statutory rights continue to apply.'),
           const SizedBox(height: 20),
           const Text('Privacy', style: TextStyle(fontWeight: FontWeight.bold)),
           const Text(
@@ -258,6 +258,6 @@ Future<void> showLegal(BuildContext context) => showModalBottomSheet<void>(
             TextButton(
                 onPressed: () => openLink(
                     'mailto:${const String.fromEnvironment('SUPPORT_EMAIL')}'),
-                child: const Text('Contact SpicySelf support')),
+                child: const Text('Contact spicyself support')),
           const SizedBox(height: 20),
         ])));
