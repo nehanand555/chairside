@@ -31,6 +31,42 @@ export function emailPresentation(mail: Mail): Presentation {
       action: "Open business dashboard", destination: "Profile → Open business → Business settings",
       footnote: "Add services, prices and opening hours before accepting bookings. Business tools require MFA. Your approved public listing may already be visible in local search."
     };
+    case "booking_confirmed":
+    case "appointment_confirmed":
+    case "visit_booked": return {
+      eyebrow: "SPICYSELF · YOUR BOOKING", headline: "Your appointment is confirmed",
+      intro: "You're booked. Your visit details are below.",
+      action: "View my bookings", destination: "My Bookings → Upcoming",
+      footnote: "Check your booking details in SpicySelf. Follow your business's cancellation policy and any applicable consumer rights."
+    };
+    case "queue_joined":
+    case "queue_confirmed": return {
+      eyebrow: "SPICYSELF · LIVE QUEUE", headline: "You're in the queue",
+      intro: "Your place in line has been recorded. Queue times can change.",
+      action: "Track my queue", destination: "My Bookings → Upcoming",
+      footnote: "Open SpicySelf for the latest queue status. Estimated waits are not guaranteed."
+    };
+    case "booking_cancelled":
+    case "appointment_cancelled":
+    case "visit_cancelled": return {
+      eyebrow: "SPICYSELF · YOUR BOOKING", headline: "Your booking was cancelled",
+      intro: "Your booking status has been updated.",
+      action: "View booking history", destination: "My Bookings → Cancelled",
+      footnote: "If payment was taken, check your account for any refund status."
+    };
+    case "booking_reminder":
+    case "appointment_reminder": return {
+      eyebrow: "SPICYSELF · REMINDER", headline: "Your appointment is coming up",
+      intro: "A quick reminder about your upcoming visit.",
+      action: "View appointment", destination: "My Bookings → Upcoming",
+      footnote: "Please check the appointment time and location in your account."
+    };
+    case "decision_updated": return {
+      eyebrow: "SPICYSELF · FOR BUSINESS", headline: "Your application has been updated",
+      intro: "There is an update on your SpicySelf business application.",
+      action: "View application", destination: "Profile → Open business",
+      footnote: "You can view your current approval status after signing in."
+    };
     case "decision_rejected": return {
       eyebrow: "SPICYSELF · FOR BUSINESS", headline: "An update on your application",
       intro: "We have completed our review. Please read the decision and review notes in your account.",
