@@ -17,13 +17,17 @@ Deno.serve(async (req) => {
   let bytes: Uint8Array;
   try { bytes = Uint8Array.from(atob(keyRaw), c => c.charCodeAt(0)); }
   catch { return new Response("Webhook configuration invalid", { status: 503 }); }
-  const key = await crypto.subtle.importKey("raw", bytes, {name:"HMAC",hash:"SHA-256"}, false, ["verify"]);
+  const keyBytes = new Uint8Array(bytes.length);
+  keyBytes.set(bytes);
+  const key = await crypto.subtle.importKey("raw", keyBytes.buffer, {name:"HMAC",hash:"SHA-256"}, false, ["verify"]);
   let authentic = false;
   for (const part of signatures.split(" ")) {
     if (!part.startsWith("v1,")) continue;
     try {
       const sig = Uint8Array.from(atob(part.slice(3)), c => c.charCodeAt(0));
-      if (await crypto.subtle.verify("HMAC",key,sig,new TextEncoder().encode(id+"."+stamp+"."+raw))) authentic = true;
+      const signatureBytes = new Uint8Array(sig.length);
+      signatureBytes.set(sig);
+      if (await crypto.subtle.verify("HMAC",key,signatureBytes.buffer,new TextEncoder().encode(id+"."+stamp+"."+raw))) authentic = true;
     } catch { /* malformed signature */ }
   }
   if (!authentic) return new Response("Invalid signature", { status: 401 });
