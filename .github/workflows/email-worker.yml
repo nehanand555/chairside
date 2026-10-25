@@ -1,0 +1,24 @@
+name: Transactional email worker
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Process queued emails
+        env:
+          SUPABASE_URL: ${{ secrets.SPICYSELF_SUPABASE_URL }}
+          WORKER_SECRET: ${{ secrets.SPICYSELF_WORKER_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL" && test -n "$WORKER_SECRET" || { echo "Worker secrets are missing"; exit 1; }
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 3 \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "x-worker-secret: $WORKER_SECRET" \
+            --data '{}' "${SUPABASE_URL%/}/functions/v1/email-worker"
