@@ -21,12 +21,15 @@ jobs:
           channel: stable
           flutter-version: '3.47.7'
           cache: true
+      - name: Check committed Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib test
       - run: python3 -m unittest discover -s tool -p '*_test.py'
       - run: node --test tool/pages_worker_test.mjs
       - name: Generate platform configuration
         run: python3 tool/bootstrap.py
       - run: flutter pub get --enforce-lockfile
-      - run: dart format --output=none --set-exit-if-changed lib test
+      - name: Show source changes introduced by setup
+        run: git diff --stat -- lib test
       - run: flutter analyze
       - run: flutter test --reporter expanded
       - run: flutter build web --release --dart-define-from-file=build-config.json
