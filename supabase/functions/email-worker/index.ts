@@ -25,7 +25,7 @@ export function adminNotificationHtml(subject: string, message: string, url: str
   <p style="font-size:14px;font-weight:bold;letter-spacing:1px">SPICYSELF ADMIN</p>
   <h1 style="font-size:24px">${escapeHtml(subject)}</h1>
   <p style="line-height:1.7;color:#354e46">${safeText}</p>
-  <p style="margin:30px 0"><a href="${safeUrl}" style="background:#163e35;color:#fff;text-decoration:none;border-radius:8px;padding:14px 22px;display:inline-block;font-weight:bold">Open SpicySelf Admin Portal</a></p>
+  <p style="margin:30px 0"><a href="${safeUrl}" style="background:#163e35;color:#fff;text-decoration:none;border-radius:8px;padding:14px 22px;display:inline-block;font-weight:bold">Open spicyself Admin Portal</a></p>
   <p style="font-size:13px;color:#52635c">Sign in with your admin account, then open Profile → Administration → Pending. MFA may be required. This email never approves an application.</p>
   <p style="font-size:12px;color:#52635c">If the button does not open, visit <a href="${safeUrl}">${safeUrl}</a>.</p>
   </td></tr></table></td></tr></table></body></html>`;
