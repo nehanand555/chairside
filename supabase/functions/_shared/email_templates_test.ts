@@ -8,7 +8,7 @@ Deno.test("all email roles have safe, actionable, branded HTML and plain text", 
     const m = {kind, subject: "Notice", body: "Hello\nDetails & updates", admin: kind === "application_review" || kind === "application_updated"};
     const html = appEmailHtml(m);
     const text = appEmailText(m);
-    if (!html.includes("SpicySelf") || !html.includes(APP_URL) ||
+    if (!html.includes("spicyself") || !html.includes(APP_URL) ||
         !html.includes("Add to Home Screen") || !html.includes("<a href=") ||
         !text.includes(APP_URL) || !emailPresentation(m).action) {
       throw new Error("Incomplete email for " + kind);
