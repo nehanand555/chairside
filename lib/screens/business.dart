@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -298,8 +299,81 @@ class _BusinessApplicationState extends State<BusinessApplication> {
   String kind = 'barber';
   bool consent = false, declaration = false;
   LatLng pin = const LatLng(-36.8485, 174.7633);
+  Timer? addressDebounce;
+  List<Json> suggestions = [];
+  String? locationError;
+  bool locationConfirmed = false, searching = false;
+  int searchRevision = 0;
+  String sessionToken = DateTime.now().microsecondsSinceEpoch.toString();
+
+  void addressEdited(String value) {
+    addressDebounce?.cancel();
+    final revision = ++searchRevision;
+    setState(() {
+      locationConfirmed = false;
+      searching = value.trim().length >= 3;
+      suggestions = [];
+      locationError = null;
+      placeId.clear();
+    });
+    if (value.trim().length < 3) return;
+    addressDebounce = Timer(const Duration(milliseconds: 400), () async {
+      try {
+        final result = await widget.store.backend!.invoke('business-address', {
+          'action': 'suggest', 'query': value.trim(),
+          'session_token': sessionToken,
+        });
+        if (!mounted || revision != searchRevision) return;
+        setState(() {
+          searching = false;
+          suggestions = List<Json>.from(result['suggestions'] as List);
+          if (suggestions.isEmpty) locationError = 'No matching address. Try adding your street number and town.';
+        });
+      } catch (_) {
+        if (!mounted || revision != searchRevision) return;
+        setState(() {
+          searching = false;
+          locationError = 'Address suggestions are unavailable. Try again or use the map pin.';
+        });
+      }
+    });
+  }
+
+  Future<void> selectAddress(Json suggestion) async {
+    addressDebounce?.cancel();
+    final revision = ++searchRevision;
+    setState(() { searching = true; suggestions = []; locationError = null; });
+    try {
+      final data = await widget.store.backend!.invoke('business-address', {
+        'action': 'select', 'place_id': suggestion['place_id'],
+        'session_token': sessionToken,
+      });
+      if (!mounted || revision != searchRevision) return;
+      final value = LatLng((data['lat'] as num).toDouble(),
+          (data['lng'] as num).toDouble());
+      setState(() {
+        address.text = data['address'] as String;
+        suburb.text = data['suburb'] as String;
+        placeId.text = data['place_id'] as String;
+        pin = value;
+        lat.text = value.latitude.toStringAsFixed(6);
+        lng.text = value.longitude.toStringAsFixed(6);
+        locationConfirmed = true;
+        searching = false;
+        sessionToken = DateTime.now().microsecondsSinceEpoch.toString();
+      });
+    } catch (_) {
+      if (!mounted || revision != searchRevision) return;
+      setState(() {
+        searching = false;
+        locationError = 'That location could not be confirmed. Select another suggestion.';
+      });
+    }
+  }
+
   @override
   void dispose() {
+    addressDebounce?.cancel();
     for (final c in [
       name,
       registrationNumber,
@@ -323,6 +397,9 @@ class _BusinessApplicationState extends State<BusinessApplication> {
       pin = value;
       lat.text = value.latitude.toStringAsFixed(6);
       lng.text = value.longitude.toStringAsFixed(6);
+      locationConfirmed = address.text.trim().length >= 5;
+      placeId.clear();
+      if (suburb.text.isEmpty) suburb.text = 'New Zealand';
     });
   }
 
@@ -331,6 +408,7 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     if (!consent || !declaration)
       throw Exception('Confirm business authority and publication consent.');
     if (submittedApplication != null) return;
+    if (!locationConfirmed) throw Exception('Choose a suggested address or set the map pin.');
     final session = s.sessionRevision;
     final user = s.backend!.userId;
     final applicationId = await s.backend!.rpc('apply_business', {
@@ -457,14 +535,31 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                 ],
                 if (step == 2) ...[
                   const SectionHeader('Where the good hair happens'),
-                  FormFieldBox(address, 'Full business address',
-                      validator: (v) =>
-                          (v ?? '').trim().length < 5 || (v ?? '').length > 300
-                              ? 'Enter a full street address (5–300 characters)'
-                              : null),
-                  FormFieldBox(suburb, 'Suburb / town'),
+
+                  TextFormField(
+                    controller: address,
+                    onChanged: addressEdited,
+                    decoration: const InputDecoration(
+                      labelText: 'Business street address',
+                      hintText: 'Start typing your street address',
+                      prefixIcon: Icon(Icons.location_on_outlined),
+                    ),
+                    validator: (v) => (v ?? '').trim().length < 5
+                        ? 'Enter a street address'
+                        : !locationConfirmed ? 'Choose a suggestion or confirm the map pin' : null,
+                  ),
+                  if (searching) const LinearProgressIndicator(),
+                  if (locationError != null) Notice(locationError!),
+                  for (final suggestion in suggestions)
+                    ListTile(
+                      leading: const Icon(Icons.place_outlined),
+                      title: Text(suggestion['description'] as String),
+                      onTap: () => selectAddress(suggestion),
+                    ),
                   const Text(
-                      'Set the pin at your entrance. Home studios publish an approximate pin and suburb only; the exact address stays private.'),
+                    'Choose an NZ address to automatically place the map pin. '
+                    'You can move the pin if necessary. Home studio addresses remain private.',
+                  ),
                   const SizedBox(height: 16),
                   if ((!kIsWeb && const bool.fromEnvironment('MAPS_ENABLED')) ||
                       (kIsWeb &&
@@ -475,6 +570,7 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                         child: SizedBox(
                             height: 240,
                             child: GoogleMap(
+                                key: ValueKey('${pin.latitude}:${pin.longitude}'),
                                 initialCameraPosition:
                                     CameraPosition(target: pin, zoom: 12),
                                 onTap: setPin,
@@ -494,7 +590,7 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                                 if (!await Geolocator
                                     .isLocationServiceEnabled())
                                   throw Exception(
-                                      'Turn on location services or enter the coordinates.');
+                                      'Turn on location services or choose an address.');
                                 var permission =
                                     await Geolocator.checkPermission();
                                 if (permission == LocationPermission.denied)
@@ -504,7 +600,7 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                                     permission ==
                                         LocationPermission.deniedForever)
                                   throw Exception(
-                                      'Location permission is off. Tap the map or enter the coordinates.');
+                                      'Location permission is off. Choose an address or tap the map.');
                                 final value =
                                     await Geolocator.getCurrentPosition(
                                         locationSettings:
@@ -518,34 +614,15 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                       icon: const Icon(Icons.my_location),
                       label: const Text('Use my current business location')),
                   const SizedBox(height: 16),
-                  FormFieldBox(lat, 'Pin latitude',
-                      hint: '-36.848500',
-                      keyboard: const TextInputType.numberWithOptions(
-                          decimal: true, signed: true), validator: (v) {
-                    final n = double.tryParse(v ?? '');
-                    return n == null || !n.isFinite || n < -48 || n > -33
-                        ? 'Enter a New Zealand latitude (−48 to −33)'
-                        : null;
-                  }),
-                  FormFieldBox(lng, 'Pin longitude',
-                      hint: '174.763300',
-                      keyboard: const TextInputType.numberWithOptions(
-                          decimal: true, signed: true), validator: (v) {
-                    final n = double.tryParse(v ?? '');
-                    return n == null || !n.isFinite || n < 165 || n > 180
-                        ? 'Enter a New Zealand longitude (165 to 180)'
-                        : null;
-                  }),
-                  FormFieldBox(placeId, 'Google Place ID (optional)',
-                      required: false,
-                      hint: 'Only if claiming an existing Google listing'),
+                  if (locationConfirmed)
+                    const Notice('Location confirmed. Map coordinates have been saved automatically.'),
                 ],
                 if (step == 3) ...[
                   const SectionHeader('One last look'),
                   Text(name.text,
                       style: Theme.of(context).textTheme.titleLarge),
                   Text(
-                      '${kind == 'home' ? 'Home studio' : kind == 'salon' ? 'Hair salon' : 'Barber shop'} · ${suburb.text}'),
+                      '${kind == 'home' ? 'Home studio' : kind == 'salon' ? 'Hair salon' : 'Barber shop'} · ${address.text}'),
                   const SizedBox(height: 16),
                   Text(
                       'Review contact: ${contactName.text} · ${contactEmail.text}'),
