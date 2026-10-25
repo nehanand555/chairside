@@ -268,7 +268,7 @@ void main() {
     final events = StreamController<void>.broadcast();
     backend.authEvents = events;
     final store = AppStore(backend);
-    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
@@ -308,7 +308,7 @@ void main() {
     final events = StreamController<void>.broadcast();
     backend.authEvents = events;
     final store = AppStore(backend);
-    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
@@ -349,7 +349,7 @@ void main() {
     backend.googleError =
         Exception('Could not open Google sign-in. Please try again.');
     final store = AppStore(backend);
-    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
@@ -423,7 +423,7 @@ void main() {
     });
     final store = AppStore(backend);
     await store.refreshAccount();
-    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     expect(backend.discoverRequests.last['include_public'], true);
     await tester.ensureVisible(find.text('Google Barber'));
@@ -456,7 +456,7 @@ void main() {
     // One transport is shared by both roles, as the real database is.
     final app = AppStore(backend);
     await app.refreshAccount();
-    await tester.pumpWidget(spicyselfApp(store: app, mapsEnabled: false));
+    await tester.pumpWidget(SpicySelfApp(store: app, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tapVisible(tester, find.byKey(const ValueKey('view-p1')));
     final picker = find.byKey(const ValueKey('service-picker'));
@@ -515,7 +515,7 @@ void main() {
       final store = AppStore(backend);
       await store.refreshAccount();
       await tester.pumpWidget(
-          spicyselfApp(key: ValueKey(size), store: store, mapsEnabled: false));
+          SpicySelfApp(key: ValueKey(size), store: store, mapsEnabled: false));
       await tester.pumpAndSettle();
       expect(find.text('Find your next look.'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -541,7 +541,7 @@ void main() {
   testWidgets('missing service configuration never shows fake listings',
       (tester) async {
     final store = AppStore(null);
-    await tester.pumpWidget(spicyselfApp(store: store));
+    await tester.pumpWidget(SpicySelfApp(store: store));
     await tester.pumpAndSettle();
     expect(find.textContaining('being connected'), findsOneWidget);
     expect(find.text('Harbour Cuts'), findsNothing);
