@@ -136,6 +136,20 @@ Future<void> selectQueue(WidgetTester tester) async {
 void main() {
   setUpAll(tz.initializeTimeZones);
 
+  test('new login cannot inherit cached admin rights', () async {
+    final backend = redesign.RoleBackend()..admin = true;
+    final store = AppStore(backend);
+    await store.refreshAccount();
+    expect(store.isAdmin, true);
+    backend.userId = 'another-user';
+    expect(store.isAdmin, false);
+    expect(store.unlocked, false);
+    backend.admin = false;
+    await store.refreshAccount();
+    expect(store.isAdmin, false);
+    store.dispose();
+  });
+
   test('older visit refresh cannot overwrite a newer status', () async {
     final backend = DelayedBackend();
     final store = AppStore(backend);
