@@ -298,8 +298,15 @@ void main() {
     await fill('Business contact email', 'owner@example.com');
     await fill('Business contact phone', '021 123 4567');
     await fixtures.tapVisible(tester, find.text('Continue'));
+    expect(find.text('Suburb / town'), findsNothing);
+    expect(find.text('Pin latitude'), findsNothing);
+    expect(find.text('Pin longitude'), findsNothing);
+    expect(find.text('Google Place ID (optional)'), findsNothing);
     await tester.enterText(find.widgetWithText(TextFormField, 'Business street address'),
         '12 Test Street');
+    await fixtures.tapVisible(tester, find.text('Continue'));
+    expect(find.text('Step 3 of 4 · Location'), findsOneWidget);
+    expect(find.text('Choose a suggested address or confirm the map pin'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 450));
     await tester.pumpAndSettle();
     await fixtures.tapVisible(tester, find.text('12 Test Street, Auckland, New Zealand'));
