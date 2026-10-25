@@ -72,11 +72,11 @@ class BusinessScreen extends StatelessWidget {
           status == 'pending'
               ? 'Application under review'
               : 'Business application: $status',
-          'Your business will appear as a verified SpicySelf listing only after approval.',
+          'Your business will appear as a verified spicyself listing only after approval.',
         ),
         Notice(status == 'pending'
             ? 'Your application has been submitted. Our team will review your registration and contact details.'
-            : 'Your business is not currently approved. Contact SpicySelf support if you need a review.'),
+            : 'Your business is not currently approved. Contact spicyself support if you need a review.'),
         if (note.isNotEmpty) Panel(child: Text('Review note: $note')),
         if (store.applicationNotificationMessage != null)
           Notice(store.applicationNotificationMessage!),
@@ -464,8 +464,8 @@ class _BusinessApplicationState extends State<BusinessApplication> {
     const labels = ['Business', 'Contact', 'Location', 'Review'];
     return PageBody(width: 760, children: [
       const PageHeading('Your craft. A bigger community.',
-          'Join SpicySelf to share your services, welcome local customers and manage your day.'),
-      const StatusPill('SpicySelf for Business',
+          'Join spicyself to share your services, welcome local customers and manage your day.'),
+      const StatusPill('spicyself for Business',
           icon: Icons.storefront_outlined),
       const SizedBox(height: 24),
       Text('Step ${step + 1} of 4 · ${labels[step]}',
@@ -1101,7 +1101,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                               : () async {
                                   if (await confirm(
                                       context,
-                                      'Close your SpicySelf listing?',
+                                      'Close your spicyself listing?',
                                       'Finish or cancel all visits first. This removes your listing from search. Historical financial records are retained.',
                                       store: s,
                                       requireMfa: true,
