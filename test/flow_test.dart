@@ -100,6 +100,15 @@ class PendingEnrollmentBackend extends redesign.RoleBackend {
   Future<Json> enrollFactor() => enrollment.future;
 }
 
+class QrEnrollmentBackend extends redesign.RoleBackend {
+  @override
+  Future<Json> enrollFactor() async => {
+    'id': 'new-factor',
+    'secret': 'private-test-secret',
+    'qr_code': '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="white"/><rect width="40" height="40" fill="black"/></svg>',
+  };
+}
+
 class PendingNotificationBackend extends redesign.RoleBackend {
   final notification = Completer<Json>();
   @override
@@ -249,6 +258,23 @@ void main() {
     await pending;
     expect(store.applicationNotificationMessage, isNull);
     store.dispose();
+  });
+
+  testWidgets('new MFA enrolment displays QR and hides manual key by default',
+      (tester) async {
+    final backend = QrEnrollmentBackend()
+      ..owner = true
+      ..status = 'approved'
+      ..mfa = false;
+    final store = await redesign.mount(
+        tester, backend, (s) => BusinessScreen(store: s));
+    await fixtures.tapVisible(tester, find.text('Set up authenticator'));
+    expect(find.text('Cannot scan? Show manual setup key'), findsOneWidget);
+    expect(find.text('private-test-secret'), findsNothing);
+    await fixtures.tapVisible(
+        tester, find.text('Cannot scan? Show manual setup key'));
+    expect(find.text('private-test-secret'), findsOneWidget);
+    await redesign.close(tester, store);
   });
 
   testWidgets('late MFA enrolment does not show the previous account’s secret',
