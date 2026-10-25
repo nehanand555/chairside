@@ -31,3 +31,10 @@ Deno.test("nearby search uses the supplied GPS center and hair business types", 
   equal(nearby.body.locationRestriction?.circle.center, { latitude: -41.28, longitude: 174.77 });
   equal(nearby.body.includedTypes, ["barber_shop", "hair_salon"]);
 });
+
+Deno.test("booking SMS uses current lowercase brand and customer navigation", () => {
+  for (const [kind,status] of [["confirmation","booked"],["reminder","booked"],["next","waiting"],["cancelled","cancelled"]]) {
+    const text = messageFor({kind,status,business:"Test studio",starts_at:"2026-10-18T00:00:00Z"});
+    if (!text?.startsWith("spicyself") || !text.includes("My Bookings") || /Chairside|SpicySelf/.test(text)) throw Error("Outdated SMS branding");
+  }
+});

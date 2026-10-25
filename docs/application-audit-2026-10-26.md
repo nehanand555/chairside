@@ -76,7 +76,9 @@ Booking confirmations, queue updates, cancellations and reminders have HTML/text
 presentations but no customer-email enqueue path in the current outbox, whose
 schema is business-specific. They must not be advertised as active customer
 email delivery. Supabase Auth email sign-in is a separate provider configuration,
-not this outbox. Existing booking SMS/refund processing is separate.
+not this outbox. Existing booking SMS/refund processing is separate. SMS text now uses lowercase
+spicyself and the current My Bookings navigation; SMS send eligibility and
+provider configuration are unchanged.
 
 The active worker imports `email_templates.ts`; older review helper/admin HTML
 functions are legacy paths. Main links default to `https://www.spicyself.com`;
@@ -107,7 +109,7 @@ versions applied or replay historical backfills. Live reconciliation is pending.
 - `flutter analyze`: passed.
 - `flutter test`: 48 passed, including an additional cached-profile identity test.
 - Python tool checks: 10 passed (branding, bootstrap, deployment ownership, migration versions).
-- Deno shared tests: 15 passed; all 9 Edge Function entrypoints type-check.
+- Deno shared tests: 16 passed; all 9 Edge Function entrypoints type-check.
 - PostgreSQL 17.10 disposable database: full migrations via Supabase CLI passed;
   core/integrations/Google auth/admin security/email outbox suites passed, with
   54 labelled assertions. Supabase-specific Cron/Vault setup is intentionally
@@ -134,3 +136,15 @@ The preceding lock repair was committed and deployed as `593582d`. This audit's
 fixes and final live web verification are recorded in the follow-up below.
 Backend migrations, CORS/email function changes and config changes remain pending
 until authenticated project access and migration-history review are available.
+
+## Audit commits and CI follow-up
+
+- `5117fb3`: source/backend hardening, branding, migration fix, SQL tests and report.
+- `1d5831d`: included the locally validated regression/formatting files and added
+  only ALLOWED_ORIGINS to Deno test permissions. Initial audit CI correctly blocked
+  deployment until these omissions were corrected; database checks passed.
+- Final SMS branding/package-description follow-up is included with this report.
+- PostgreSQL booking concurrency tests also passed against real disposable
+  connections using a temporary pg client command adapter (system psql absent).
+- Future web deployments expose version.json containing only the source commit.
+  Backend fixes remain undeployed until live connection/history review completes.
