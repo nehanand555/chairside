@@ -24,10 +24,10 @@ export function reviewEmailHtml(email: Pick<ReviewEmail, "businessName" | "busin
 <tr><td style="padding:32px">
 <p style="font-size:14px;font-weight:bold;letter-spacing:1px">SPICYSELF FOR BUSINESS</p>
 <h1 style="font-size:26px;margin:16px 0">New application to review</h1>
-<p style="font-size:16px;line-height:1.6">A business has applied to join SpicySelf. Verify its details before approving.</p>
+<p style="font-size:16px;line-height:1.6">A business has applied to join spicyself. Verify its details before approving.</p>
 <p style="font-size:18px"><strong>${business}</strong></p>
 <p style="font-size:13px;color:#52635c">Application ID: ${id}</p>
-<p style="margin:28px 0"><a href="${url}" style="background:#163e35;color:white;text-decoration:none;padding:14px 22px;border-radius:9px;display:inline-block">Open SpicySelf admin portal</a></p>
+<p style="margin:28px 0"><a href="${url}" style="background:#163e35;color:white;text-decoration:none;padding:14px 22px;border-radius:9px;display:inline-block">Open spicyself admin portal</a></p>
 <p style="font-size:13px;color:#52635c;line-height:1.6">Sign in with an authorised admin account and complete MFA. Open Admin → Pending to review. This email does not approve the business.</p>
 </td></tr></table></td></tr></table></body></html>`;
 }
@@ -41,7 +41,7 @@ export async function deliverReviewEmail(email: ReviewEmail, request: typeof fet
       headers: { Authorization: "Bearer " + email.apiKey, "Content-Type": "application/json",
         "Idempotency-Key": `business-application/${email.businessId}` },
       body: JSON.stringify({from: email.from, to: [email.to],
-        subject: "New SpicySelf business application: " + email.businessName, text: email.text, html: reviewEmailHtml(email)}),
+        subject: "New spicyself business application: " + email.businessName, text: email.text, html: reviewEmailHtml(email)}),
     });
   } catch {
     throw new Error("Application saved. The review email service could not be reached; retry later.");
