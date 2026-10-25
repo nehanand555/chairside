@@ -109,7 +109,7 @@ void main() {
     final backend = RoleBackend()..admin = true;
     final store = AppStore(backend);
     await store.refreshAccount();
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     expect(
         tester
@@ -125,7 +125,7 @@ void main() {
     expect(backend.discoverRequests.length, requests + 1);
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
-    expect(find.text('SpicySelf for Business'), findsOneWidget);
+    expect(find.text('spicyself for Business'), findsOneWidget);
     expect(find.text('Administration'), findsOneWidget);
     await close(tester, store);
   });
@@ -222,7 +222,7 @@ void main() {
       final store = AppStore(backend);
       await store.refreshAccount();
       await tester.pumpWidget(
-          SpicySelfApp(key: ValueKey(width), store: store, mapsEnabled: false));
+          spicyselfApp(key: ValueKey(width), store: store, mapsEnabled: false));
       await tester.pumpAndSettle();
       for (final label in ['Map', 'My Bookings', 'Profile', 'Explore']) {
         await tester.tap(find.text(label).last);
