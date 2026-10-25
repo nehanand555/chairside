@@ -89,56 +89,55 @@ class _AdminBusinessVisitsState extends State<AdminBusinessVisits> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-        listenable: widget.store,
-        builder: (context, _) {
-          if (!permitted)
-            return const PageBody(
+    listenable: widget.store,
+    builder: (context, _) {
+      if (!permitted)
+        return const PageBody(
+          children: [
+            PageHeading(
+              'Restricted access',
+              'Visits and refunds require an authorised admin session and MFA.',
+            ),
+          ],
+        );
+      dataUser = widget.store.backend!.userId;
+      data ??= load();
+      return PageBody(
+        children: [
+          PageHeading(
+            'Visits & refunds',
+            'Only visits for this business are shown.',
+            action: OutlinedButton.icon(
+              onPressed: () => setState(() => data = load()),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+            ),
+          ),
+          AsyncPanel<List<Json>>(
+            key: ValueKey((dataUser, widget.store.sessionRevision)),
+            future: data!,
+            retry: () => setState(() => data = load()),
+            builder: (rows) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                PageHeading(
-                  'Restricted access',
-                  'Visits and refunds require an authorised admin session and MFA.',
+                if (rows.isEmpty) const Notice('No visits for this business.'),
+                ...rows.map(
+                  (v) =>
+                      VisitCard(store: widget.store, visit: v, operator: true),
                 ),
+                if (more)
+                  OutlinedButton(
+                    onPressed: () => setState(() {
+                      pages++;
+                      data = load();
+                    }),
+                    child: const Text('Load more visits'),
+                  ),
               ],
-            );
-          dataUser = widget.store.backend!.userId;
-          data ??= load();
-          return PageBody(
-            children: [
-              PageHeading(
-                'Visits & refunds',
-                'Only visits for this business are shown.',
-                action: OutlinedButton.icon(
-                  onPressed: () => setState(() => data = load()),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
-                ),
-              ),
-              AsyncPanel<List<Json>>(
-                key: ValueKey((dataUser, widget.store.sessionRevision)),
-                future: data!,
-                retry: () => setState(() => data = load()),
-                builder: (rows) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (rows.isEmpty)
-                      const Notice('No visits for this business.'),
-                    ...rows.map(
-                      (v) => VisitCard(
-                          store: widget.store, visit: v, operator: true),
-                    ),
-                    if (more)
-                      OutlinedButton(
-                        onPressed: () => setState(() {
-                          pages++;
-                          data = load();
-                        }),
-                        child: const Text('Load more visits'),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       );
+    },
+  );
 }
