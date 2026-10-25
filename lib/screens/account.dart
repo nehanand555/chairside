@@ -84,7 +84,17 @@ class _AccountScreenState extends State<AccountScreen> {
                 if (!accepted)
                   throw Exception('Please read and accept the terms first');
                 final email = signInEmail.text.trim();
-                if (!RegExp(r'^[^@\\s]+@[^@\\s]+\\.[^@\\s]+
+                if (!email.contains('@') ||
+                    email.split('@').length != 2 ||
+                    !email.split('@').last.contains('.')) {
+                  throw Exception('Enter a valid email address');
+                }
+                await s.backend!.signInWithEmail(email);
+                if (mounted) setState(() => emailSent = true);
+              }, icon: Icons.mail_outline),
+              if (emailSent)
+                const Notice(
+                    'Check your inbox for a SpicySelf sign-in link.'),
             ])),
         const Text(
             'Google lets you choose an account each time. Email sign-in uses a one-time link, without a password. You can browse without signing in.'),
