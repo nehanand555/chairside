@@ -212,7 +212,7 @@ class SpicySelfBrand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: 'SpicySelf',
+        label: 'spicyself',
         image: true,
         child: ExcludeSemantics(
           child: Row(mainAxisSize: MainAxisSize.min, children: [
