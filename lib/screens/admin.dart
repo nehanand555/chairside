@@ -278,7 +278,7 @@ class _AdminScreenState extends State<AdminScreen> {
           'p_status': status,
           'p_note': result
         });
-        if (mounted) {
+        if (context.mounted) {
           setState(() {
             filter = status;
             reload();
