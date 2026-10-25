@@ -187,7 +187,8 @@ class AppStore extends ChangeNotifier {
     );
     if (!isCurrentSession(session, user) ||
         revision != _visitRevision ||
-        page != _visitPages) return;
+        page != _visitPages)
+      return;
     _visitPages++;
     final known = visits.map((v) => v['id']).toSet();
     visits.addAll(result.where((v) => !known.contains(v['id'])));
