@@ -145,12 +145,11 @@ class PendingEnrollmentBackend extends redesign.RoleBackend {
 class QrEnrollmentBackend extends redesign.RoleBackend {
   @override
   Future<Json> enrollFactor() async => {
-        'id': 'new-factor',
-        'secret': 'private-test-secret',
-        'uri':
-            'otpauth://totp/spicyself:test?secret=JBSWY3DPEHPK3PXP&issuer=spicyself',
-        'qr_code': '', // Rendering must work without Supabase SVG artwork.
-      };
+    'id': 'new-factor',
+    'secret': 'private-test-secret',
+    'uri': 'otpauth://totp/spicyself:test?secret=JBSWY3DPEHPK3PXP&issuer=spicyself',
+    'qr_code': '', // Rendering must work without Supabase SVG artwork.
+  };
 }
 
 class PendingNotificationBackend extends redesign.RoleBackend {
@@ -158,23 +157,23 @@ class PendingNotificationBackend extends redesign.RoleBackend {
   @override
   Future<Json> invoke(String name, Json data) =>
       name == 'business-application-notify'
-          ? notification.future
-          : super.invoke(name, data);
+      ? notification.future
+      : super.invoke(name, data);
 }
 
 Json visit(String id, String status) => {
-      'id': id,
-      'business_id': 'p1',
-      'customer_id': 'customer',
-      'customer_name': 'Private customer',
-      'service_name': 'Haircut',
-      'kind': 'appointment',
-      'status': status,
-      'starts_at': '2026-10-24T00:00:00Z',
-      'minutes': 30,
-      'price_cents': 3500,
-      'payment_status': 'unpaid',
-    };
+  'id': id,
+  'business_id': 'p1',
+  'customer_id': 'customer',
+  'customer_name': 'Private customer',
+  'service_name': 'Haircut',
+  'kind': 'appointment',
+  'status': status,
+  'starts_at': '2026-10-24T00:00:00Z',
+  'minutes': 30,
+  'price_cents': 3500,
+  'payment_status': 'unpaid',
+};
 
 Future<void> tick() => Future<void>.delayed(Duration.zero);
 
