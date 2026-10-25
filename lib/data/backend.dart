@@ -115,7 +115,7 @@ class SupabaseBackend extends Backend {
   Future<void> signInWithGoogle() async {
     final launched = await client.auth.signInWithOAuth(
       OAuthProvider.google,
-      queryParams: {'prompt': 'select_account'},
+      queryParams: {'prompt': 'select_account consent'} ,
       redirectTo: kIsWeb
           ? '${Uri.base.origin}/'
           : 'nz.nehanand.spicyself://login-callback/',
@@ -154,7 +154,7 @@ class SupabaseBackend extends Backend {
   @override
   Future<Json> enrollFactor() async {
     final result = await client.auth.mfa.enroll(
-        factorType: FactorType.totp, friendlyName: 'SpicySelf business');
+        factorType: FactorType.totp, friendlyName: 'spicyself business');
     return {'id': result.id, 'secret': result.totp!.secret};
   }
 
