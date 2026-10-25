@@ -73,4 +73,4 @@ jobs:
         with:
           deno-version: v2.x
       - run: deno check supabase/functions/*/index.ts
-      - run: deno test supabase/functions/_shared/*_test.ts
+      - run: deno test --allow-env=SPICYSELF_ADMIN_URL supabase/functions/_shared/*_test.ts
