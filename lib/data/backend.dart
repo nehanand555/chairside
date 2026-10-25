@@ -155,7 +155,13 @@ class SupabaseBackend extends Backend {
   Future<Json> enrollFactor() async {
     final result = await client.auth.mfa.enroll(
         factorType: FactorType.totp, friendlyName: 'spicyself business');
-    return {'id': result.id, 'secret': result.totp!.secret};
+    return {
+      'id': result.id,
+      'secret': result.totp!.secret,
+      // Supabase provides the QR SVG locally; never send TOTP secrets
+      // to third-party QR-code generation services.
+      'qr_code': result.totp!.qrCode,
+    };
   }
 
   @override
