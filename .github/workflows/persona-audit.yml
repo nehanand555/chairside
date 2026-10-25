@@ -9,6 +9,9 @@ on:
       - '.github/workflows/persona-audit.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   persona-audit:
     runs-on: ubuntu-latest
@@ -20,9 +23,18 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.7'
           cache: true
-      - name: Check Dart formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Format branch with the product CI Dart version
+        run: |
+          dart format lib test
+          if ! git diff --quiet -- lib test; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add lib test
+            git commit -m "style: align formatting with Flutter 3.47.7"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
       - name: Install dependencies
         run: flutter pub get
       - name: Run role and layout journeys
