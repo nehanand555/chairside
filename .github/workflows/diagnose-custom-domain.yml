@@ -1,0 +1,62 @@
+name: Diagnose SpicySelf apex DNS
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/diagnose-custom-domain.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dns-check:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Check root and www records without changing existing DNS
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.parse, urllib.request, urllib.error
+          token=os.environ.get('CLOUDFLARE_API_TOKEN')
+          account=os.environ.get('CLOUDFLARE_ACCOUNT_ID')
+          project=os.environ.get('CLOUDFLARE_PAGES_PROJECT')
+          if not token or not account or project!='chairside-staging':
+              raise SystemExit('Cloudflare staging configuration incomplete')
+          def api(path):
+              req=urllib.request.Request('https://api.cloudflare.com/client/v4/'+path,
+                  headers={'Authorization': 'Bearer '+token})
+              try:
+                  with urllib.request.urlopen(req,timeout=30) as f: result=json.load(f)
+              except urllib.error.HTTPError as e:
+                  raise SystemExit(f'Cloudflare API HTTP {e.code}; verify token permissions') from None
+              if not result.get('success'): raise SystemExit(str(result.get('errors')))
+              return result.get('result') or []
+          pages=api(f'accounts/{account}/pages/projects/{project}/domains')
+          for name in ('spicyself.com','www.spicyself.com'):
+              x=next((d for d in pages if d.get('name')==name),None)
+              print(f'Pages binding {name}:',x.get('status') if x else 'NOT ATTACHED')
+          try:
+              zones=api('zones?name=spicyself.com')
+              for zone in zones:
+                  print('Zone status:',zone.get('status'))
+                  zid=zone['id']
+                  for name in ('spicyself.com','www.spicyself.com'):
+                      records=api('zones/'+zid+'/dns_records?name='+urllib.parse.quote(name))
+                      for r in records:
+                          if r.get('type') in ('A','AAAA','CNAME'):
+                              print(name,r.get('type'),r.get('content'),'proxied='+str(r.get('proxied')))
+                      if not any(r.get('type') in ('A','AAAA','CNAME') for r in records):
+                          print('MISSING WEB DNS:',name)
+          except SystemExit as e:
+              print('DNS zone inspection unavailable:',e)
+          for name in ('spicyself.com','www.spicyself.com'):
+              for kind in ('A','AAAA'):
+                  try:
+                      with urllib.request.urlopen('https://cloudflare-dns.com/dns-query?'+
+                          urllib.parse.urlencode({'name':name,'type':kind}),
+                          timeout=15) as f: pass
+                  except Exception:
+                      pass
+          PY
