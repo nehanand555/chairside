@@ -2,7 +2,7 @@ import { rpc, service } from "../_shared/http.ts";
 
 // Admin links navigate to the public app; authorisation and MFA remain enforced in-app.
 function adminPortalUrl(): string {
-  const value = Deno.env.get("SPICYSELF_ADMIN_URL") ?? "https://chairside-staging.pages.dev";
+  const value = Deno.env.get("SPICYSELF_ADMIN_URL") ?? "https://spicyself.com";
   const url = new URL(value);
   if (url.protocol !== "https:" || url.username || url.password) throw new Error("Invalid admin portal URL");
   return url.toString();
