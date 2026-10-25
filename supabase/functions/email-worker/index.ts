@@ -1,5 +1,7 @@
 import { rpc, service } from "../_shared/http.ts";
 
+import { appEmailHtml, appEmailText, APP_URL } from "../_shared/email_templates.ts";
+
 // Admin links navigate to the public app; authorisation and MFA remain enforced in-app.
 function adminPortalUrl(): string {
   const value = Deno.env.get("SPICYSELF_ADMIN_URL") ?? "https://www.spicyself.com";
@@ -68,8 +70,8 @@ Deno.serve(async (req) => {
         headers: {"Authorization": "Bearer " + apiKey, "Content-Type": "application/json",
           "Idempotency-Key": task.id},
         body: JSON.stringify({from: sender, to: [recipient], subject: task.subject,
-          text: isAdminAlert ? task.body + "\\n\\nReview: " + adminPortalUrl() + "\\nSign in, then Profile → Administration → Pending." : task.body,
-          ...(isAdminAlert ? {html: adminNotificationHtml(task.subject, task.body, adminPortalUrl())} : {})}),
+          text: appEmailText({kind:task.kind,subject:task.subject,body:task.body,admin:isAdminAlert}, isAdminAlert ? adminPortalUrl() : APP_URL),
+          html: appEmailHtml({kind:task.kind,subject:task.subject,body:task.body,admin:isAdminAlert}, isAdminAlert ? adminPortalUrl() : APP_URL)}),
       });
       if (response.ok) {
         const payload = await response.json() as { id?: string };
