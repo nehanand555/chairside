@@ -278,7 +278,15 @@ class _AdminScreenState extends State<AdminScreen> {
           'p_status': status,
           'p_note': result
         });
-        if (mounted) setState(reload);
+        if (mounted) {
+          setState(() {
+            filter = status;
+            reload();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("${business['name']} ${status == 'approved' ? 'approved' : status == 'rejected' ? 'rejected' : 'suspended'} successfully. The owner will be notified by email when delivery completes."),
+          ));
+        }
       });
   }
 }
