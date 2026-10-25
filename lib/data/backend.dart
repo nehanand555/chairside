@@ -18,6 +18,8 @@ abstract class Backend {
   Future<void> remove(String table, Json filters);
   Future<Json> invoke(String name, Json data);
   Future<void> signInWithGoogle();
+  Future<void> signInWithEmail(String email) =>
+      throw UnimplementedError('Email sign-in not configured');
   bool get hasVerifiedPhone => false;
   Future<void> signOut();
   Future<List<Json>> factors();
@@ -113,6 +115,7 @@ class SupabaseBackend extends Backend {
   Future<void> signInWithGoogle() async {
     final launched = await client.auth.signInWithOAuth(
       OAuthProvider.google,
+      queryParams: {'prompt': 'select_account'},
       redirectTo: kIsWeb
           ? '${Uri.base.origin}/'
           : 'nz.nehanand.spicyself://login-callback/',
@@ -121,6 +124,16 @@ class SupabaseBackend extends Backend {
     );
     if (!launched)
       throw Exception('Could not open Google sign-in. Please try again.');
+  }
+
+  @override
+  Future<void> signInWithEmail(String email) async {
+    await client.auth.signInWithOtp(
+      email: email.trim(),
+      emailRedirectTo: kIsWeb
+          ? '${Uri.base.origin}/'
+          : 'nz.nehanand.spicyself://login-callback/',
+    );
   }
 
   @override
