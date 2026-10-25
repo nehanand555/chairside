@@ -27,3 +27,16 @@ String? enrollmentQrSvg(String source) {
     return null;
   }
 }
+
+/// Accept only local TOTP enrollment payloads, never remote image URLs.
+String? enrollmentOtpUri(String? source) {
+  if (source == null) return null;
+  final uri = Uri.tryParse(source);
+  if (uri == null ||
+      uri.scheme != 'otpauth' ||
+      uri.host != 'totp' ||
+      uri.path.length < 2 ||
+      !RegExp(r'^[A-Z2-7]+=*$', caseSensitive: false)
+          .hasMatch(uri.queryParameters['secret'] ?? '')) return null;
+  return source;
+}

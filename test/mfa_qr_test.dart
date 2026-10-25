@@ -3,6 +3,17 @@ import 'package:chairside/data/mfa_qr.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('accepts local TOTP enrollment and rejects external or empty payloads',
+      () {
+    const payload =
+        'otpauth://totp/spicyself:test?secret=JBSWY3DPEHPK3PXP&issuer=spicyself';
+    expect(enrollmentOtpUri(payload), payload);
+    expect(enrollmentOtpUri(null), isNull);
+    expect(enrollmentOtpUri('https://example.com/qr'), isNull);
+    expect(enrollmentOtpUri('otpauth://totp/test?secret='), isNull);
+    expect(enrollmentOtpUri('otpauth://hotp/test?secret=JBSWY3DP'), isNull);
+  });
+
   const svg =
       '<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 40 40"><path fill="#000" d="M0 0h10v10H0z"/></svg>';
 

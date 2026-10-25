@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../data/backend.dart';
 import '../data/store.dart';
 import '../data/mfa_qr.dart';
@@ -332,8 +332,8 @@ class _MfaPanelState extends State<MfaPanel> {
                   const Text(
                       'Scan this QR code with Microsoft Authenticator or Google Authenticator. In Microsoft Authenticator, tap +, then Other account, then Scan QR code.'),
                   const SizedBox(height: 16),
-                  if (enrollmentQrSvg((enrollment!['qr_code'] as String?) ?? '')
-                      case final svg?)
+                  if (enrollmentOtpUri(enrollment!['uri'] as String?)
+                      case final uri?)
                     Center(
                       child: Semantics(
                         label: 'Authenticator QR setup code. Keep private.',
@@ -344,19 +344,13 @@ class _MfaPanelState extends State<MfaPanel> {
                             color: Colors.white,
                             child: Padding(
                               padding: const EdgeInsets.all(16),
-                              child: SvgPicture.string(
-                                svg,
-                                width: 220,
-                                height: 220,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Center(
-                                  child: Text(
-                                    'QR could not be displayed. Use the manual setup key below.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
+                              child: QrImageView(
+                                data: uri,
+                                size: 220,
+                                padding: EdgeInsets.zero,
+                                backgroundColor: Colors.white,
+                                semanticsLabel:
+                                    'Private authenticator setup QR',
                               ),
                             ),
                           ),
@@ -375,8 +369,8 @@ class _MfaPanelState extends State<MfaPanel> {
                         : 'Cannot scan? Show manual setup key'),
                   ),
                   if (showManualKey ||
-                      (enrollment!['qr_code'] as String?)?.isNotEmpty !=
-                          true) ...[
+                      enrollmentOtpUri(enrollment!['uri'] as String?) ==
+                          null) ...[
                     const Text(
                         'Enter this key in your authenticator as a time-based code. Do not share it.'),
                     const SizedBox(height: 8),

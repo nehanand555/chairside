@@ -176,9 +176,10 @@ class SupabaseBackend extends Backend {
     return {
       'id': result.id,
       'secret': result.totp!.secret,
-      // Supabase provides the QR SVG locally; never send TOTP secrets
+      // Render the enrollment URI locally; never send TOTP secrets
       // to third-party QR-code generation services.
       'qr_code': result.totp!.qrCode,
+      'uri': result.totp!.uri,
     };
   }
 
