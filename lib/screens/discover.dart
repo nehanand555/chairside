@@ -164,7 +164,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           position.longitude < 165 ||
           position.longitude > 180)
         throw Exception(
-            'SpicySelf currently serves New Zealand. Search for a New Zealand suburb.');
+            'spicyself currently serves New Zealand. Search for a New Zealand suburb.');
       center = LatLng(position.latitude, position.longitude);
       search.clear();
       await load(text: false);
@@ -275,8 +275,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         infoWindow: InfoWindow(
                             title: b['name'] as String,
                             snippet: b['kind'] == 'home'
-                                ? 'SpicySelf • Approximate location'
-                                : 'SpicySelf member')),
+                                ? 'spicyself • Approximate location'
+                                : 'spicyself member')),
                   for (final p in publicResults)
                     Marker(
                         markerId: MarkerId(p['place_id'] as String),
@@ -314,7 +314,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child:
                 Text(warning!, style: Theme.of(context).textTheme.bodySmall)),
-      SectionHeader(onlyFavorites ? 'Your saved places' : 'Book with SpicySelf',
+      SectionHeader(onlyFavorites ? 'Your saved places' : 'Book with spicyself',
           subtitle: 'Local members. Real services. Your next appointment.'),
       if (members.isEmpty && !loading && error == null)
         Notice(onlyFavorites
@@ -324,7 +324,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       if (publicResults.isNotEmpty) ...[
         const SectionHeader('Around the neighbourhood'),
         const Text(
-            'Public Google listings are directory results. In-app bookings are available only with SpicySelf members.'),
+            'Public Google listings are directory results. In-app bookings are available only with spicyself members.'),
         const SizedBox(height: 16),
         ResponsiveCards(
             children: publicResults
@@ -340,12 +340,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       ],
       if (category != null && !onlyFavorites)
         const Text(
-            'Category filters show SpicySelf members. Choose All to also browse public Google listings.'),
+            'Category filters show spicyself members. Choose All to also browse public Google listings.'),
       const SizedBox(height: 24),
       Panel(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const StatusPill('SpicySelf for Business',
+        const StatusPill('spicyself for Business',
             icon: Icons.storefront_outlined),
         const SizedBox(height: 16),
         Text('Your craft. Your community.',
@@ -356,7 +356,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         const SizedBox(height: 8),
         TextButton(
             onPressed: () => openBusinessWorkspace(context, s),
-            child: const Text('Meet SpicySelf for Business')),
+            child: const Text('Meet spicyself for Business')),
       ])),
     ]);
   }
@@ -468,7 +468,7 @@ class BusinessCard extends StatelessWidget {
         // The discover endpoint returns approved members only; older responses
         // omit status. An explicit non-approved status never gets a badge.
         if (business['status'] == null || business['status'] == 'approved')
-          const StatusPill('Verified SpicySelf business',
+          const StatusPill('Verified spicyself business',
               icon: Icons.verified_outlined),
         const SizedBox(height: 8),
         Text(business['kind'] == 'home'
@@ -498,7 +498,7 @@ Future<void> showPublicListing(
               Text(place['address'] as String),
               const SizedBox(height: 16),
               const Text(
-                  'This business has not joined SpicySelf. We do not have verified booking availability, prices or queue times.'),
+                  'This business has not joined spicyself. We do not have verified booking availability, prices or queue times.'),
               const SizedBox(height: 16),
               if (publicBookingUrl(place) != null) ...[
                 FilledButton.icon(
@@ -514,7 +514,7 @@ Future<void> showPublicListing(
                     label: const Text('Website')),
                 const SizedBox(height: 8),
                 const Text(
-                    'External links open the business website or booking provider. Bookings are handled outside SpicySelf; availability is not verified.'),
+                    'External links open the business website or booking provider. Bookings are handled outside spicyself; availability is not verified.'),
                 const SizedBox(height: 12),
               ],
               OutlinedButton(
