@@ -170,7 +170,9 @@ class SupabaseBackend extends Backend {
   @override
   Future<Json> enrollFactor() async {
     final result = await client.auth.mfa.enroll(
-        factorType: FactorType.totp, friendlyName: 'spicyself business');
+        factorType: FactorType.totp,
+        issuer: 'spicyself',
+        friendlyName: 'spicyself business');
     return {
       'id': result.id,
       'secret': result.totp!.secret,

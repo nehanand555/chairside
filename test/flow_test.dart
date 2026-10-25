@@ -106,7 +106,7 @@ class QrEnrollmentBackend extends redesign.RoleBackend {
         'id': 'new-factor',
         'secret': 'private-test-secret',
         'qr_code':
-            '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="white"/><rect width="40" height="40" fill="black"/></svg>',
+            'data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="white"/><rect width="40" height="40" fill="black"/></svg>',
       };
 }
 
@@ -288,6 +288,9 @@ void main() {
     await fixtures.tapVisible(tester, find.text('Set up authenticator'));
     expect(find.text('Cannot scan? Show manual setup key'), findsOneWidget);
     expect(find.text('private-test-secret'), findsNothing);
+    expect(find.text('QR unavailable. Use the manual setup key below.'),
+        findsNothing);
+    expect(find.textContaining('QR could not be displayed'), findsNothing);
     // The QR must be a compact scannable square, not an expanding grey panel.
     expect(
         find.byType(SizedBox).evaluate().any((element) {

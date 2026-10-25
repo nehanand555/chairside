@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../data/backend.dart';
 import '../data/store.dart';
+import '../data/mfa_qr.dart';
 import 'app.dart';
 import 'admin.dart';
 import 'common.dart';
@@ -274,22 +275,6 @@ class _MfaPanelState extends State<MfaPanel> {
   String? factorUser;
   int? factorSession;
 
-  String? _qrSvg(String source) {
-    try {
-      final svg = source.startsWith('data:image/svg+xml')
-          ? UriData.fromUri(Uri.parse(source)).contentAsString()
-          : source;
-      // Only accept the SVG format provided by Supabase. Never load remote URLs
-      // that might disclose this private TOTP enrollment payload.
-      return svg.trimLeft().startsWith('<svg') ||
-              svg.trimLeft().startsWith('<?xml')
-          ? svg
-          : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
   @override
   void dispose() {
     code.dispose();
@@ -347,7 +332,7 @@ class _MfaPanelState extends State<MfaPanel> {
                   const Text(
                       'Scan this QR code with Microsoft Authenticator or Google Authenticator. In Microsoft Authenticator, tap +, then Other account, then Scan QR code.'),
                   const SizedBox(height: 16),
-                  if (_qrSvg((enrollment!['qr_code'] as String?) ?? '')
+                  if (enrollmentQrSvg((enrollment!['qr_code'] as String?) ?? '')
                       case final svg?)
                     Center(
                       child: Semantics(
