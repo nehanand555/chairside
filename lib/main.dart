@@ -24,7 +24,7 @@ Future<void> main() async {
       backend = SupabaseBackend(Supabase.instance.client);
     } catch (_) {
       startupError =
-          'SpicySelf could not connect. Check your connection and reopen the app.';
+          'spicyself could not connect. Check your connection and reopen the app.';
     }
   }
   runApp(SpicySelfApp(
