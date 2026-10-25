@@ -11,7 +11,7 @@ major_version = 17
 
 [auth]
 enabled = true
-site_url = "https://spicyself.com"
+site_url = "https://www.spicyself.com"
 enable_signup = true
 additional_redirect_urls = ["https://spicyself.com/**", "https://www.spicyself.com/**", "https://chairside-staging.pages.dev/**", "nz.nehanand.spicyself://login-callback/"]
 minimum_password_length = 12
