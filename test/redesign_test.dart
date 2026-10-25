@@ -50,6 +50,20 @@ class RoleBackend extends fixtures.TestBackend {
 
   @override
   Future<Json> invoke(String name, Json data) async {
+    if (name == 'business-address') {
+      if (data['action'] == 'suggest') {
+        return {'suggestions': [
+          {'place_id': 'test-address-123', 'description': '12 Test Street, Auckland, New Zealand'}
+        ]};
+      }
+      if (data['action'] == 'select') {
+        return {
+          'address': '12 Test Street, Auckland, New Zealand',
+          'suburb': 'Auckland', 'lat': -36.85, 'lng': 174.76,
+          'place_id': 'test-address-123'
+        };
+      }
+    }
     if (name == 'business-application-notify') {
       notifications++;
       if (alreadyProcessed) return {'already_processed': true};
@@ -284,10 +298,11 @@ void main() {
     await fill('Business contact email', 'owner@example.com');
     await fill('Business contact phone', '021 123 4567');
     await fixtures.tapVisible(tester, find.text('Continue'));
-    await fill('Full business address', '12 Test Street');
-    await fill('Suburb / town', 'Auckland');
-    await fill('Pin latitude', '-36.85');
-    await fill('Pin longitude', '174.76');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Business street address'),
+        '12 Test Street');
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+    await fixtures.tapVisible(tester, find.text('12 Test Street, Auckland, New Zealand'));
     await fixtures.tapVisible(tester, find.text('Continue'));
     expect(find.text('Step 4 of 4 · Review'), findsOneWidget);
     await fixtures.tapVisible(tester, find.byType(CheckboxListTile).first);
