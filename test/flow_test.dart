@@ -14,6 +14,32 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'product_test.dart' as fixtures;
 import 'redesign_test.dart' as redesign;
 
+class RejectedApplicationBackend extends redesign.RoleBackend {
+  int resubmissions = 0;
+  @override
+  Future<dynamic> rpc(String name, [Json params = const {}]) async {
+    if (name == 'my_pending_business_application') {
+      return {
+        'business_id': 'p1',
+        'name': 'Test studio',
+        'kind': 'salon',
+        'suburb': 'Auckland',
+        'registration_number': 'NZ123',
+        'contact_name': 'Test Owner',
+        'contact_email': 'owner@example.test',
+        'contact_phone': '+64211234567',
+      };
+    }
+    if (name == 'update_pending_business_application') {
+      expect(params['p_business'], 'p1');
+      resubmissions++;
+      status = 'pending';
+      return null;
+    }
+    return super.rpc(name, params);
+  }
+}
+
 class DelayedBackend extends fixtures.TestBackend {
   bool delayReads = false;
   final reads = <Completer<List<Json>>>[];
@@ -146,6 +172,26 @@ Future<void> selectQueue(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('rejected owner edits and resubmits the existing application',
+      (tester) async {
+    final backend = RejectedApplicationBackend()
+      ..owner = true
+      ..status = 'rejected';
+    final store =
+        await redesign.mount(tester, backend, (s) => BusinessScreen(store: s));
+    await fixtures.tapVisible(tester, find.text('Edit and reapply'));
+    await tester.pumpAndSettle();
+    expect(find.text('Test studio'), findsOneWidget);
+    await fixtures.tapVisible(
+        tester, find.text('Save and resubmit for review'));
+    await tester.pumpAndSettle();
+    expect(backend.resubmissions, 1);
+    expect(backend.applications, 0);
+    expect(backend.operatorCalls, 0);
+    expect(find.text('Application under review'), findsOneWidget);
+    await redesign.close(tester, store);
+  });
+
   test(
       'cached profile identity is hidden before a new account finishes loading',
       () async {

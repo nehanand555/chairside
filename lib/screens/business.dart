@@ -77,11 +77,13 @@ class BusinessScreen extends StatelessWidget {
         ),
         Notice(status == 'pending'
             ? 'Your application has been submitted. Our team will review your registration and contact details.'
-            : 'Your business is not currently approved. Contact spicyself support if you need a review.'),
+            : status == 'rejected'
+                ? 'Review the feedback below, update your details, and reapply for review.'
+                : 'Your business is not currently approved. Contact spicyself support if you need a review.'),
         if (note.isNotEmpty) Panel(child: Text('Review note: $note')),
         if (store.applicationNotificationMessage != null)
           Notice(store.applicationNotificationMessage!),
-        if (status == 'pending') ...[
+        if (status == 'pending' || status == 'rejected') ...[
           OutlinedButton.icon(
             onPressed: store.busy
                 ? null
@@ -94,7 +96,9 @@ class BusinessScreen extends StatelessWidget {
                               )),
                     ),
             icon: const Icon(Icons.edit_outlined),
-            label: const Text('View or edit application'),
+            label: Text(status == 'rejected'
+                ? 'Edit and reapply'
+                : 'View or edit application'),
           ),
           const SizedBox(height: 8),
         ],
@@ -158,7 +162,7 @@ class _PendingApplicationEditorState extends State<PendingApplicationEditor> {
     final value =
         await widget.store.backend!.rpc('my_pending_business_application');
     if (!current) throw Exception('Session changed. Reopen your application.');
-    if (value == null) throw Exception('No pending application was found.');
+    if (value == null) throw Exception('No editable application was found.');
     final data = Json.from(value as Map);
     businessId = data['business_id'] as String;
     name.text = data['name'] as String? ?? '';

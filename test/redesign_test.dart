@@ -255,8 +255,12 @@ void main() {
       expect(find.text('Business settings'), findsNothing);
       if (status == 'pending')
         expect(find.text('Application under review'), findsOneWidget);
-      if (status == 'rejected')
+      if (status == 'rejected') {
         expect(find.textContaining('ownership evidence'), findsOneWidget);
+        expect(find.text('Edit and reapply'), findsOneWidget);
+      }
+      if (status == 'suspended')
+        expect(find.text('Edit and reapply'), findsNothing);
       await close(tester, store);
     }
   });
