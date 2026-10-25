@@ -97,7 +97,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     'Check your inbox for a spicyself sign-in link.'),
             ])),
         const Text(
-            'When you choose Google, we'll ask Google to show the account picker. Google may still remember signed-in accounts on your device. Email sign-in uses a one-time link.'),
+            'When you choose Google, we ask Google to show the account picker. Google may still remember signed-in accounts on your device. Email sign-in uses a one-time link.'),
       ]);
     if (loadedUser != s.backend!.userId && s.profile.isNotEmpty) {
       loadedUser = s.backend!.userId;
