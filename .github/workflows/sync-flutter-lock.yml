@@ -7,6 +7,7 @@ on:
       - .github/workflows/sync-flutter-lock.yml
 permissions:
   contents: write
+  actions: write
 jobs:
   lockfile:
     runs-on: ubuntu-latest
@@ -22,6 +23,8 @@ jobs:
       - name: Resolve and update dependency lock
         run: flutter pub get
       - name: Commit lockfile if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- pubspec.lock; then
             echo "Lockfile already synchronized."
@@ -32,3 +35,4 @@ jobs:
           git add pubspec.lock
           git commit -m "chore: lock Flutter SVG QR renderer dependencies"
           git push
+          # GITHUB_TOKEN commits do not trigger push workflows; start the\n          # checked deployment explicitly after the dependency lock is saved.\n          gh workflow run deploy.yml --ref main -f target=web -f environment=staging\n
