@@ -196,7 +196,7 @@ class _AccountScreenState extends State<AccountScreen> {
               : () => s.run(() async {
                     await s.backend!.signOut();
                     await s.refreshAccount();
-                    if (mounted) {
+                    if (context.mounted) {
                       setState(() {
                         loadedUser = null;
                         signInEmail.clear();
