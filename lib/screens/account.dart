@@ -46,7 +46,7 @@ class _AccountScreenState extends State<AccountScreen> {
     }
     if (!s.signedIn)
       return PageBody(width: 520, children: [
-        const PageHeading('Welcome to SpicySelf',
+        const PageHeading('Welcome to spicyself',
             'Sign in with Google or receive a secure email sign-in link.'),
         Panel(
             child: Column(
@@ -62,7 +62,7 @@ class _AccountScreenState extends State<AccountScreen> {
               TextButton(
                   onPressed: () => showLegal(context),
                   child: const Text('Read terms and privacy')),
-              ActionButton(s, 'Continue with Google', () async {
+              ActionButton(s, 'Choose Google account', () async {
                 if (!accepted)
                   throw Exception('Please read and accept the terms first');
                 await s.backend!.signInWithGoogle();
@@ -94,10 +94,10 @@ class _AccountScreenState extends State<AccountScreen> {
               }, icon: Icons.mail_outline),
               if (emailSent)
                 const Notice(
-                    'Check your inbox for a SpicySelf sign-in link.'),
+                    'Check your inbox for a spicyself sign-in link.'),
             ])),
         const Text(
-            'Google lets you choose an account each time. Email sign-in uses a one-time link, without a password. You can browse without signing in.'),
+            'When you choose Google, we'll ask Google to show the account picker. Google may still remember signed-in accounts on your device. Email sign-in uses a one-time link.'),
       ]);
     if (loadedUser != s.backend!.userId && s.profile.isNotEmpty) {
       loadedUser = s.backend!.userId;
@@ -145,7 +145,7 @@ class _AccountScreenState extends State<AccountScreen> {
           child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('SpicySelf for Business',
+          Text('spicyself for Business',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(s.businessId == null
@@ -204,7 +204,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text(
-                          'Signed out of SpicySelf. Choose a Google account or use email to sign in again.')),
+                          'Signed out of spicyself. Your Google account may still be signed in on this device; choose the account you want next time.')),
                       );
                     }
                   }),
@@ -304,7 +304,7 @@ class _MfaPanelState extends State<MfaPanel> {
                 const SizedBox(height: 12),
                 if (verified.isEmpty && enrollment == null) ...[
                   const Text(
-                      'Add SpicySelf to an authenticator such as Google Authenticator or Microsoft Authenticator. Store the setup key securely; you’ll need the app to access business tools.'),
+                      'Add spicyself to an authenticator such as Google Authenticator or Microsoft Authenticator. Store the setup key securely; you’ll need the app to access business tools.'),
                   const SizedBox(height: 12),
                   ActionButton(s, 'Set up authenticator', () async {
                     final session = s.sessionRevision;
@@ -322,7 +322,7 @@ class _MfaPanelState extends State<MfaPanel> {
                 ],
                 if (enrollment != null) ...[
                   const Text(
-                      'In your authenticator choose “Enter setup key”, name it SpicySelf, and choose time-based codes. Keep this key private.'),
+                      'In your authenticator choose “Enter setup key”, name it spicyself, and choose time-based codes. Keep this key private.'),
                   const SizedBox(height: 12),
                   SelectableText(enrollment!['secret'] as String),
                   const SizedBox(height: 12)
