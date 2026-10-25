@@ -331,8 +331,8 @@ void main() {
     expect(store.signedIn, true);
     await tapVisible(tester, find.text('Sign out'));
     expect(store.signedIn, false);
-    final input = tester.widget<TextField>(
-        find.widgetWithText(TextField, 'Email address'));
+    final input = tester
+        .widget<TextField>(find.widgetWithText(TextField, 'Email address'));
     expect(input.controller!.text, isEmpty);
     expect(find.text('Choose Google account'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());

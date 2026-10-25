@@ -103,10 +103,11 @@ class PendingEnrollmentBackend extends redesign.RoleBackend {
 class QrEnrollmentBackend extends redesign.RoleBackend {
   @override
   Future<Json> enrollFactor() async => {
-    'id': 'new-factor',
-    'secret': 'private-test-secret',
-    'qr_code': '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="white"/><rect width="40" height="40" fill="black"/></svg>',
-  };
+        'id': 'new-factor',
+        'secret': 'private-test-secret',
+        'qr_code':
+            '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="white"/><rect width="40" height="40" fill="black"/></svg>',
+      };
 }
 
 class PendingNotificationBackend extends redesign.RoleBackend {
@@ -143,6 +144,22 @@ Future<void> selectQueue(WidgetTester tester) async {
 }
 
 void main() {
+  test(
+      'cached profile identity is hidden before a new account finishes loading',
+      () async {
+    final backend = fixtures.TestBackend();
+    final store = AppStore(backend);
+    await store.refreshAccount();
+    expect(store.displayName, 'Customer');
+    backend.userId = 'second-account';
+    backend.googleNames['second-account'] = 'New account';
+    expect(store.hasCurrentAccount, false);
+    expect(store.displayName, 'New account');
+    await store.refreshAccount();
+    expect(store.profile['id'], 'second-account');
+    store.dispose();
+  });
+
   setUpAll(tz.initializeTimeZones);
 
   test('new login cannot inherit cached admin rights', () async {
@@ -266,8 +283,8 @@ void main() {
       ..owner = true
       ..status = 'approved'
       ..mfa = false;
-    final store = await redesign.mount(
-        tester, backend, (s) => BusinessScreen(store: s));
+    final store =
+        await redesign.mount(tester, backend, (s) => BusinessScreen(store: s));
     await fixtures.tapVisible(tester, find.text('Set up authenticator'));
     expect(find.text('Cannot scan? Show manual setup key'), findsOneWidget);
     expect(find.text('private-test-secret'), findsNothing);
