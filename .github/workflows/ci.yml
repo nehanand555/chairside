@@ -22,7 +22,9 @@ jobs:
           flutter-version: '3.47.7'
           cache: true
       - name: Check committed Dart formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          dart format lib test
+          git diff --exit-code -- lib test
       - run: python3 -m unittest discover -s tool -p '*_test.py'
       - run: node --test tool/pages_worker_test.mjs
       - name: Generate platform configuration
