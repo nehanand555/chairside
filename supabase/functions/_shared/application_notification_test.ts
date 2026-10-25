@@ -36,7 +36,7 @@ Deno.test("review email escapes applicant-controlled HTML and uses a protected a
   const { reviewEmailHtml } = await import("./application_notification.ts");
   const html = reviewEmailHtml({businessName: '<img src=x onerror="bad()">', businessId: "unit-test"});
   if (html.includes('<img') || !html.includes("&lt;img") ||
-      !html.includes("Open SpicySelf admin portal") || !html.includes("MFA")) {
+      !html.includes("Open spicyself admin portal") || !html.includes("MFA")) {
     throw new Error("Unsafe or incomplete review email");
   }
 });
