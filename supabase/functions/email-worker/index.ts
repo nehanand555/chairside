@@ -1,4 +1,34 @@
-import { env, rpc, service } from "../_shared/http.ts";
+import { rpc, service } from "../_shared/http.ts";
+
+// Admin links navigate to the public app; authorisation and MFA remain enforced in-app.
+function adminPortalUrl(): string {
+  const value = Deno.env.get("SPICYSELF_ADMIN_URL") ?? "https://chairside-staging.pages.dev";
+  const url = new URL(value);
+  if (url.protocol !== "https:" || url.username || url.password) throw new Error("Invalid admin portal URL");
+  return url.toString();
+}
+
+function escapeHtml(value: string): string {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+export function adminNotificationHtml(subject: string, message: string, url: string): string {
+  const safeText = escapeHtml(message).replaceAll("\n", "<br>");
+  const safeUrl = escapeHtml(url);
+  return `<!doctype html><html lang="en"><body style="margin:0;background:#f8f7f2;color:#163e35;font-family:Arial,sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+  <table role="presentation" width="100%" style="max-width:600px;background:#fff;border-radius:16px"><tr><td style="padding:32px">
+  <p style="font-size:14px;font-weight:bold;letter-spacing:1px">SPICYSELF ADMIN</p>
+  <h1 style="font-size:24px">${escapeHtml(subject)}</h1>
+  <p style="line-height:1.7;color:#354e46">${safeText}</p>
+  <p style="margin:30px 0"><a href="${safeUrl}" style="background:#163e35;color:#fff;text-decoration:none;border-radius:8px;padding:14px 22px;display:inline-block;font-weight:bold">Open SpicySelf Admin Portal</a></p>
+  <p style="font-size:13px;color:#52635c">Sign in with your admin account, then open Profile → Administration → Pending. MFA may be required. This email never approves an application.</p>
+  <p style="font-size:12px;color:#52635c">If the button does not open, visit <a href="${safeUrl}">${safeUrl}</a>.</p>
+  </td></tr></table></td></tr></table></body></html>`;
+}
+
 
 // Invoke with x-worker-secret from a trusted scheduler. Never callable with user JWT alone.
 Deno.serve(async (req) => {
@@ -16,13 +46,16 @@ Deno.serve(async (req) => {
   const tasks = await rpc<Array<{id:string;kind:string;recipient:string;subject:string;body:string;dedupe_key:string}>>(db, "email_claim_batch");
   const totals = { claimed: tasks.length, accepted: 0, retried: 0, failed: 0 };
   for (const task of tasks) {
-    const recipient = task.recipient === "admin-routing@spicyself.invalid" ? admin : task.recipient;
+    const isAdminAlert = task.recipient === "admin-routing@spicyself.invalid";
+    const recipient = isAdminAlert ? admin : task.recipient;
     try {
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST", signal: AbortSignal.timeout(15000),
         headers: {"Authorization": "Bearer " + apiKey, "Content-Type": "application/json",
           "Idempotency-Key": task.id},
-        body: JSON.stringify({from: sender, to: [recipient], subject: task.subject, text: task.body}),
+        body: JSON.stringify({from: sender, to: [recipient], subject: task.subject,
+          text: isAdminAlert ? task.body + "\\n\\nReview: " + adminPortalUrl() + "\\nSign in, then Profile → Administration → Pending." : task.body,
+          ...(isAdminAlert ? {html: adminNotificationHtml(task.subject, task.body, adminPortalUrl())} : {})}),
       });
       if (response.ok) {
         const payload = await response.json() as { id?: string };
