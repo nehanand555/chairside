@@ -5,6 +5,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 typedef Json = Map<String, dynamic>;
 
+String webAuthRedirect(Uri current) {
+  final host = current.host;
+  if (host == 'spicyself.com' ||
+      host == 'www.spicyself.com' ||
+      host == 'chairside-staging.pages.dev' ||
+      host.endsWith('.chairside-staging.pages.dev')) {
+    return 'https://www.spicyself.com/';
+  }
+  // Preserve local development callbacks rather than mixing browser storage origins.
+  return '${current.origin}/';
+}
+
 /// Transport boundary: widgets can be exercised without live accounts or API keys.
 abstract class Backend {
   String? get userId;
@@ -117,7 +129,7 @@ class SupabaseBackend extends Backend {
       OAuthProvider.google,
       queryParams: {'prompt': 'select_account consent'},
       redirectTo: kIsWeb
-          ? '${Uri.base.origin}/'
+          ? webAuthRedirect(Uri.base)
           : 'nz.nehanand.spicyself://login-callback/',
       authScreenLaunchMode:
           kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
@@ -131,7 +143,7 @@ class SupabaseBackend extends Backend {
     await client.auth.signInWithOtp(
       email: email.trim(),
       emailRedirectTo: kIsWeb
-          ? '${Uri.base.origin}/'
+          ? webAuthRedirect(Uri.base)
           : 'nz.nehanand.spicyself://login-callback/',
     );
   }

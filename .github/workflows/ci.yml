@@ -22,6 +22,7 @@ jobs:
           flutter-version: '3.47.7'
           cache: true
       - run: python3 -m unittest discover -s tool -p '*_test.py'
+      - run: node --test tool/pages_worker_test.mjs
       - name: Generate platform configuration
         run: python3 tool/bootstrap.py
       - run: flutter pub get --enforce-lockfile

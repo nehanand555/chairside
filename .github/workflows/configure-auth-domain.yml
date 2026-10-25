@@ -1,0 +1,30 @@
+name: Configure canonical spicyself Auth domain
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/configure-auth-domain.yml
+      - tool/configure_auth_domain.py
+      - supabase/config.toml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: configure-staging-auth-domain
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test configuration updater
+        run: python3 -m unittest discover -s tool -p 'configure_auth_domain_test.py'
+      - name: Configure and verify hosted Auth URLs only
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          CONFIGURE_PUBLIC_CORS: '1'
+        run: python3 tool/configure_auth_domain.py
