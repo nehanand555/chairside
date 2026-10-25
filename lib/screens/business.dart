@@ -57,6 +57,35 @@ Future<void> notifySavedApplication(AppStore store, String id) async {
   }
 }
 
+class ApplicationDeliveryDetails extends StatelessWidget {
+  const ApplicationDeliveryDetails(
+      {super.key, required this.store, required this.id});
+  final AppStore store;
+  final String id;
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: const Text('Email updates'),
+        subtitle: const Text('Optional · your application is already saved'),
+        childrenPadding: const EdgeInsets.only(bottom: 16),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text((store.applicationNotificationMessage ?? '')
+                  .contains('needs attention')
+              ? 'We could not send the review email. Your application is still saved and awaiting review.'
+              : 'You can check your application status here at any time. Email delivery may take a little longer.'),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: store.busy
+                ? null
+                : () => store.run(() => sendApplicationNotification(store, id)),
+            icon: const Icon(Icons.mail_outline, size: 18),
+            label: const Text('Check notification'),
+          ),
+        ],
+      );
+}
+
 class BusinessScreen extends StatelessWidget {
   const BusinessScreen({super.key, required this.store});
   final AppStore store;
@@ -77,54 +106,73 @@ class BusinessScreen extends StatelessWidget {
       final status = store.account['business_status'] as String? ?? 'pending';
       final note =
           (store.account['business_review_note'] as String? ?? '').trim();
-      return PageBody(width: 700, children: [
-        PageHeading(
-          status == 'pending'
-              ? 'Application under review'
-              : 'Business application: $status',
-          'Your business will appear as a verified spicyself listing only after approval.',
-        ),
-        Notice(status == 'pending'
-            ? 'Your application has been submitted. Our team will review your registration and contact details.'
-            : status == 'rejected'
-                ? 'Review the feedback below, update your details, and reapply for review.'
-                : 'Your business is not currently approved. Contact spicyself support if you need a review.'),
-        if (note.isNotEmpty) Panel(child: Text('Review note: $note')),
-        if (store.applicationNotificationMessage != null)
-          Notice(store.applicationNotificationMessage!),
-        if (status == 'pending' || status == 'rejected') ...[
-          OutlinedButton.icon(
-            onPressed: store.busy
-                ? null
-                : () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                          builder: (_) => Scaffold(
-                                appBar: AppBar(
-                                    title: const Text('Edit application')),
-                                body: PendingApplicationEditor(store: store),
-                              )),
-                    ),
-            icon: const Icon(Icons.edit_outlined),
-            label: Text(status == 'rejected'
-                ? 'Edit and reapply'
-                : 'View or edit application'),
-          ),
-          const SizedBox(height: 8),
-        ],
+      void editApplication() => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+                builder: (_) => Scaffold(
+                      appBar: AppBar(title: const Text('Edit application')),
+                      body: PendingApplicationEditor(store: store),
+                    )),
+          );
+      return PageBody(width: 600, children: [
+        const SizedBox(height: 16),
+        Panel(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+              Align(
+                  alignment: Alignment.centerLeft,
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primaryContainer,
+                    child: Icon(status == 'pending'
+                        ? Icons.hourglass_top_rounded
+                        : Icons.info_outline),
+                  )),
+              const SizedBox(height: 20),
+              PageHeading(
+                status == 'pending'
+                    ? 'Application under review'
+                    : status == 'rejected'
+                        ? 'A few details need updating'
+                        : 'Your business is paused',
+                status == 'pending'
+                    ? 'You’re all set. We’ll review your details before your listing goes live.'
+                    : status == 'rejected'
+                        ? 'Read our feedback, update your application, and send it back for review.'
+                        : 'Contact spicyself support to discuss your next steps.',
+              ),
+              if (note.isNotEmpty) ...[
+                Text('Feedback', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Text(note),
+                const SizedBox(height: 24),
+              ],
+              if (status == 'rejected')
+                FilledButton.icon(
+                  onPressed: store.busy ? null : editApplication,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit and reapply'),
+                )
+              else
+                ActionButton(
+                    store, 'Check application status', store.refreshAccount,
+                    busyLabel: 'Checking status…', icon: Icons.refresh),
+              if (status == 'pending') ...[
+                const SizedBox(height: 8),
+                TextButton(
+                    onPressed: store.busy ? null : editApplication,
+                    child: const Text('View or edit application')),
+              ],
+              if (status == 'rejected')
+                TextButton(
+                    onPressed: store.busy
+                        ? null
+                        : () => store.run(store.refreshAccount),
+                    child: const Text('Check application status')),
+            ])),
         if (status == 'pending')
-          OutlinedButton.icon(
-            onPressed: store.busy
-                ? null
-                : () => store.run(() =>
-                    sendApplicationNotification(store, store.businessId!)),
-            icon: const Icon(Icons.mail_outline),
-            label: const Text('Check notification'),
-          ),
-        OutlinedButton.icon(
-          onPressed: store.busy ? null : () => store.run(store.refreshAccount),
-          icon: const Icon(Icons.refresh),
-          label: const Text('Check application status'),
-        ),
+          ApplicationDeliveryDetails(store: store, id: store.businessId!),
       ]);
     }
     return OperatorGate(
@@ -244,8 +292,8 @@ class _PendingApplicationEditorState extends State<PendingApplicationEditor> {
       ? PageBody(width: 700, children: [
           const PageHeading('Application sent for review',
               'Your updated application has been saved. You do not need to submit it again.'),
-          if (widget.store.applicationNotificationMessage != null)
-            Notice(widget.store.applicationNotificationMessage!),
+          if (businessId != null)
+            ApplicationDeliveryDetails(store: widget.store, id: businessId!),
           OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Back to business'),
@@ -296,7 +344,7 @@ class _PendingApplicationEditorState extends State<PendingApplicationEditor> {
                           : 'Enter a valid phone number'),
                   const SizedBox(height: 12),
                   const Notice(
-                      'Resubmitting updates your existing application. It does not create a second business or approve your listing.'),
+                      'Your changes will be sent to our team for review.'),
                   if (widget.store.error != null) Notice(widget.store.error!),
                   ActionButton(
                       widget.store, 'Save and resubmit for review', resubmit,
@@ -492,28 +540,17 @@ class _BusinessApplicationState extends State<BusinessApplication> {
   Widget build(BuildContext context) {
     final s = widget.store;
     if (submittedApplication != null)
-      return PageBody(width: 760, children: [
+      return PageBody(width: 600, children: [
         const PageHeading('Application saved',
             'Application sent for review. There is no need to apply again.'),
-        const Notice(
-            'Refresh your account to see the latest review status. Email delivery is separate from saving your application.'),
-        if (s.applicationNotificationMessage != null)
-          Notice(s.applicationNotificationMessage!),
         ActionButton(s, 'Check application status', s.refreshAccount),
-        OutlinedButton(
-            onPressed: s.busy
-                ? null
-                : () => s.run(() =>
-                    sendApplicationNotification(s, submittedApplication!)),
-            child: const Text('Retry review email')),
+        ApplicationDeliveryDetails(store: s, id: submittedApplication!),
       ]);
     const labels = ['Business', 'Contact', 'Location', 'Review'];
     return PageBody(width: 760, children: [
-      const PageHeading('Your craft. A bigger community.',
-          'Join spicyself to share your services, welcome local customers and manage your day.'),
-      const StatusPill('spicyself for Business',
-          icon: Icons.storefront_outlined),
-      const SizedBox(height: 24),
+      const PageHeading('List your business',
+          'Tell us a little about your business. We’ll guide you through four short steps.'),
+      const SizedBox(height: 8),
       Text('Step ${step + 1} of 4 · ${labels[step]}',
           style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 8),
@@ -692,7 +729,7 @@ class _BusinessApplicationState extends State<BusinessApplication> {
                       title: const Text(
                           'Publish my business name, services, photos and public map location after approval.')),
                   const Notice(
-                      'Submitting saves a pending application. Our team reviews your details before management tools or public bookings are enabled. Email delivery does not affect whether your application is saved.'),
+                      'We’ll review your application before your listing goes live.'),
                   if (s.error != null) Notice(s.error!),
                   ActionButton(s, 'Submit business application', submit,
                       busyLabel: 'Submitting application…',

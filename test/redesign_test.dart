@@ -265,6 +265,28 @@ void main() {
     }
   });
 
+  testWidgets('business status stays focused and fits a narrow phone',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 740));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final status in ['pending', 'rejected']) {
+      final backend = RoleBackend()
+        ..owner = true
+        ..status = status;
+      final store =
+          await mount(tester, backend, (s) => BusinessScreen(store: s));
+      store.applicationNotificationMessage =
+          'Resend credentials configuration needs attention';
+      store.changed();
+      await tester.pumpAndSettle();
+      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.textContaining('Resend credentials'), findsNothing);
+      expect(find.text('Check notification').hitTestable(), findsNothing);
+      expect(tester.takeException(), isNull);
+      await close(tester, store);
+    }
+  });
+
   testWidgets('approved owners still need MFA before loading management data',
       (tester) async {
     final backend = RoleBackend()
@@ -342,6 +364,7 @@ void main() {
     expect(store.applicationNotificationMessage, contains('Application saved'));
     expect(backend.operatorCalls, 0);
     backend.notificationFails = false;
+    await fixtures.tapVisible(tester, find.text('Email updates'));
     await fixtures.tapVisible(tester, find.text('Check notification'));
     expect(backend.applications, 1);
     expect(backend.notifications, 2);
