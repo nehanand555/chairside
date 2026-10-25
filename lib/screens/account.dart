@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../data/backend.dart';
 import '../data/store.dart';
 import 'app.dart';
@@ -265,8 +266,16 @@ class _MfaPanelState extends State<MfaPanel> {
   final code = TextEditingController();
   Future<List<Json>>? factors;
   Json? enrollment;
+  bool showManualKey = false;
   String? factorUser;
   int? factorSession;
+
+  String _qrSvg(String source) {
+    if (source.startsWith('data:image/svg+xml')) {
+      return UriData.fromUri(Uri.parse(source)).contentAsString();
+    }
+    return source;
+  }
 
   @override
   void dispose() {
@@ -282,6 +291,7 @@ class _MfaPanelState extends State<MfaPanel> {
       factorUser = s.backend?.userId;
       factors = null;
       enrollment = null;
+      showManualKey = false;
       code.clear();
     }
     if (!s.signedIn) return const SizedBox.shrink();
@@ -322,9 +332,40 @@ class _MfaPanelState extends State<MfaPanel> {
                 ],
                 if (enrollment != null) ...[
                   const Text(
-                      'In your authenticator choose “Enter setup key”, name it spicyself, and choose time-based codes. Keep this key private.'),
+                      'Scan this QR code with Microsoft Authenticator or Google Authenticator. In Microsoft Authenticator, tap +, then Other account, then Scan QR code.'),
+                  const SizedBox(height: 16),
+                  if ((enrollment!['qr_code'] as String?)?.isNotEmpty == true)
+                    Center(
+                      child: Semantics(
+                        label: 'Authenticator QR setup code. Keep private.',
+                        child: Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(16),
+                          child: SvgPicture.string(
+                            _qrSvg(enrollment!['qr_code'] as String),
+                            width: 220,
+                            height: 220,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    const Notice('QR unavailable. Use the manual setup key below.'),
                   const SizedBox(height: 12),
-                  SelectableText(enrollment!['secret'] as String),
+                  TextButton(
+                    onPressed: () => setState(() => showManualKey = !showManualKey),
+                    child: Text(showManualKey
+                        ? 'Hide manual setup key'
+                        : 'Cannot scan? Show manual setup key'),
+                  ),
+                  if (showManualKey || (enrollment!['qr_code'] as String?)?.isNotEmpty != true) ...[
+                    const Text(
+                        'Enter this key in your authenticator as a time-based code. Do not share it.'),
+                    const SizedBox(height: 8),
+                    SelectableText(enrollment!['secret'] as String),
+                  ],
+                  const SizedBox(height: 12),
+                  const Text('Then enter the six-digit code from your authenticator below.'),
                   const SizedBox(height: 12)
                 ],
                 if (verified.isNotEmpty || enrollment != null) ...[
