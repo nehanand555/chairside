@@ -268,17 +268,17 @@ void main() {
     final events = StreamController<void>.broadcast();
     backend.authEvents = events;
     final store = AppStore(backend);
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     expect(find.text('Phone number'), findsNothing);
     expect(find.text('Text me a code'), findsNothing);
-    await tapVisible(tester, find.text('Continue with Google'));
+    await tapVisible(tester, find.text('Choose Google account'));
     expect(backend.googleSignIns, 0);
     expect(find.textContaining('Please read and accept'), findsOneWidget);
     await tapVisible(tester, find.byType(CheckboxListTile));
-    await tapVisible(tester, find.text('Continue with Google'));
+    await tapVisible(tester, find.text('Choose Google account'));
     expect(backend.googleSignIns, 1);
     expect(store.signedIn,
         false); // Opening the browser does not create a session.
@@ -296,7 +296,7 @@ void main() {
     expect(find.text('Your name'), findsOneWidget);
     expect(find.text('Booking texts'), findsNothing);
     await tapVisible(tester, find.text('Sign out'));
-    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Choose Google account'), findsOneWidget);
     expect(store.visits, isEmpty);
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
@@ -308,7 +308,7 @@ void main() {
     final events = StreamController<void>.broadcast();
     backend.authEvents = events;
     final store = AppStore(backend);
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
@@ -334,7 +334,7 @@ void main() {
     final input = tester.widget<TextField>(
         find.widgetWithText(TextField, 'Email address'));
     expect(input.controller!.text, isEmpty);
-    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Choose Google account'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     store.dispose();
     await events.close();
@@ -349,18 +349,18 @@ void main() {
     backend.googleError =
         Exception('Could not open Google sign-in. Please try again.');
     final store = AppStore(backend);
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     await tapVisible(tester, find.byType(CheckboxListTile));
-    await tapVisible(tester, find.text('Continue with Google'));
+    await tapVisible(tester, find.text('Choose Google account'));
     expect(
         find.textContaining('Could not open Google sign-in'), findsOneWidget);
     expect(store.busy, false);
     expect(store.signedIn, false);
     backend.googleError = null;
-    await tapVisible(tester, find.text('Continue with Google'));
+    await tapVisible(tester, find.text('Choose Google account'));
     expect(backend.googleSignIns, 2);
     events
         .addError(Exception('Google sign-in was cancelled. Please try again.'));
@@ -423,7 +423,7 @@ void main() {
     });
     final store = AppStore(backend);
     await store.refreshAccount();
-    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+    await tester.pumpWidget(spicyselfApp(store: store, mapsEnabled: false));
     await tester.pumpAndSettle();
     expect(backend.discoverRequests.last['include_public'], true);
     await tester.ensureVisible(find.text('Google Barber'));
@@ -456,7 +456,7 @@ void main() {
     // One transport is shared by both roles, as the real database is.
     final app = AppStore(backend);
     await app.refreshAccount();
-    await tester.pumpWidget(SpicySelfApp(store: app, mapsEnabled: false));
+    await tester.pumpWidget(spicyselfApp(store: app, mapsEnabled: false));
     await tester.pumpAndSettle();
     await tapVisible(tester, find.byKey(const ValueKey('view-p1')));
     final picker = find.byKey(const ValueKey('service-picker'));
@@ -515,7 +515,7 @@ void main() {
       final store = AppStore(backend);
       await store.refreshAccount();
       await tester.pumpWidget(
-          SpicySelfApp(key: ValueKey(size), store: store, mapsEnabled: false));
+          spicyselfApp(key: ValueKey(size), store: store, mapsEnabled: false));
       await tester.pumpAndSettle();
       expect(find.text('Find your next look.'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -541,7 +541,7 @@ void main() {
   testWidgets('missing service configuration never shows fake listings',
       (tester) async {
     final store = AppStore(null);
-    await tester.pumpWidget(SpicySelfApp(store: store));
+    await tester.pumpWidget(spicyselfApp(store: store));
     await tester.pumpAndSettle();
     expect(find.textContaining('being connected'), findsOneWidget);
     expect(find.text('Harbour Cuts'), findsNothing);
