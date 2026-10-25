@@ -16,12 +16,16 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   Future<Json>? data;
   Future<Json>? health;
+  Future<Json>? emailHealth;
   String filter = 'pending';
   String? loadedUser;
   int? loadedSession;
   void reload() {
     data = widget.store.backend!
         .rpc('admin_overview')
+        .then((v) => Json.from(v as Map));
+    emailHealth = widget.store.backend!
+        .rpc('admin_email_overview')
         .then((v) => Json.from(v as Map));
     health = widget.store.backend!
         .rpc('admin_health')
@@ -39,6 +43,7 @@ class _AdminScreenState extends State<AdminScreen> {
       loadedUser = s.backend?.userId;
       data = null;
       health = null;
+      emailHealth = null;
     }
     if (!s.isAdmin)
       return const PageBody(children: [
@@ -51,6 +56,9 @@ class _AdminScreenState extends State<AdminScreen> {
         child: PageBody(children: [
           const PageHeading('Platform administration',
               'Review businesses, investigate reports and help customers.'),
+          if (emailHealth != null)
+            AsyncPanel<Json>(future: emailHealth!, builder: (h) => Notice(
+              'Email queue: ${h['pending']} pending • ${h['accepted']} accepted • ${h['delivered']} delivered • ${h['failed']} requiring review')),
           if (health != null)
             AsyncPanel<Json>(
                 future: health!,
