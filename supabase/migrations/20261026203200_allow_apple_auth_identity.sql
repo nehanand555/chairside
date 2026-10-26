@@ -22,7 +22,7 @@ begin
   ) or exists(
     select 1 from private.blocked_users where user_id = auth.uid()
   ) then
-    raise exception 'Sign in with Google, Apple or a verified phone number';
+    raise exception 'Please sign in with Google, Apple or a verified phone number';
   end if;
   return auth.uid();
 end $$;
