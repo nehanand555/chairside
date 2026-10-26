@@ -17,6 +17,7 @@ class TestBackend extends Backend {
   @override
   Stream<void> get authChanges => authEvents?.stream ?? const Stream.empty();
   int googleSignIns = 0;
+  int appleSignIns = 0;
   final List<String> emailSignIns = [];
   Object? googleError;
   final Map<String, String> googleNames = {};
@@ -185,6 +186,10 @@ class TestBackend extends Backend {
 
   @override
   Future<void> remove(String table, Json filters) async {}
+  @override
+  Future<void> signInWithApple() async {
+    appleSignIns++;
+  }
   @override
   Future<void> signInWithGoogle() async {
     googleSignIns++;
