@@ -20,6 +20,7 @@ class _AccountScreenState extends State<AccountScreen> {
   final name = TextEditingController();
   final signInEmail = TextEditingController();
   bool emailSent = false;
+  String? sentToEmail;
   bool sms = false, marketing = false, accepted = false;
   String? loadedUser, formUser;
   int? formSession;
@@ -48,7 +49,47 @@ class _AccountScreenState extends State<AccountScreen> {
       accepted = false;
       signInEmail.clear();
       emailSent = false;
+      sentToEmail = null;
     }
+    if (!s.signedIn && emailSent)
+      return PageBody(
+        width: 520,
+        children: [
+          const SizedBox(height: 24),
+          const Icon(Icons.mark_email_read_outlined, size: 64, color: ink),
+          const SizedBox(height: 18),
+          const PageHeading(
+            'Check your email',
+            'Your secure sign-in link has been sent.',
+          ),
+          Panel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'We sent a sign-in link to ${sentToEmail ?? signInEmail.text.trim()}.',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Open your email, find the message from spicyself, and tap the sign-in link to continue. Check your spam or junk folder if you cannot see it.',
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: s.busy
+                      ? null
+                      : () => setState(() {
+                          emailSent = false;
+                          sentToEmail = null;
+                        }),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Use another email or resend link'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
     if (!s.signedIn)
       return PageBody(
         width: 520,
@@ -109,12 +150,11 @@ class _AccountScreenState extends State<AccountScreen> {
                   final user = s.backend!.userId;
                   await s.backend!.signInWithEmail(email);
                   if (mounted && s.isCurrentSession(session, user))
-                    setState(() => emailSent = true);
+                    setState(() {
+                      emailSent = true;
+                      sentToEmail = email;
+                    });
                 }, icon: Icons.mail_outline),
-                if (emailSent)
-                  const Notice(
-                    'Check your inbox for a spicyself sign-in link.',
-                  ),
               ],
             ),
           ),
