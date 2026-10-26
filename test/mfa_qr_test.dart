@@ -1,10 +1,10 @@
 import 'dart:convert';
+
 import 'package:chairside/data/mfa_qr.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('accepts local TOTP enrollment and rejects external or empty payloads',
-      () {
+  test('accepts local TOTP enrollment and rejects external or empty payloads', () {
     const payload =
         'otpauth://totp/spicyself:test?secret=JBSWY3DPEHPK3PXP&issuer=spicyself';
     expect(enrollmentOtpUri(payload), payload);
@@ -25,15 +25,19 @@ void main() {
   });
   test('percent-encoded SVG data URL is decoded without changing artwork', () {
     expect(
-        enrollmentQrSvg(
-            'data:image/svg+xml;charset=utf-8,${Uri.encodeComponent(svg)}'),
-        svg);
+      enrollmentQrSvg(
+        'data:image/svg+xml;charset=utf-8,${Uri.encodeComponent(svg)}',
+      ),
+      svg,
+    );
   });
   test('base64 SVG data URL is decoded locally', () {
     expect(
-        enrollmentQrSvg(
-            'data:image/svg+xml;base64,${base64Encode(utf8.encode(svg))}'),
-        svg);
+      enrollmentQrSvg(
+        'data:image/svg+xml;base64,${base64Encode(utf8.encode(svg))}',
+      ),
+      svg,
+    );
   });
   test('XML declaration from the Supabase SVG generator is retained', () {
     const xml = '<?xml version="1.0"?>\n$svg';
@@ -46,7 +50,7 @@ void main() {
       'data:image/png;base64,AAAA',
       'data:image/svg+xml;base64,not-base64!',
       'data:image/svg+xml;utf-8,%ZZ',
-      'data:image/svg+xml;utf-8'
+      'data:image/svg+xml;utf-8',
     ]) {
       expect(enrollmentQrSvg(source), isNull);
     }

@@ -1,13 +1,18 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../data/backend.dart';
 import '../data/store.dart';
 import 'common.dart';
 import 'visits.dart';
 
 class AdminBusinessVisits extends StatefulWidget {
-  const AdminBusinessVisits(
-      {super.key, required this.store, required this.business});
+  const AdminBusinessVisits({
+    super.key,
+    required this.store,
+    required this.business,
+  });
   final AppStore store;
   final String business;
   @override
@@ -39,8 +44,12 @@ class _AdminBusinessVisitsState extends State<AdminBusinessVisits> {
     for (int page = 0; page < pageCount; page++) {
       if (!permitted || !widget.store.isCurrentSession(session, user))
         throw StateError('Admin access changed. Reopen the console.');
-      final rows = List<Json>.from(await widget.store.backend!.rpc('my_visits',
-          {'p_business': widget.business, 'p_offset': page * 200}) as List);
+      final rows = List<Json>.from(
+        await widget.store.backend!.rpc('my_visits', {
+          'p_business': widget.business,
+          'p_offset': page * 200,
+        }) as List,
+      );
       all.addAll(rows);
       hasMore = rows.length == 200;
       if (!hasMore) break;
@@ -80,41 +89,55 @@ class _AdminBusinessVisitsState extends State<AdminBusinessVisits> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-      listenable: widget.store,
-      builder: (context, _) {
-        if (!permitted)
-          return const PageBody(children: [
-            PageHeading('Restricted access',
-                'Visits and refunds require an authorised admin session and MFA.'),
-          ]);
-        dataUser = widget.store.backend!.userId;
-        data ??= load();
-        return PageBody(children: [
+    listenable: widget.store,
+    builder: (context, _) {
+      if (!permitted)
+        return const PageBody(
+          children: [
+            PageHeading(
+              'Restricted access',
+              'Visits and refunds require an authorised admin session and MFA.',
+            ),
+          ],
+        );
+      dataUser = widget.store.backend!.userId;
+      data ??= load();
+      return PageBody(
+        children: [
           PageHeading(
-              'Visits & refunds', 'Only visits for this business are shown.',
-              action: OutlinedButton.icon(
-                  onPressed: () => setState(() => data = load()),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'))),
+            'Visits & refunds',
+            'Only visits for this business are shown.',
+            action: OutlinedButton.icon(
+              onPressed: () => setState(() => data = load()),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+            ),
+          ),
           AsyncPanel<List<Json>>(
-              key: ValueKey((dataUser, widget.store.sessionRevision)),
-              future: data!,
-              retry: () => setState(() => data = load()),
-              builder: (rows) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (rows.isEmpty)
-                          const Notice('No visits for this business.'),
-                        ...rows.map((v) => VisitCard(
-                            store: widget.store, visit: v, operator: true)),
-                        if (more)
-                          OutlinedButton(
-                              onPressed: () => setState(() {
-                                    pages++;
-                                    data = load();
-                                  }),
-                              child: const Text('Load more visits')),
-                      ])),
-        ]);
-      });
+            key: ValueKey((dataUser, widget.store.sessionRevision)),
+            future: data!,
+            retry: () => setState(() => data = load()),
+            builder: (rows) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (rows.isEmpty) const Notice('No visits for this business.'),
+                ...rows.map(
+                  (v) =>
+                      VisitCard(store: widget.store, visit: v, operator: true),
+                ),
+                if (more)
+                  OutlinedButton(
+                    onPressed: () => setState(() {
+                      pages++;
+                      data = load();
+                    }),
+                    child: const Text('Load more visits'),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }

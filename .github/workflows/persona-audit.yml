@@ -1,0 +1,30 @@
+name: SpicySelf persona UX audit
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/persona-audit.yml'
+  workflow_dispatch:
+
+jobs:
+  persona-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - name: Generate platform configuration
+        run: python3 tool/bootstrap.py
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Run role and layout journeys
+        run: flutter test --reporter expanded test/agent_audit_test.dart test/product_test.dart test/redesign_test.dart

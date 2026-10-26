@@ -83,11 +83,17 @@ def apply_branding(root):
             icon(size, folder / "ic_launcher.png")
             icon(size, folder / "ic_launcher_round.png")
             icon(foreground, folder / "ic_launcher_foreground.png")
+        colors = android / "res/values/colors.xml"
+        colors.parent.mkdir(parents=True, exist_ok=True)
+        colors.write_text('<?xml version="1.0" encoding="utf-8"?>\n'
+                          '<resources>\n'
+                          f'  <color name="spicyself_icon_background">{CREAM}</color>\n'
+                          '</resources>\n')
         adaptive = android / "res/mipmap-anydpi-v26"
         adaptive.mkdir(parents=True, exist_ok=True)
         xml = ('<?xml version="1.0" encoding="utf-8"?>\n'
                '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-               f'  <background android:drawable="{CREAM}" />\n'
+               '  <background android:drawable="@color/spicyself_icon_background" />\n'
                '  <foreground android:drawable="@mipmap/ic_launcher_foreground" />\n'
                '</adaptive-icon>\n')
         for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
