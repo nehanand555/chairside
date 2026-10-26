@@ -66,13 +66,22 @@ class _AccountScreenState extends State<AccountScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('We sent a sign-in link to ${sentToEmail ?? signInEmail.text.trim()}.',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'We sent a sign-in link to ${sentToEmail ?? signInEmail.text.trim()}.',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 16),
-                const Text('Open your email, find the message from spicyself, and tap the sign-in link to continue. Check your spam or junk folder if you cannot see it.'),
+                const Text(
+                  'Open your email, find the message from spicyself, and tap the sign-in link to continue. Check your spam or junk folder if you cannot see it.',
+                ),
                 const SizedBox(height: 20),
                 OutlinedButton.icon(
-                  onPressed: s.busy ? null : () => setState(() { emailSent = false; sentToEmail = null; }),
+                  onPressed: s.busy
+                      ? null
+                      : () => setState(() {
+                          emailSent = false;
+                          sentToEmail = null;
+                        }),
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Use another email or resend link'),
                 ),
@@ -141,7 +150,10 @@ class _AccountScreenState extends State<AccountScreen> {
                   final user = s.backend!.userId;
                   await s.backend!.signInWithEmail(email);
                   if (mounted && s.isCurrentSession(session, user))
-                    setState(() { emailSent = true; sentToEmail = email; });
+                    setState(() {
+                      emailSent = true;
+                      sentToEmail = email;
+                    });
                 }, icon: Icons.mail_outline),
               ],
             ),
