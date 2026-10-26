@@ -47,6 +47,12 @@ def runtime_defines():
         raise ValueError("build-config.json must contain a JSON object; it was not overwritten")
     for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "GOOGLE_MAPS_WEB_KEY", "SUPPORT_EMAIL"):
         existing[key] = os.environ[key] if key in os.environ else existing.get(key, "")
+    # Apple OAuth needs an Apple Developer Services ID and a configured Supabase
+    # provider. Keep the action hidden until the owner explicitly enables it.
+    existing["APPLE_SIGN_IN_ENABLED"] = (
+        os.environ.get("APPLE_SIGN_IN_ENABLED", str(existing.get("APPLE_SIGN_IN_ENABLED", False))).lower()
+        in ("true", "1")
+    )
     return existing
 
 
