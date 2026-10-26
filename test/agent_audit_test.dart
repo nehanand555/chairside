@@ -79,6 +79,18 @@ void main() {
     },
   );
 
+  testWidgets('business invitation is a visible filled button', (tester) async {
+    final backend = roles.RoleBackend();
+    final store = await launch(tester, backend);
+    final cta = find.byKey(const ValueKey('business-cta'));
+    await tester.ensureVisible(cta);
+    await tester.pumpAndSettle();
+    expect(cta, findsOneWidget);
+    expect(find.ancestor(of: cta, matching: find.byType(FilledButton)), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await unload(tester, store);
+  });
+
   testWidgets('brand logo returns to Explore from Profile', (tester) async {
     final backend = roles.RoleBackend();
     final store = await launch(tester, backend);
