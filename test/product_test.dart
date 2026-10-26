@@ -333,6 +333,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
+    // Never advertise Apple OAuth before the provider is configured.
+    expect(find.text('Continue with Apple'), findsNothing);
 
     final emailField = find.widgetWithText(TextField, 'Email address');
     await tester.enterText(emailField, 'customer@example.com');
