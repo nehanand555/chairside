@@ -190,6 +190,7 @@ class TestBackend extends Backend {
   Future<void> signInWithApple() async {
     appleSignIns++;
   }
+
   @override
   Future<void> signInWithGoogle() async {
     googleSignIns++;
