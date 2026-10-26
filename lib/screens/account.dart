@@ -9,9 +9,8 @@ import 'admin.dart';
 import 'common.dart';
 
 class AccountScreen extends StatefulWidget {
-  const AccountScreen({super.key, required this.store, this.onBusinessTap});
+  const AccountScreen({super.key, required this.store});
   final AppStore store;
-  final VoidCallback? onBusinessTap;
   @override
   State<AccountScreen> createState() => _AccountScreenState();
 }
@@ -240,50 +239,6 @@ class _AccountScreenState extends State<AccountScreen> {
                   ScaffoldMessenger.of(context)
                       .showSnackBar(const SnackBar(content: Text('Saved')));
               }, icon: Icons.check),
-            ],
-          ),
-        ),
-        Panel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'spicyself for Business',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                s.businessId == null
-                    ? 'Get discovered by local customers. Claim or register your barber shop, salon or home studio for free.'
-                    : s.account['business_status'] == 'approved'
-                    ? 'Manage your services, opening hours, bookings and live queue in one place.'
-                    : 'Track your application while our team reviews your business details.',
-              ),
-              if (s.businessId == null) ...[
-                const SizedBox(height: 12),
-                const Text(
-                  'Free listing includes:',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  '• A business profile customers can discover\n• Services, prices and opening hours\n• Booking and queue tools after approval and setup',
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Applications are reviewed before your business becomes publicly bookable.',
-                ),
-              ],
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed:
-                    widget.onBusinessTap ??
-                    () => openBusinessWorkspace(context, s),
-                icon: const Icon(Icons.storefront_outlined),
-                label: Text(
-                  s.businessId == null ? 'List your business' : 'Open business',
-                ),
-              ),
             ],
           ),
         ),

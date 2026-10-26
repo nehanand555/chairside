@@ -519,10 +519,7 @@ void main() {
       // Use the stable account shortcut instead of an ambiguous text label.
       await tapVisible(tester, find.byKey(const ValueKey('account-greeting')));
       expect(find.text('Your account'), findsOneWidget);
-      await tapVisible(
-        tester,
-        find.widgetWithText(OutlinedButton, 'Open business'),
-      );
+      await tapVisible(tester, find.byKey(const ValueKey('business-entry')));
       await tester.pumpAndSettle();
       expect(app.businessId, 'p1');
       expect(app.visits.single['status'], 'waiting');

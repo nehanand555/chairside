@@ -108,6 +108,34 @@ Future<void> close(WidgetTester tester, AppStore store) async {
 void main() {
   setUpAll(tz.initializeTimeZones);
 
+  testWidgets(
+    'separate business entry sits below About and opens the right entry flow',
+    (tester) async {
+      for (final signedIn in [false, true]) {
+        final backend = RoleBackend();
+        if (!signedIn) backend.userId = null;
+        final store = AppStore(backend);
+        await store.refreshAccount();
+        await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+        await tester.pumpAndSettle();
+        final entry = find.byKey(const ValueKey('business-entry'));
+        expect(
+          tester.getTopLeft(entry).dy,
+          greaterThan(tester.getTopLeft(find.text('About')).dy),
+        );
+        await fixtures.tapVisible(tester, entry);
+        expect(
+          find.text(
+            signedIn ? 'List your business' : 'Your business, in your pocket.',
+          ),
+          findsOneWidget,
+        );
+        expect(backend.operatorCalls, 0);
+        await close(tester, store);
+      }
+    },
+  );
+
   test(
     'no-pending notification response does not claim provider acceptance',
     () async {
@@ -145,7 +173,8 @@ void main() {
       expect(backend.discoverRequests.length, requests + 1);
       await tester.tap(find.text('Profile').last);
       await tester.pumpAndSettle();
-      expect(find.text('spicyself for Business'), findsOneWidget);
+      expect(find.text('List your business'), findsNothing);
+      expect(find.byKey(const ValueKey('business-entry')), findsOneWidget);
       expect(find.text('Administration'), findsOneWidget);
       await close(tester, store);
     },

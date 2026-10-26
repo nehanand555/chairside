@@ -155,11 +155,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
             onOpenMap: () => setState(() => index = 1),
           ),
           VisitsScreen(store: s),
-          AccountScreen(
-            key: ValueKey(s.backend!.userId),
-            store: s,
-            onBusinessTap: () => openBusinessWorkspace(context, s),
-          ),
+          AccountScreen(key: ValueKey(s.backend!.userId), store: s),
         ];
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -175,6 +171,21 @@ class _SpicySelfAppState extends State<SpicySelfApp>
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
                       child: SpicySelfBrand(),
+                    ),
+                  ),
+                ),
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(48),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12, bottom: 8),
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('business-entry'),
+                        onPressed: () => openBusinessWorkspace(context, s),
+                        icon: const Icon(Icons.storefront_outlined, size: 18),
+                        label: const Text('For business'),
+                      ),
                     ),
                   ),
                 ),
