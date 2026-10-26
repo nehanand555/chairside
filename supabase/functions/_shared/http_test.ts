@@ -5,7 +5,7 @@ Deno.test("official domains and configured staging pass preflight without bypass
   Deno.env.set("ALLOWED_ORIGINS", "https://chairside-staging.pages.dev");
   try {
     const handle = endpoint(async req => { await authenticated(req); return {ok:true}; });
-    for (const origin of ["https://www.spicyself.com", "https://spicyself.com", "https://chairside-staging.pages.dev"]) {
+    for (const origin of ["https://www.spicyself.com", "https://spicyself.com", "https://chairside-staging.pages.dev", "https://feature-home.chairside-staging.pages.dev"]) {
       const preflight = await handle(new Request("https://edge.invalid", {method:"OPTIONS",headers:{origin}}));
       if (preflight.status !== 204 || preflight.headers.get("access-control-allow-origin") !== origin) throw Error("Valid origin rejected");
       const unauthenticated = await handle(new Request("https://edge.invalid", {method:"POST",headers:{origin},body:"{}"}));
