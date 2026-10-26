@@ -129,7 +129,9 @@ class _AccountScreenState extends State<AccountScreen> {
                         : () async {
                             if (!accepted) {
                               await s.run(() async {
-                                throw Exception('Please read and accept the terms first');
+                                throw Exception(
+                                  'Please read and accept the terms first',
+                                );
                               });
                               return;
                             }
