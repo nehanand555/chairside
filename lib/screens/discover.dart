@@ -194,7 +194,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         .toList();
     final publicResults = onlyFavorites || category != null ? <Json>[] : places;
     return PageBody(
+      width: 960,
       children: [
+        const SizedBox(height: 16),
         PageHeading(
           widget.mapMode
               ? 'A little closer to your next look.'
@@ -203,10 +205,17 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ? 'Explore the map. Find a place that feels like you.'
               : 'Good hair. Your kind of place. Discover local barbers, salons and home studios.',
         ),
+        const SizedBox(height: 12),
         Panel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(
+                'Find a place near you',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 14),
               LocationSearchBar(
                 controller: search,
                 onSearch: () => load(text: true),
@@ -237,9 +246,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 18),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 12,
+          runSpacing: 12,
           children: [
             for (final item in const [
               (null, 'All'),
@@ -274,7 +284,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         if (loading) const DiscoverySkeleton(),
         if (error != null)
           Notice(
@@ -369,6 +379,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(warning!, style: Theme.of(context).textTheme.bodySmall),
           ),
+        const SizedBox(height: 26),
         SectionHeader(
           onlyFavorites ? 'Your saved places' : 'Book with spicyself',
           subtitle: 'Local members. Real services. Your next appointment.',
@@ -404,7 +415,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           const Text(
             'Category filters show spicyself members. Choose All to also browse public Google listings.',
           ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 40),
         Panel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

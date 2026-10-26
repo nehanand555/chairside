@@ -105,7 +105,18 @@ class _SpicySelfAppState extends State<SpicySelfApp>
             final wide = constraints.maxWidth >= 850;
             return Scaffold(
               appBar: AppBar(
-                title: const SpicySelfBrand(),
+                title: Tooltip(
+                  message: 'Back to Explore',
+                  child: InkWell(
+                    key: const ValueKey('home-logo'),
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => setState(() => index = 0),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: SpicySelfBrand(),
+                    ),
+                  ),
+                ),
                 actions: [
                   TextButton.icon(
                     onPressed: () => showLegal(context),

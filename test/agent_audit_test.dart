@@ -79,6 +79,19 @@ void main() {
     },
   );
 
+  testWidgets('brand logo returns to Explore from Profile', (tester) async {
+    final backend = roles.RoleBackend();
+    final store = await launch(tester, backend);
+    await tester.tap(find.text('Profile').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Find your next look.'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('home-logo')));
+    await tester.pumpAndSettle();
+    expect(find.text('Find your next look.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await unload(tester, store);
+  });
+
   testWidgets('guest: sign-in actions are visible but admin is hidden', (
     tester,
   ) async {
