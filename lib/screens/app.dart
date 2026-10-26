@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../data/store.dart';
+import '../data/auth_callback.dart';
 import 'account.dart';
 import 'business.dart';
 import 'common.dart';
@@ -14,10 +15,12 @@ class SpicySelfApp extends StatefulWidget {
     super.key,
     required this.store,
     this.startupError,
+    this.authCallback,
     this.mapsEnabled = true,
   });
   final AppStore store;
   final String? startupError;
+  final AuthCallbackResult? authCallback;
   final bool mapsEnabled;
   @override
   State<SpicySelfApp> createState() => _SpicySelfAppState();
@@ -26,6 +29,7 @@ class SpicySelfApp extends StatefulWidget {
 class _SpicySelfAppState extends State<SpicySelfApp>
     with WidgetsBindingObserver {
   int index = 0;
+  bool callbackConfirmed = false;
   Timer? _poll;
   bool _active = true;
   @override
@@ -33,7 +37,10 @@ class _SpicySelfAppState extends State<SpicySelfApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _poll = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (_active && widget.store.signedIn && !widget.store.busy)
+      if (_active &&
+          (widget.authCallback == null || callbackConfirmed) &&
+          widget.store.signedIn &&
+          !widget.store.busy)
         unawaited(widget.store.refreshVisits());
     });
   }
@@ -79,6 +86,60 @@ class _SpicySelfAppState extends State<SpicySelfApp>
               ],
             ),
           );
+        if (widget.authCallback != null && !callbackConfirmed) {
+          final callback = widget.authCallback!;
+          final matches =
+              callback.succeeded && callback.userId == s.backend?.userId;
+          return Scaffold(
+            appBar: AppBar(title: const SpicySelfBrand()),
+            body: PageBody(
+              width: 520,
+              children: [
+                PageHeading(
+                  matches
+                      ? 'Confirm your account'
+                      : 'This sign-in link did not finish',
+                  matches
+                      ? 'You’re signing in to spicyself with the account below.'
+                      : 'We haven’t continued with an account already saved in this browser. Request a new link in the same browser where you’ll open it.',
+                ),
+                if (matches) ...[
+                  Panel(child: Text(callback.email ?? 'Your verified account')),
+                  ActionButton(s, 'Continue with this account', () async {
+                    if (s.backend?.userId != callback.userId) return;
+                    await s.refreshAccount();
+                    if (mounted && s.backend?.userId == callback.userId) {
+                      setState(() {
+                        callbackConfirmed = true;
+                        index = 3;
+                      });
+                    }
+                  }),
+                ],
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: s.busy
+                      ? null
+                      : () => s.run(() async {
+                          await s.backend!.signOut();
+                          await s.refreshAccount();
+                          if (mounted && !s.signedIn) {
+                            setState(() {
+                              callbackConfirmed = true;
+                              index = 3;
+                            });
+                          }
+                        }),
+                  child: Text(
+                    matches ? 'Use a different account' : 'Back to sign in',
+                  ),
+                ),
+                if (s.error != null)
+                  Notice('Could not complete the request. Please try again.'),
+              ],
+            ),
+          );
+        }
         const destinations = <(String, IconData)>[
           ('Explore', Icons.explore_outlined),
           ('Map', Icons.map_outlined),

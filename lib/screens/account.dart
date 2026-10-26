@@ -72,7 +72,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Open your email, find the message from spicyself, and tap the sign-in link to continue. Check your spam or junk folder if you cannot see it.',
+                  'Open the newest email from spicyself in this same browser and profile, then tap the sign-in link. Check your spam or junk folder if you cannot see it.',
                 ),
                 const SizedBox(height: 20),
                 OutlinedButton.icon(
