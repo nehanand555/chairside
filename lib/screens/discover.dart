@@ -284,7 +284,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         if (loading) const DiscoverySkeleton(),
         if (error != null)
           Notice(
-            'We couldn’t load nearby places right now. Please try again.',
+            error!,
             action: TextButton(
               onPressed: () => load(),
               child: const Text('Try again'),
