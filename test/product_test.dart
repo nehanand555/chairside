@@ -344,7 +344,10 @@ void main() {
     await tapVisible(tester, find.text('Use another email or resend link'));
     expect(find.text('Send sign-in link'), findsOneWidget);
     await tapVisible(tester, find.text('Send sign-in link'));
-    expect(backend.emailSignIns, ['customer@example.com', 'customer@example.com']);
+    expect(backend.emailSignIns, [
+      'customer@example.com',
+      'customer@example.com',
+    ]);
     expect(find.text('Check your email'), findsOneWidget);
 
     backend.userId = 'customer';
