@@ -17,6 +17,7 @@ class TestBackend extends Backend {
   @override
   Stream<void> get authChanges => authEvents?.stream ?? const Stream.empty();
   int googleSignIns = 0;
+  int appleSignIns = 0;
   final List<String> emailSignIns = [];
   Object? googleError;
   final Map<String, String> googleNames = {};
@@ -186,6 +187,11 @@ class TestBackend extends Backend {
   @override
   Future<void> remove(String table, Json filters) async {}
   @override
+  Future<void> signInWithApple() async {
+    appleSignIns++;
+  }
+
+  @override
   Future<void> signInWithGoogle() async {
     googleSignIns++;
     if (googleError != null) throw googleError!;
@@ -327,6 +333,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
+    // Never advertise Apple OAuth before the provider is configured.
+    expect(find.text('Continue with Apple'), findsNothing);
 
     final emailField = find.widgetWithText(TextField, 'Email address');
     await tester.enterText(emailField, 'customer@example.com');

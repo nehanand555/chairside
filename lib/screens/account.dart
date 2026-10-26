@@ -121,6 +121,26 @@ class _AccountScreenState extends State<AccountScreen> {
                     throw Exception('Please read and accept the terms first');
                   await s.backend!.signInWithGoogle();
                 }, icon: Icons.login),
+                if (const bool.fromEnvironment('APPLE_SIGN_IN_ENABLED')) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: s.busy
+                        ? null
+                        : () async {
+                            if (!accepted) {
+                              await s.run(() async {
+                                throw Exception(
+                                  'Please read and accept the terms first',
+                                );
+                              });
+                              return;
+                            }
+                            await s.run(() => s.backend!.signInWithApple());
+                          },
+                    icon: const Icon(Icons.apple),
+                    label: const Text('Continue with Apple'),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 const Text(
                   'Or sign in with email',

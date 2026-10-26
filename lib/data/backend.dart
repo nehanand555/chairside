@@ -35,6 +35,8 @@ abstract class Backend {
   Future<void> remove(String table, Json filters);
   Future<Json> invoke(String name, Json data);
   Future<void> signInWithGoogle();
+  Future<void> signInWithApple() =>
+      throw UnimplementedError('Apple sign-in not configured');
   Future<void> signInWithEmail(String email) =>
       throw UnimplementedError('Email sign-in not configured');
   bool get hasVerifiedPhone => false;
@@ -152,6 +154,22 @@ class SupabaseBackend extends Backend {
     );
     if (!launched)
       throw Exception('Could not open Google sign-in. Please try again.');
+  }
+
+  @override
+  Future<void> signInWithApple() async {
+    final launched = await client.auth.signInWithOAuth(
+      OAuthProvider.apple,
+      redirectTo: kIsWeb
+          ? webAuthRedirect(Uri.base)
+          : 'nz.nehanand.spicyself://login-callback/',
+      authScreenLaunchMode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
+    );
+    if (!launched) {
+      throw Exception('Could not open Apple sign-in. Please try again.');
+    }
   }
 
   @override
