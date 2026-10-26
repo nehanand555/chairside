@@ -86,7 +86,7 @@ void main() {
     await tester.ensureVisible(cta);
     await tester.pumpAndSettle();
     expect(cta, findsOneWidget);
-    expect(find.ancestor(of: cta, matching: find.byType(FilledButton)), findsOneWidget);
+    expect(tester.widget<FilledButton>(cta), isA<FilledButton>());
     expect(tester.takeException(), isNull);
     await unload(tester, store);
   });
