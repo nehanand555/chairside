@@ -44,9 +44,11 @@ export function endpoint(handler: (req: Request) => Promise<unknown>) {
     // preview/staging origins remain explicitly configured on the server.
     // CORS never substitutes for authenticated() or database authorization.
     const allowed = ["https://www.spicyself.com", "https://spicyself.com",
+      "https://chairside-staging.pages.dev",
       ...(Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map(x => x.trim()).filter(Boolean)];
     const headers = new Headers({ "content-type": "application/json", "cache-control": "no-store", "vary": "Origin", "access-control-allow-headers": "authorization, apikey, content-type, x-client-info", "access-control-allow-methods": "POST, OPTIONS" });
-    if (origin && !allowed.includes(origin)) return new Response(JSON.stringify({ error: "Origin not allowed" }), { status: 403, headers });
+    const previewOrigin = origin ? /^https:\/\/[a-z0-9-]+\.chairside-staging\.pages\.dev$/.test(origin) : false;
+    if (origin && !allowed.includes(origin) && !previewOrigin) return new Response(JSON.stringify({ error: "Origin not allowed" }), { status: 403, headers });
     if (origin) headers.set("access-control-allow-origin", origin);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
     if (req.method !== "POST") return new Response(JSON.stringify({ error: "Use POST" }), { status: 405, headers });
