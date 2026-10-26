@@ -73,6 +73,19 @@ select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-00000000
 select pg_temp.must_fail('select public.account_context()','Please sign in');
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000005","aal":"aal1"}',true);
 select pg_temp.must_fail('select public.account_context()','Please sign in');
+-- Apple identity is allowed only when Supabase has verified the email.
+reset role;
+insert into auth.users(id,phone,email,email_confirmed_at) values
+('20000000-0000-4000-8000-000000000006',null,'apple-verified@example.test',now()),
+('20000000-0000-4000-8000-000000000007',null,'apple-unverified@example.test',null);
+insert into auth.identities(user_id,provider) values
+('20000000-0000-4000-8000-000000000006','apple'),
+('20000000-0000-4000-8000-000000000007','apple');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000006","aal":"aal1"}',true);
+select pg_temp.check_true(public.account_context() is not null,'verified Apple identity may access account');
+select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000007","aal":"aal1"}',true);
+select pg_temp.must_fail('select public.account_context()','Please sign in');
 select set_config('request.jwt.claims','{}',true);
 select pg_temp.must_fail('select public.account_context()','Please sign in');
 reset role;
