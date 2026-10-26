@@ -433,10 +433,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               const Text(
                 'Run a shop or home studio? Apply from Profile to get discovered. You don’t need a Google Maps listing.',
               ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => openBusinessWorkspace(context, s),
-                child: const Text('Meet spicyself for Business'),
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  key: const ValueKey('business-cta'),
+                  onPressed: () => openBusinessWorkspace(context, s),
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Meet spicyself for Business'),
+                ),
               ),
             ],
           ),
