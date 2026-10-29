@@ -174,12 +174,24 @@ class SupabaseBackend extends Backend {
 
   @override
   Future<void> signInWithEmail(String email) async {
-    await client.auth.signInWithOtp(
-      email: email.trim(),
-      emailRedirectTo: kIsWeb
-          ? webAuthRedirect(Uri.base)
-          : 'nz.nehanand.spicyself://login-callback/',
-    );
+    try {
+      await client.auth.signInWithOtp(
+        email: email.trim(),
+        emailRedirectTo: kIsWeb
+            ? webAuthRedirect(Uri.base)
+            : 'nz.nehanand.spicyself://login-callback/',
+      );
+    } on AuthException catch (e) {
+      if (e.statusCode == '429' ||
+          e.message.toLowerCase().contains('rate limit')) {
+        throw Exception(
+          'Too many sign-in emails have been requested. Check your inbox '
+          'for a previous link, or try again later. You can also sign in '
+          'with Google.',
+        );
+      }
+      rethrow;
+    }
   }
 
   @override
