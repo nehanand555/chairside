@@ -71,6 +71,7 @@ jobs:
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/google_auth.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/application_resubmission.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/admin_security.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/feedback.sql
       - run: psql -v ON_ERROR_STOP=1 -f supabase/tests/email_outbox.sql
       - run: python3 supabase/tests/concurrency.py
   functions:

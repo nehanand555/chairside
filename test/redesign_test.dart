@@ -34,7 +34,8 @@ class RoleBackend extends fixtures.TestBackend {
     if (name == 'operator_business') operatorCalls++;
     if (name == 'admin_email_overview')
       return {'pending': 0, 'accepted': 0, 'delivered': 0, 'failed': 0};
-    if (name == 'admin_email_events') return <Json>[];
+    if (name == 'admin_email_events' || name == 'admin_feedback')
+      return <Json>[];
     if (name == 'admin_overview' || name == 'admin_health') {
       adminCalls++;
       return name == 'admin_overview'
@@ -164,7 +165,7 @@ void main() {
               find.byType(NavigationDestination),
             )
             .map((d) => d.label),
-        ['Explore', 'Map', 'My Bookings', 'Profile'],
+        ['Explore', 'Map', 'My Bookings', 'Profile', 'Feedback'],
       );
       final requests = backend.discoverRequests.length;
       await tester.tap(find.text('Map').last);

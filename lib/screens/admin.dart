@@ -16,6 +16,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   Future<Json>? data;
+  Future<List<dynamic>>? feedback;
   Future<Json>? health;
   Future<Json>? emailHealth;
   Future<List<dynamic>>? emailEvents;
@@ -23,6 +24,9 @@ class _AdminScreenState extends State<AdminScreen> {
   String? loadedUser;
   int? loadedSession;
   void reload() {
+    feedback = widget.store.backend!
+        .rpc('admin_feedback')
+        .then((v) => List<dynamic>.from(v as List));
     data = widget.store.backend!
         .rpc('admin_overview')
         .then((v) => Json.from(v as Map));
@@ -49,6 +53,7 @@ class _AdminScreenState extends State<AdminScreen> {
       loadedSession = s.sessionRevision;
       loadedUser = s.backend?.userId;
       data = null;
+      feedback = null;
       health = null;
       emailHealth = null;
       emailEvents = null;
@@ -270,6 +275,48 @@ class _AdminScreenState extends State<AdminScreen> {
                             ? 'No applications waiting for review.'
                             : 'No businesses in this status.',
                       ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'User feedback',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    AsyncPanel<List<dynamic>>(
+                      future: feedback!,
+                      retry: () => setState(reload),
+                      builder: (items) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (items.isEmpty)
+                            const Text(
+                              'No new feedback. You’re all caught up.',
+                            ),
+                          ...items.map(
+                            (item) => Panel(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item['message'] as String),
+                                  const SizedBox(height: 8),
+                                  Text(nzTime(item['created_at'])),
+                                  TextButton(
+                                    onPressed: s.busy
+                                        ? null
+                                        : () => s.run(() async {
+                                            await s.backend!.rpc(
+                                              'resolve_feedback',
+                                              {'p_feedback': item['id']},
+                                            );
+                                            if (mounted) setState(reload);
+                                          }),
+                                    child: const Text('Mark as read'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     Text(
                       'Open reports (${reports.length})',

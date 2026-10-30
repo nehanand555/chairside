@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/store.dart';
 import '../data/auth_callback.dart';
 import 'account.dart';
+import 'feedback.dart';
 import 'business.dart';
 import 'common.dart';
 import 'discover.dart';
@@ -145,6 +146,7 @@ class _SpicySelfAppState extends State<SpicySelfApp>
           ('Map', Icons.map_outlined),
           ('My Bookings', Icons.calendar_month_outlined),
           ('Profile', Icons.person_outline),
+          ('Feedback', Icons.chat_bubble_outline),
         ];
         final selected = index;
         final pages = <Widget>[
@@ -156,6 +158,10 @@ class _SpicySelfAppState extends State<SpicySelfApp>
           ),
           VisitsScreen(store: s),
           AccountScreen(key: ValueKey(s.backend!.userId), store: s),
+          FeedbackScreen(
+            key: ValueKey(('feedback', s.backend!.userId, s.sessionRevision)),
+            store: s,
+          ),
         ];
         return LayoutBuilder(
           builder: (context, constraints) {
