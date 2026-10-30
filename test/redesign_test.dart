@@ -1,6 +1,7 @@
 import 'package:chairside/data/backend.dart';
 import 'package:chairside/data/store.dart';
 import 'package:chairside/screens/admin.dart';
+import 'package:chairside/screens/account.dart';
 import 'package:chairside/screens/app.dart';
 import 'package:chairside/screens/business.dart';
 import 'package:chairside/screens/common.dart';
@@ -313,6 +314,7 @@ void main() {
       );
       expect(backend.operatorCalls, 0);
       expect(find.text('Business settings'), findsNothing);
+      expect(find.byType(MfaPanel), findsNothing);
       if (status == 'pending')
         expect(find.text('Application under review'), findsOneWidget);
       if (status == 'rejected') {
@@ -349,6 +351,61 @@ void main() {
       expect(tester.takeException(), isNull);
       await close(tester, store);
     }
+  });
+
+  testWidgets('Profile never displays business authenticator setup', (
+    tester,
+  ) async {
+    for (final status in ['pending', 'rejected', 'approved', 'suspended']) {
+      final backend = RoleBackend()
+        ..owner = true
+        ..status = status
+        ..mfa = false;
+      final store = await mount(
+        tester,
+        backend,
+        (s) => AccountScreen(store: s),
+      );
+      expect(find.byType(MfaPanel), findsNothing);
+      expect(find.text('Set up authenticator'), findsNothing);
+      expect(backend.operatorCalls, 0);
+      await close(tester, store);
+    }
+  });
+
+  testWidgets('business entry asks for MFA only after approval', (
+    tester,
+  ) async {
+    final backend = RoleBackend()
+      ..owner = true
+      ..status = 'pending'
+      ..mfa = false;
+    final store = AppStore(backend);
+    await store.refreshAccount();
+    await tester.pumpWidget(SpicySelfApp(store: store, mapsEnabled: false));
+    await tester.pumpAndSettle();
+    await fixtures.tapVisible(tester, find.text('Profile').last);
+    expect(find.byType(MfaPanel), findsNothing);
+    await fixtures.tapVisible(
+      tester,
+      find.byKey(const ValueKey('business-entry')),
+    );
+    expect(find.text('Application under review'), findsOneWidget);
+    expect(find.byType(MfaPanel), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    backend.status = 'approved';
+    await store.refreshAccount();
+    await tester.pumpAndSettle();
+    expect(find.byType(MfaPanel), findsNothing);
+    await fixtures.tapVisible(
+      tester,
+      find.byKey(const ValueKey('business-entry')),
+    );
+    expect(find.byType(MfaPanel), findsOneWidget);
+    expect(find.text('Protect your business'), findsOneWidget);
+    expect(backend.operatorCalls, 0);
+    await close(tester, store);
   });
 
   testWidgets('approved owners still need MFA before loading management data', (

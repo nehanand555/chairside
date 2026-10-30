@@ -263,7 +263,6 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ),
           ),
-        if (s.businessId != null || s.isAdmin) MfaPanel(store: s),
         OutlinedButton(
           onPressed: s.busy
               ? null
