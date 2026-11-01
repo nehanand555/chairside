@@ -1,4 +1,4 @@
-import { authenticated, body, endpoint, env, HttpError, limited, rpc, service, uuid } from "../_shared/http.ts";
+import { authenticated, body, endpoint, HttpError, limited, rpc, service, uuid } from "../_shared/http.ts";
 import { stripe, Stripe } from "../_shared/stripe.ts";
 
 Deno.serve(endpoint(async req => {
@@ -21,9 +21,9 @@ Deno.serve(endpoint(async req => {
     // Never silently route platform-liable destination charges for the
     // Stripe-billed connected-account model. Enabling direct charges requires
     // corresponding webhook and refund routing changes, verified end-to-end.
-    if (Deno.env.get("STRIPE_CONNECT_CHARGE_MODEL") === "direct") {
-      throw new HttpError(503, "Online checkout is being upgraded for direct business payments. Pay at the business for now.");
-    }
+    // No legacy destination-charge fallback: the new connected accounts must
+    // never be charged on the platform by mistake, even with a test key.
+    throw new HttpError(503, "Online checkout is being upgraded for direct business payments. Pay at the business for now.");
     const checkout = await rpc<{ id: string; url: string | null; amount: number; expires_at: string; account: string; service_name: string }>(db, "integration_checkout", { p_user: user.id, p_visit: uuid(data.visit_id) });
     if (checkout.url) return { url: checkout.url };
     const methods: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = ["card"];
