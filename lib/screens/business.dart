@@ -10,8 +10,12 @@ import 'package:timezone/timezone.dart' as tz;
 import '../data/backend.dart';
 import '../data/store.dart';
 import 'account.dart';
+import 'app.dart';
 import 'common.dart';
 import 'visits.dart';
+import 'workspace.dart';
+import 'scheduling.dart';
+import 'clients.dart';
 
 Future<void> sendApplicationNotification(
   AppStore store,
@@ -917,7 +921,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
   late Future<List<String>> photos;
   Future<Json>? membership;
   int section = 0;
-  DateTime calendarDay = DateTime.now();
+  Future<Json>? overview;
   @override
   void initState() {
     super.initState();
@@ -926,6 +930,12 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
 
   void reload() {
     membership = null;
+    overview = widget.store.backend!
+        .rpc('business_overview', {
+          'p_business': widget.id,
+          'p_day': dayKey(nzNow()),
+        })
+        .then((value) => Json.from(value as Map));
     business = widget.store.backend!
         .rpc('operator_business', {'p_business': widget.id})
         .then((v) => Json.from(v as Map));
@@ -949,6 +959,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
     children: [
       AsyncPanel<Json>(
         future: business,
+        loading: const WorkspaceSkeleton(),
         retry: () => setState(reload),
         builder: (b) {
           final s = widget.store;
@@ -990,592 +1001,576 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     (section != 3 || v['kind'] == 'queue'),
               )
               .toList();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PageHeading(
-                b['name'] as String,
-                'Your shop floor, wherever you are.',
-                action: OutlinedButton.icon(
-                  onPressed: () {
-                    setState(reload);
-                    s.refreshVisits();
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
-                ),
+          const sections = [0, 4, 3, 6, 2, 1, 5];
+          return WorkspaceNavigation(
+            selected: sections.indexOf(section),
+            onSelected: (value) => setState(() => section = sections[value]),
+            destinations: const [
+              WorkspaceDestination('Overview', Icons.dashboard_outlined),
+              WorkspaceDestination('Calendar', Icons.calendar_today_outlined),
+              WorkspaceDestination('Live queue', Icons.groups_outlined),
+              WorkspaceDestination('Clients', Icons.people_outline),
+              WorkspaceDestination('History', Icons.history),
+              WorkspaceDestination(
+                'Business settings',
+                Icons.settings_outlined,
               ),
-              if (b['status'] != 'approved')
-                Notice(
-                  'Listing status: ${b['status']}. ${b['review_note'] ?? ''} ${b['status'] == 'pending' ? 'Add services and hours below so an admin can review your application.' : ''}',
-                ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  StatusPill(
-                    '${visits.where((v) => v['kind'] == 'queue' && v['status'] == 'waiting').length} waiting',
-                    icon: Icons.groups_outlined,
-                  ),
-                  StatusPill(
-                    '${visits.where((v) => v['status'] == 'serving').length} in the chair',
-                    icon: Icons.content_cut,
-                  ),
-                  StatusPill(
-                    '${visits.where((v) => v['kind'] == 'appointment' && ['booked', 'serving'].contains(v['status']) && dayKey(tz.TZDateTime.from(DateTime.parse(v['starts_at'] as String), tz.getLocation('Pacific/Auckland'))) == dayKey(nzNow())).length} appointments today',
-                    icon: Icons.today_outlined,
-                  ),
-                ],
+              WorkspaceDestination(
+                'Membership & billing',
+                Icons.receipt_long_outlined,
               ),
-              const SizedBox(height: 16),
-              if (setupComplete < setupSteps.length)
-                Panel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Finish setting up your business ($setupComplete/${setupSteps.length})',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Complete these steps so customers can see accurate services and availability.',
-                      ),
-                      const SizedBox(height: 8),
-                      for (final step in setupSteps)
-                        ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(
-                            step.$2
-                                ? Icons.check_circle_outline
-                                : Icons.radio_button_unchecked,
-                          ),
-                          title: Text(step.$1),
-                        ),
-                      OutlinedButton.icon(
-                        onPressed: () => setState(() => section = 1),
-                        icon: const Icon(Icons.settings_outlined),
-                        label: const Text('Complete business setup'),
-                      ),
-                    ],
+            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PageHeading(
+                  b['name'] as String,
+                  'Your shop floor, wherever you are.',
+                  action: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(reload);
+                      s.refreshVisits();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh'),
                   ),
                 ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  StatusPill(
-                    '$completedVisits completed visits',
-                    icon: Icons.check_circle_outline,
+                if (b['status'] != 'approved')
+                  Notice(
+                    'Listing status: ${b['status']}. ${b['review_note'] ?? ''} ${b['status'] == 'pending' ? 'Add services and hours below so an admin can review your application.' : ''}',
                   ),
-                  StatusPill(
-                    '$cancelledVisits cancelled visits',
-                    icon: Icons.event_busy_outlined,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: const Text('Live queue'),
-                    selected: section == 3,
-                    onSelected: (_) => setState(() => section = 3),
-                  ),
-                  ChoiceChip(
-                    label: Text('Today & upcoming (${active.length})'),
-                    selected: section == 0,
-                    onSelected: (_) => setState(() => section = 0),
-                  ),
-                  ChoiceChip(
-                    label: const Text('Business settings'),
-                    selected: section == 1,
-                    onSelected: (_) => setState(() => section = 1),
-                  ),
-                  ChoiceChip(
-                    label: const Text('Membership & billing'),
-                    selected: section == 5,
-                    onSelected: (_) => setState(() => section = 5),
-                  ),
-                  ChoiceChip(
-                    label: const Text('Calendar'),
-                    selected: section == 4,
-                    onSelected: (_) => setState(() => section = 4),
-                  ),
-                  ChoiceChip(
-                    label: const Text('History'),
-                    selected: section == 2,
-                    onSelected: (_) => setState(() => section = 2),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              if (section == 4) ...[
-                Panel(
-                  child: CalendarDatePicker(
-                    initialDate: calendarDay,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2035),
-                    onDateChanged: (day) => setState(() => calendarDay = day),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Appointments for ${calendarDay.day}/${calendarDay.month}/${calendarDay.year}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                if (!visits.any(
-                  (v) =>
-                      v['kind'] == 'appointment' &&
-                      dayKey(
-                            tz.TZDateTime.from(
-                              DateTime.parse(v['starts_at'] as String),
-                              tz.getLocation('Pacific/Auckland'),
-                            ),
-                          ) ==
-                          dayKey(
-                            tz.TZDateTime(
-                              tz.getLocation('Pacific/Auckland'),
-                              calendarDay.year,
-                              calendarDay.month,
-                              calendarDay.day,
-                            ),
-                          ),
-                ))
-                  const Notice('No appointments on this date.'),
-                for (final v in visits.where(
-                  (v) =>
-                      v['kind'] == 'appointment' &&
-                      dayKey(
-                            tz.TZDateTime.from(
-                              DateTime.parse(v['starts_at'] as String),
-                              tz.getLocation('Pacific/Auckland'),
-                            ),
-                          ) ==
-                          dayKey(
-                            tz.TZDateTime(
-                              tz.getLocation('Pacific/Auckland'),
-                              calendarDay.year,
-                              calendarDay.month,
-                              calendarDay.day,
-                            ),
-                          ),
-                ))
-                  VisitCard(store: s, visit: v, operator: true),
-              ],
-              if (section == 0 || section == 3) ...[
-                if (b['kind'] != 'home')
-                  Panel(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                if (section == 0) ...[
+                  AsyncPanel<Json>(
+                    future: overview!,
+                    retry: () => setState(reload),
+                    builder: (metrics) => Wrap(
+                      spacing: 12,
+                      runSpacing: 0,
                       children: [
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: b['queue_open'] == true,
-                          onChanged: s.busy || b['status'] != 'approved'
-                              ? null
-                              : (v) => s.run(
-                                  () => configure('queue', {'open': v}),
-                                ),
-                          title: const Text('Accept new queue arrivals'),
-                          subtitle: const Text(
-                            'Pausing keeps everyone already waiting.',
-                          ),
+                        WorkspaceMetric(
+                          label: 'Appointments today',
+                          value: '${metrics['appointments']}',
+                          detail: 'Booked, serving and completed appointments',
+                          icon: Icons.today_outlined,
                         ),
-                        OutlinedButton.icon(
-                          onPressed: s.busy || b['status'] != 'approved'
-                              ? null
-                              : () => addWalkIn(context, b),
-                          icon: const Icon(Icons.person_add_alt_1),
-                          label: const Text('Add walk-in'),
+                        WorkspaceMetric(
+                          label: 'Booked value today',
+                          value: money(metrics['booked_value_cents']),
+                          detail: 'Scheduled appointment value, not revenue or payments received',
+                          icon: Icons.receipt_long_outlined,
+                        ),
+                        WorkspaceMetric(
+                          label: 'Waiting now',
+                          value: '${metrics['waiting']}',
+                          detail: 'Customers currently in your live queue',
+                          icon: Icons.groups_outlined,
+                        ),
+                        WorkspaceMetric(
+                          label: 'Active professionals / chairs',
+                          value: '${metrics['active_resources']}',
+                          detail:
+                              'Enabled resources, not a staff attendance count',
+                          icon: Icons.chair_outlined,
                         ),
                       ],
                     ),
                   ),
-                if (active.isEmpty)
-                  const Notice(
-                    'No active visits. Your next customer will appear here.',
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => DetailScaffold(
+                              store: s,
+                              title: 'New appointment',
+                              child: AppointmentEditor(store: s, business: b),
+                            ),
+                          ),
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: const Text('New appointment'),
+                      ),
+                      OutlinedButton(
+                        onPressed: () => setState(() => section = 4),
+                        child: const Text('Open calendar'),
+                      ),
+                    ],
                   ),
-                for (final r in resources.where(
-                  (r) => r['active'] == true,
-                )) ...[
+                  const SizedBox(height: 20),
+                ],
+                if (section == 0 && setupComplete < setupSteps.length)
+                  Panel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Finish setting up your business ($setupComplete/${setupSteps.length})',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Complete these steps so customers can see accurate services and availability.',
+                        ),
+                        const SizedBox(height: 8),
+                        for (final step in setupSteps)
+                          ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              step.$2
+                                  ? Icons.check_circle_outline
+                                  : Icons.radio_button_unchecked,
+                            ),
+                            title: Text(step.$1),
+                          ),
+                        OutlinedButton.icon(
+                          onPressed: () => setState(() => section = 1),
+                          icon: const Icon(Icons.settings_outlined),
+                          label: const Text('Complete business setup'),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (section == 0)
                   Text(
-                    r['name'] as String,
-                    style: Theme.of(context).textTheme.titleLarge,
+                    '$completedVisits completed · $cancelledVisits cancelled in loaded history',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  const SizedBox(height: 12),
-                  ...active
-                      .where((v) => v['resource_id'] == r['id'])
+                const SizedBox(height: 20),
+                if (section == 4)
+                  BusinessSchedule(
+                    key: ValueKey((widget.id, s.sessionRevision)),
+                    store: s,
+                    business: b,
+                  ),
+                if (section == 6)
+                  BusinessClients(
+                    key: ValueKey(('clients', widget.id, s.sessionRevision)),
+                    store: s,
+                    business: b,
+                  ),
+                if (section == 0 || section == 3) ...[
+                  if (b['kind'] != 'home')
+                    Panel(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: b['queue_open'] == true,
+                            onChanged: s.busy || b['status'] != 'approved'
+                                ? null
+                                : (v) => s.run(
+                                    () => configure('queue', {'open': v}),
+                                  ),
+                            title: const Text('Accept new queue arrivals'),
+                            subtitle: const Text(
+                              'Pausing keeps everyone already waiting.',
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: s.busy || b['status'] != 'approved'
+                                ? null
+                                : () => addWalkIn(context, b),
+                            icon: const Icon(Icons.person_add_alt_1),
+                            label: const Text('Add walk-in'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (active.isEmpty)
+                    const Notice(
+                      'No active visits. Your next customer will appear here.',
+                    ),
+                  for (final r in resources.where(
+                    (r) => r['active'] == true,
+                  )) ...[
+                    Text(
+                      r['name'] as String,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    ...active
+                        .where((v) => v['resource_id'] == r['id'])
+                        .map(
+                          (v) => VisitCard(store: s, visit: v, operator: true),
+                        ),
+                  ],
+                ],
+                if (section == 2)
+                  ...visits
+                      .where(
+                        (v) => ![
+                          'waiting',
+                          'booked',
+                          'serving',
+                        ].contains(v['status']),
+                      )
+                      .toList()
+                      .reversed
                       .map(
                         (v) => VisitCard(store: s, visit: v, operator: true),
                       ),
+                if ((section == 0 || section == 2 || section == 3) &&
+                    s.moreVisits)
+                  ActionButton(s, 'Load more visits', s.loadMoreVisits),
+                if (section == 1) ...[
+                  WorkspaceGroup(
+                    title: 'Business profile',
+                    icon: Icons.storefront_outlined,
+                    children: [
+                      Text(
+                        b['name'] as String,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      Text('${b['suburb']} · ${b['kind']}'),
+                      const SizedBox(height: 8),
+                      Text(b['description'] as String),
+                      const SizedBox(height: 16),
+                      const Notice(
+                        'Name, address and ownership changes require review. Finish active visits before requesting a replacement listing. Home studio addresses remain private.',
+                      ),
+                    ],
+                  ),
+                  WorkspaceGroup(
+                    title: 'Services & pricing',
+                    icon: Icons.content_cut,
+                    children: [
+                      Text(
+                        'Services',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 12),
+                      for (final v in services)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(v['name'] as String),
+                          subtitle: Text(
+                            '${v['minutes']} min • ${money(v['price_cents'])} • ${v['active'] == true ? 'active' : 'hidden'}',
+                          ),
+                          trailing: IconButton(
+                            onPressed: () => editService(context, v),
+                            icon: const Icon(Icons.edit_outlined),
+                            tooltip: 'Edit service',
+                          ),
+                        ),
+                      OutlinedButton.icon(
+                        onPressed: () => editService(context, null),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add service'),
+                      ),
+                    ],
+                  ),
+                  WorkspaceGroup(
+                    title: 'Working hours',
+                    icon: Icons.schedule,
+                    children: [
+                      Text(
+                        'Opening hours',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const Text(
+                        'New Zealand time. To change hours, finish or cancel active visits first.',
+                      ),
+                      const SizedBox(height: 12),
+                      for (final h in b['hours'] as List)
+                        Text(
+                          '${const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][(h['weekday'] as int) - 1]} ${(h['opens'] as String).substring(0, 5)}–${(h['closes'] as String).substring(0, 5)}',
+                        ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () => editHours(
+                          context,
+                          List<Json>.from(b['hours'] as List),
+                        ),
+                        child: const Text('Edit weekly hours'),
+                      ),
+                    ],
+                  ),
+                  WorkspaceGroup(
+                    title: 'Chairs & breaks',
+                    icon: Icons.chair_outlined,
+                    children: [
+                      Text(
+                        'Chairs / professionals',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const Text(
+                        'Each chair has its own appointments and queue. Everyone uses the business opening hours.',
+                      ),
+                      for (final r in resources)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(r['name'] as String),
+                          subtitle: Text(
+                            r['active'] == true ? 'Active' : 'Hidden',
+                          ),
+                          trailing: IconButton(
+                            onPressed: () => editResource(context, r),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                        ),
+                      OutlinedButton.icon(
+                        onPressed: () => editResource(context, null),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add chair'),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () => addBreak(context, resources),
+                        child: const Text('Schedule a break'),
+                      ),
+                      for (final r in b['breaks'] as List? ?? [])
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Break: ${nzTime(r['starts_at'])}'),
+                          subtitle: Text('Until ${nzTime(r['ends_at'])}'),
+                          trailing: IconButton(
+                            onPressed: () => s.run(
+                              () => configure('remove_break', {'id': r['id']}),
+                            ),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ),
+                    ],
+                  ),
+                  WorkspaceGroup(
+                    title: 'Portfolio',
+                    icon: Icons.photo_library_outlined,
+                    children: [
+                      Text(
+                        'Portfolio photos',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const Text(
+                        'Public images. Upload only photos you have permission to publish. Maximum 5 MB each.',
+                      ),
+                      const SizedBox(height: 12),
+                      AsyncPanel<List<String>>(
+                        future: photos,
+                        builder: (urls) => Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: urls
+                              .map(
+                                (url) => SizedBox(
+                                  width: 160,
+                                  child: Column(
+                                    children: [
+                                      Image.network(
+                                        url,
+                                        width: 160,
+                                        height: 120,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, e, st) => const Icon(
+                                          Icons.broken_image_outlined,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => s.run(() async {
+                                          await s.backend!.deletePhoto(
+                                            widget.id,
+                                            url,
+                                          );
+                                          if (mounted) setState(reload);
+                                        }),
+                                        child: const Text('Remove'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: s.busy
+                            ? null
+                            : () => s.run(() async {
+                                final image = await ImagePicker().pickImage(
+                                  source: ImageSource.gallery,
+                                  maxWidth: 1800,
+                                  imageQuality: 85,
+                                );
+                                if (image == null) return;
+                                await s.backend!.uploadPhoto(
+                                  widget.id,
+                                  await image.readAsBytes(),
+                                  image.name.split('.').last.toLowerCase(),
+                                );
+                                if (mounted) setState(reload);
+                              }),
+                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                        label: const Text('Add photo'),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: s.busy
+                        ? null
+                        : () async {
+                            if (await confirm(
+                              context,
+                              'Close your spicyself listing?',
+                              'Finish or cancel all visits first. This removes your listing from search. Historical financial records are retained.',
+                              store: s,
+                              requireMfa: true,
+                              action: 'Close listing',
+                            ))
+                              await s.run(() async {
+                                await configure('close', {});
+                                await s.refreshAccount();
+                              });
+                          },
+                    child: const Text('Close business listing'),
+                  ),
+                ],
+                if (section == 5) ...[
+                  const Notice(
+                    'Your NZ\$49.99 monthly spicyself membership is separate from customer haircut payments. Customer payments will go to your connected Stripe business account when that feature launches.',
+                  ),
+                  WorkspaceGroup(
+                    title: 'spicyself Business membership',
+                    icon: Icons.workspace_premium_outlined,
+                    children: [
+                      Text(
+                        'NZ\$49.99 per month',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Monthly membership for in-app business management. External public listings remain free. Your subscription is separate from customer payments.',
+                      ),
+                      const SizedBox(height: 12),
+                      AsyncPanel<Json>(
+                        future: membership ??= s.backend!.invoke(
+                          'business-subscription',
+                          {'action': 'status', 'business_id': widget.id},
+                        ),
+                        retry: () => setState(() => membership = null),
+                        builder: (m) {
+                          final status = (m['status'] ?? 'not_subscribed')
+                              .toString();
+                          final active =
+                              status == 'active' || status == 'trialing';
+                          final checkoutEnabled = m['checkout_enabled'] == true;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Membership status: ${status.replaceAll('_', ' ')}',
+                              ),
+                              const SizedBox(height: 10),
+                              if (!checkoutEnabled && !active)
+                                const Text(
+                                  'Membership payments are being prepared. No subscription charge will be made yet.',
+                                ),
+                              if (!active && checkoutEnabled)
+                                ActionButton(
+                                  s,
+                                  'Subscribe for NZ\$49.99/month',
+                                  () async {
+                                    final result = await s.backend!.invoke(
+                                      'business-subscription',
+                                      {
+                                        'action': 'checkout',
+                                        'business_id': widget.id,
+                                      },
+                                    );
+                                    await openLink(result['url'] as String);
+                                  },
+                                  icon: Icons.credit_card_outlined,
+                                ),
+                              if (active ||
+                                  (status != 'not_subscribed' &&
+                                      status != 'checkout_pending'))
+                                OutlinedButton(
+                                  onPressed: s.busy
+                                      ? null
+                                      : () => s.run(() async {
+                                          final result = await s.backend!
+                                              .invoke('business-subscription', {
+                                                'action': 'portal',
+                                                'business_id': widget.id,
+                                              });
+                                          await openLink(
+                                            result['url'] as String,
+                                          );
+                                        }),
+                                  child: const Text('Manage subscription'),
+                                ),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => membership = null),
+                                child: const Text('Refresh membership status'),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  WorkspaceGroup(
+                    title: 'Customer payments & payouts',
+                    icon: Icons.payments_outlined,
+                    children: [
+                      Text(
+                        'Payments & payouts',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      Text(
+                        b['online_payments'] == true
+                            ? 'Your Stripe business account is connected. Customer online checkout is not live yet.'
+                            : 'Complete Stripe verification to accept online payments. Customers can still pay at your business.',
+                      ),
+                      const SizedBox(height: 12),
+                      ActionButton(
+                        s,
+                        'Set up / update Stripe account',
+                        () async {
+                          final result = await s.backend!.invoke('payments', {
+                            'action': 'connect',
+                            'business_id': widget.id,
+                          });
+                          await openLink(result['url'] as String);
+                        },
+                        icon: Icons.account_balance_outlined,
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: s.busy
+                            ? null
+                            : () => s.run(() async {
+                                await s.backend!.invoke('payments', {
+                                  'action': 'sync',
+                                  'business_id': widget.id,
+                                });
+                                if (mounted) setState(reload);
+                              }),
+                        child: const Text('Refresh payment status'),
+                      ),
+                      const Text(
+                        'Stripe processing fees apply. Available wallets depend on the customer’s device. Afterpay requires separate activation and eligibility.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ],
               ],
-              if (section == 2)
-                ...visits
-                    .where(
-                      (v) => ![
-                        'waiting',
-                        'booked',
-                        'serving',
-                      ].contains(v['status']),
-                    )
-                    .toList()
-                    .reversed
-                    .map((v) => VisitCard(store: s, visit: v, operator: true)),
-              if ((section == 0 || section == 2 || section == 3) &&
-                  s.moreVisits)
-                ActionButton(s, 'Load more visits', s.loadMoreVisits),
-              if (section == 1) ...[
-                WorkspaceGroup(
-                  title: 'Business profile',
-                  icon: Icons.storefront_outlined,
-                  children: [
-                    Text(
-                      b['name'] as String,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    Text('${b['suburb']} · ${b['kind']}'),
-                    const SizedBox(height: 8),
-                    Text(b['description'] as String),
-                    const SizedBox(height: 16),
-                    const Notice(
-                      'Name, address and ownership changes require review. Finish active visits before requesting a replacement listing. Home studio addresses remain private.',
-                    ),
-                  ],
-                ),
-                WorkspaceGroup(
-                  title: 'Services & pricing',
-                  icon: Icons.content_cut,
-                  children: [
-                    Text(
-                      'Services',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    for (final v in services)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(v['name'] as String),
-                        subtitle: Text(
-                          '${v['minutes']} min • ${money(v['price_cents'])} • ${v['active'] == true ? 'active' : 'hidden'}',
-                        ),
-                        trailing: IconButton(
-                          onPressed: () => editService(context, v),
-                          icon: const Icon(Icons.edit_outlined),
-                          tooltip: 'Edit service',
-                        ),
-                      ),
-                    OutlinedButton.icon(
-                      onPressed: () => editService(context, null),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add service'),
-                    ),
-                  ],
-                ),
-                WorkspaceGroup(
-                  title: 'Working hours',
-                  icon: Icons.schedule,
-                  children: [
-                    Text(
-                      'Opening hours',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const Text(
-                      'New Zealand time. To change hours, finish or cancel active visits first.',
-                    ),
-                    const SizedBox(height: 12),
-                    for (final h in b['hours'] as List)
-                      Text(
-                        '${const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][(h['weekday'] as int) - 1]} ${(h['opens'] as String).substring(0, 5)}–${(h['closes'] as String).substring(0, 5)}',
-                      ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: () => editHours(
-                        context,
-                        List<Json>.from(b['hours'] as List),
-                      ),
-                      child: const Text('Edit weekly hours'),
-                    ),
-                  ],
-                ),
-                WorkspaceGroup(
-                  title: 'Chairs & breaks',
-                  icon: Icons.chair_outlined,
-                  children: [
-                    Text(
-                      'Chairs / professionals',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const Text(
-                      'Each chair has its own appointments and queue. Everyone uses the business opening hours.',
-                    ),
-                    for (final r in resources)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(r['name'] as String),
-                        subtitle: Text(
-                          r['active'] == true ? 'Active' : 'Hidden',
-                        ),
-                        trailing: IconButton(
-                          onPressed: () => editResource(context, r),
-                          icon: const Icon(Icons.edit_outlined),
-                        ),
-                      ),
-                    OutlinedButton.icon(
-                      onPressed: () => editResource(context, null),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add chair'),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: () => addBreak(context, resources),
-                      child: const Text('Schedule a break'),
-                    ),
-                    for (final r in b['breaks'] as List? ?? [])
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('Break: ${nzTime(r['starts_at'])}'),
-                        subtitle: Text('Until ${nzTime(r['ends_at'])}'),
-                        trailing: IconButton(
-                          onPressed: () => s.run(
-                            () => configure('remove_break', {'id': r['id']}),
-                          ),
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                      ),
-                  ],
-                ),
-                WorkspaceGroup(
-                  title: 'Portfolio',
-                  icon: Icons.photo_library_outlined,
-                  children: [
-                    Text(
-                      'Portfolio photos',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const Text(
-                      'Public images. Upload only photos you have permission to publish. Maximum 5 MB each.',
-                    ),
-                    const SizedBox(height: 12),
-                    AsyncPanel<List<String>>(
-                      future: photos,
-                      builder: (urls) => Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: urls
-                            .map(
-                              (url) => SizedBox(
-                                width: 160,
-                                child: Column(
-                                  children: [
-                                    Image.network(
-                                      url,
-                                      width: 160,
-                                      height: 120,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, e, st) => const Icon(
-                                        Icons.broken_image_outlined,
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => s.run(() async {
-                                        await s.backend!.deletePhoto(
-                                          widget.id,
-                                          url,
-                                        );
-                                        if (mounted) setState(reload);
-                                      }),
-                                      child: const Text('Remove'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: s.busy
-                          ? null
-                          : () => s.run(() async {
-                              final image = await ImagePicker().pickImage(
-                                source: ImageSource.gallery,
-                                maxWidth: 1800,
-                                imageQuality: 85,
-                              );
-                              if (image == null) return;
-                              await s.backend!.uploadPhoto(
-                                widget.id,
-                                await image.readAsBytes(),
-                                image.name.split('.').last.toLowerCase(),
-                              );
-                              if (mounted) setState(reload);
-                            }),
-                      icon: const Icon(Icons.add_photo_alternate_outlined),
-                      label: const Text('Add photo'),
-                    ),
-                  ],
-                ),
-                TextButton(
-                  onPressed: s.busy
-                      ? null
-                      : () async {
-                          if (await confirm(
-                            context,
-                            'Close your spicyself listing?',
-                            'Finish or cancel all visits first. This removes your listing from search. Historical financial records are retained.',
-                            store: s,
-                            requireMfa: true,
-                            action: 'Close listing',
-                          ))
-                            await s.run(() async {
-                              await configure('close', {});
-                              await s.refreshAccount();
-                            });
-                        },
-                  child: const Text('Close business listing'),
-                ),
-              ],
-              if (section == 5) ...[
-                const Notice(
-                  'Your NZ\$49.99 monthly spicyself membership is separate from customer haircut payments. Customer payments will go to your connected Stripe business account when that feature launches.',
-                ),
-                WorkspaceGroup(
-                  title: 'spicyself Business membership',
-                  icon: Icons.workspace_premium_outlined,
-                  children: [
-                    Text(
-                      'NZ\$49.99 per month',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Monthly membership for in-app business management. External public listings remain free. Your subscription is separate from customer payments.',
-                    ),
-                    const SizedBox(height: 12),
-                    AsyncPanel<Json>(
-                      future: membership ??= s.backend!.invoke(
-                        'business-subscription',
-                        {'action': 'status', 'business_id': widget.id},
-                      ),
-                      retry: () => setState(() => membership = null),
-                      builder: (m) {
-                        final status = (m['status'] ?? 'not_subscribed')
-                            .toString();
-                        final active =
-                            status == 'active' || status == 'trialing';
-                        final checkoutEnabled = m['checkout_enabled'] == true;
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Membership status: ${status.replaceAll('_', ' ')}',
-                            ),
-                            const SizedBox(height: 10),
-                            if (!checkoutEnabled && !active)
-                              const Text(
-                                'Membership payments are being prepared. No subscription charge will be made yet.',
-                              ),
-                            if (!active && checkoutEnabled)
-                              ActionButton(
-                                s,
-                                'Subscribe for NZ\$49.99/month',
-                                () async {
-                                  final result = await s.backend!.invoke(
-                                    'business-subscription',
-                                    {
-                                      'action': 'checkout',
-                                      'business_id': widget.id,
-                                    },
-                                  );
-                                  await openLink(result['url'] as String);
-                                },
-                                icon: Icons.credit_card_outlined,
-                              ),
-                            if (active ||
-                                (status != 'not_subscribed' &&
-                                    status != 'checkout_pending'))
-                              OutlinedButton(
-                                onPressed: s.busy
-                                    ? null
-                                    : () => s.run(() async {
-                                        final result = await s.backend!.invoke(
-                                          'business-subscription',
-                                          {
-                                            'action': 'portal',
-                                            'business_id': widget.id,
-                                          },
-                                        );
-                                        await openLink(result['url'] as String);
-                                      }),
-                                child: const Text('Manage subscription'),
-                              ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: () =>
-                                  setState(() => membership = null),
-                              child: const Text('Refresh membership status'),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                WorkspaceGroup(
-                  title: 'Customer payments & payouts',
-                  icon: Icons.payments_outlined,
-                  children: [
-                    Text(
-                      'Payments & payouts',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    Text(
-                      b['online_payments'] == true
-                          ? 'Your Stripe business account is connected. Customer online checkout is not live yet.'
-                          : 'Complete Stripe verification to accept online payments. Customers can still pay at your business.',
-                    ),
-                    const SizedBox(height: 12),
-                    ActionButton(s, 'Set up / update Stripe account', () async {
-                      final result = await s.backend!.invoke('payments', {
-                        'action': 'connect',
-                        'business_id': widget.id,
-                      });
-                      await openLink(result['url'] as String);
-                    }, icon: Icons.account_balance_outlined),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: s.busy
-                          ? null
-                          : () => s.run(() async {
-                              await s.backend!.invoke('payments', {
-                                'action': 'sync',
-                                'business_id': widget.id,
-                              });
-                              if (mounted) setState(reload);
-                            }),
-                      child: const Text('Refresh payment status'),
-                    ),
-                    const Text(
-                      'Stripe processing fees apply. Available wallets depend on the customer’s device. Afterpay requires separate activation and eligibility.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-              ],
-            ],
+            ),
           );
         },
       ),
     ],
   );
   Future<void> editService(BuildContext context, Json? current) async {
+    final category = TextEditingController(
+      text: current?['category'] as String? ?? 'General',
+    );
     final name = TextEditingController(text: current?['name'] as String? ?? ''),
         minutes = TextEditingController(text: '${current?['minutes'] ?? 30}'),
         price = TextEditingController(
@@ -1595,6 +1590,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 FormFieldBox(name, 'Service name'),
+                FormFieldBox(category, 'Category'),
                 FormFieldBox(
                   minutes,
                   'Duration in minutes',
@@ -1625,7 +1621,9 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
               onPressed: () {
                 final m = int.tryParse(minutes.text),
                     p = double.tryParse(price.text);
-                if (name.text.trim().length < 2 ||
+                if (category.text.trim().isEmpty ||
+                    category.text.trim().length > 60 ||
+                    name.text.trim().length < 2 ||
                     m == null ||
                     m < 10 ||
                     m > 240 ||
@@ -1645,6 +1643,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                 Navigator.pop(context, {
                   'id': current?['id'],
                   'name': name.text.trim(),
+                  'category': category.text.trim(),
                   'minutes': m,
                   'price_cents': (p * 100).round(),
                   'active': active,
@@ -1656,6 +1655,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
         ),
       ),
     );
+    category.dispose();
     name.dispose();
     minutes.dispose();
     price.dispose();

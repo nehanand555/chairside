@@ -96,7 +96,8 @@ class WorkspaceBackend extends redesign.RoleBackend {
       reviewCalls++;
       return null;
     }
-    if (name == 'admin_overview' && reviewListing)
+    if ((name == 'admin_overview' || name == 'admin_business_page') &&
+        reviewListing)
       return {
         'businesses': [
           {
@@ -755,6 +756,7 @@ void main() {
       backend,
       (s) => AdminScreen(store: s),
     );
+    await fixtures.selectWorkspace(tester, 'Applications');
     await fixtures.tapVisible(tester, find.text('Approve'));
     await tester.enterText(
       find.byKey(const ValueKey('Review note')),

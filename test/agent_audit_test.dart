@@ -184,7 +184,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Live queue'), findsOneWidget);
+    expect(find.text('Overview'), findsWidgets);
     expect(backend.operatorCalls, greaterThan(0));
     assertInteractiveControlsHaveSize(tester);
     expect(tester.takeException(), isNull);
@@ -205,7 +205,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(backend.adminCalls, flags.$1 && flags.$2 ? 2 : 0);
+      expect(backend.adminCalls, flags.$1 && flags.$2 ? 3 : 0);
       expect(tester.takeException(), isNull);
       assertInteractiveControlsHaveSize(tester);
       await unload(tester, store);

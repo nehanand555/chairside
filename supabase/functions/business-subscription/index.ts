@@ -1,14 +1,18 @@
 import { authenticated, body, endpoint, HttpError, limited, service, uuid, rpc } from "../_shared/http.ts";
 import { stripe } from "../_shared/stripe.ts";
+import { MEMBERSHIP_PRICE_ID, validMembershipPrice, membershipCheckoutAllowed } from "../_shared/membership_policy.ts";
 
-const PRICE_ID = "price_1UWtMV00BuF4kp6TV3uWObsP";
+const PRICE_ID = MEMBERSHIP_PRICE_ID;
 const BASE_URL = "https://www.spicyself.com";
 type Billing = {
   business_id: string; stripe_customer_id: string | null;
   stripe_subscription_id: string | null; stripe_checkout_session_id: string | null;
   status: string; current_period_end: string | null; cancel_at_period_end: boolean;
 };
-const enabled = () => Deno.env.get("ENABLE_BUSINESS_SUBSCRIPTION_CHECKOUT") === "true";
+const enabled = () => membershipCheckoutAllowed(
+  Deno.env.get("ENABLE_BUSINESS_SUBSCRIPTION_CHECKOUT") === "true",
+  (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_live_"),
+);
 
 Deno.serve(endpoint(async req => {
   const { user, client } = await authenticated(req);
@@ -51,8 +55,7 @@ Deno.serve(endpoint(async req => {
   }
   // Price is read from Stripe, not trusted from client or from the display.
   const price = await api.prices.retrieve(PRICE_ID);
-  if (!price.active || price.currency !== "nzd" || price.unit_amount !== 4999 ||
-      price.recurring?.interval !== "month" || price.recurring?.interval_count !== 1) {
+  if (!validMembershipPrice(price)) {
     throw new HttpError(503, "The NZ$49.99 monthly subscription price needs verification in Stripe");
   }
   let customerId = billing?.stripe_customer_id;

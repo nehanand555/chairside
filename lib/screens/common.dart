@@ -48,6 +48,43 @@ ThemeData spicyTheme() {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: cream,
+    textTheme: ThemeData(useMaterial3: true).textTheme.copyWith(
+      headlineMedium: const TextStyle(
+        fontSize: 30,
+        height: 1.2,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -.7,
+        color: ink,
+      ),
+      titleLarge: const TextStyle(
+        fontSize: 22,
+        height: 1.3,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -.3,
+        color: ink,
+      ),
+      titleMedium: const TextStyle(
+        fontSize: 16,
+        height: 1.4,
+        fontWeight: FontWeight.w600,
+        color: ink,
+      ),
+      bodyLarge: const TextStyle(
+        fontSize: 16,
+        height: 1.55,
+        color: Color(0xff34443e),
+      ),
+      bodyMedium: const TextStyle(
+        fontSize: 14,
+        height: 1.5,
+        color: Color(0xff34443e),
+      ),
+      bodySmall: const TextStyle(
+        fontSize: 12,
+        height: 1.5,
+        color: Color(0xff58685f),
+      ),
+    ),
     visualDensity: VisualDensity.standard,
     appBarTheme: const AppBarTheme(
       backgroundColor: cream,
@@ -526,12 +563,15 @@ class AsyncPanel<T> extends StatelessWidget {
     required this.future,
     required this.builder,
     this.retry,
+    this.loading,
   });
+  final Widget? loading;
   final Future<T> future;
   final Widget Function(T) builder;
   final VoidCallback? retry;
   @override
   Widget build(BuildContext context) => FutureBuilder<T>(
+    key: ObjectKey(future),
     future: future,
     builder: (context, snapshot) {
       if (snapshot.hasError)
@@ -542,12 +582,13 @@ class AsyncPanel<T> extends StatelessWidget {
               : TextButton(onPressed: retry, child: const Text('Try again')),
         );
       if (!snapshot.hasData)
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: CircularProgressIndicator(),
-          ),
-        );
+        return loading ??
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            );
       return builder(snapshot.data as T);
     },
   );

@@ -67,6 +67,16 @@ class TestBackend extends Backend {
   @override
   Future<dynamic> rpc(String name, [Json params = const {}]) async {
     switch (name) {
+      case 'business_overview':
+        return {
+          'appointments': 0,
+          'booked_value_cents': 0,
+          'waiting': 0,
+          'active_resources': 1,
+        };
+      case 'business_schedule':
+      case 'business_clients':
+        return {'items': <Json>[], 'has_more': false};
       case 'account_context':
         return {
           'is_admin': false,
@@ -221,6 +231,16 @@ class TestBackend extends Backend {
   ) async {}
   @override
   Future<void> deletePhoto(String business, String url) async {}
+}
+
+Future<void> selectWorkspace(WidgetTester tester, String label) async {
+  final switcher = find.byType(DropdownButtonFormField<int>);
+  if (switcher.evaluate().isNotEmpty) {
+    await tapVisible(tester, switcher.first);
+    await tapVisible(tester, find.text(label).last);
+  } else {
+    await tapVisible(tester, find.text(label).last);
+  }
 }
 
 Future<void> tapVisible(WidgetTester tester, Finder finder) async {

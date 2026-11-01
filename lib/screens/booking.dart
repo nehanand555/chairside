@@ -35,6 +35,7 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<List<Json>>? slots;
   Future<List<Json>>? estimates;
   String? service, resource, created;
+  String? preferredProfessional;
   Json? selected;
   bool queue = false, confirming = false;
   int? bookingSession;
@@ -274,6 +275,36 @@ class _BookingScreenState extends State<BookingScreen> {
                           'Make time for yourself',
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
+                        const SizedBox(height: 12),
+                        Semantics(
+                          label: 'Booking steps: service, professional and time, review',
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              StatusPill(
+                                service == null
+                                    ? '1 · Choose a service'
+                                    : '1 · Service selected',
+                                icon: service == null
+                                    ? Icons.radio_button_unchecked
+                                    : Icons.check_circle_outline,
+                              ),
+                              StatusPill(
+                                selected == null
+                                    ? '2 · Professional & time'
+                                    : '2 · Time selected',
+                                icon: selected == null
+                                    ? Icons.schedule
+                                    : Icons.check_circle_outline,
+                              ),
+                              const StatusPill(
+                                '3 · Review & confirm',
+                                icon: Icons.fact_check_outlined,
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         if (services.isEmpty)
                           const Text('Services are not available yet.')
@@ -371,6 +402,35 @@ class _BookingScreenState extends State<BookingScreen> {
                           ),
                         ],
                         if (!queue) ...[
+                          if (service != null) ...[
+                            DropdownButtonFormField<String>(
+                              key: ValueKey((
+                                'preferred-professional',
+                                resource,
+                              )),
+                              initialValue: preferredProfessional ?? '',
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Preferred professional',
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: '',
+                                  child: Text('Any available'),
+                                ),
+                                for (final professional in resources)
+                                  DropdownMenuItem(
+                                    value: professional['id'] as String,
+                                    child: Text(professional['name'] as String),
+                                  ),
+                              ],
+                              onChanged: (value) => setState(() {
+                                preferredProfessional = value;
+                                selected = null;
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           OutlinedButton.icon(
                             onPressed: () async {
                               final n = nzNow();
@@ -395,7 +455,16 @@ class _BookingScreenState extends State<BookingScreen> {
                             AsyncPanel<List<Json>>(
                               future: slots!,
                               retry: () => setState(loadSlots),
-                              builder: (items) => items.isEmpty
+                              builder: (items) =>
+                                  items
+                                      .where(
+                                        (v) =>
+                                            preferredProfessional == null ||
+                                            preferredProfessional == '' ||
+                                            v['resource_id'] ==
+                                                preferredProfessional,
+                                      )
+                                      .isEmpty
                                   ? const Text(
                                       'No times available. Try another day.',
                                     )
@@ -403,6 +472,13 @@ class _BookingScreenState extends State<BookingScreen> {
                                       spacing: 8,
                                       runSpacing: 8,
                                       children: items
+                                          .where(
+                                            (v) =>
+                                                preferredProfessional == null ||
+                                                preferredProfessional == '' ||
+                                                v['resource_id'] ==
+                                                    preferredProfessional,
+                                          )
                                           .map(
                                             (v) => ChoiceChip(
                                               key: ValueKey(

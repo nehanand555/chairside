@@ -53,3 +53,34 @@ sql("update public.visits set status='cancelled' where status='booked'")
 race([(customers[0], 0), (customers[0], 1)])
 assert sql(f"select count(*) from public.visits where customer_id='{customers[0]}' and status='booked'").stdout.strip() == "1"
 print("PASS: one customer racing at different businesses gets only one active visit")
+
+
+# Manual appointments and moves must compete with customer bookings under the
+# same database lock, rather than relying on disabled client buttons.
+sql("update public.visits set status='cancelled' where status='booked'")
+
+def operator_race(statements):
+    barrier = Barrier(2)
+    claims = json.dumps({"sub": owners[0], "aal": "aal2"})
+    def execute(statement):
+        barrier.wait()
+        return sql(f"begin; set local role authenticated; select set_config('request.jwt.claims','{claims}',true); {statement}; commit;", check=False)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(execute, statements))
+    assert sorted(r.returncode == 0 for r in results) == [False, True], [r.stderr for r in results]
+    assert "slot was just taken" in next(r.stderr for r in results if r.returncode), [r.stderr for r in results]
+
+start = "((((now() at time zone 'Pacific/Auckland')::date+2)+time '10:00') at time zone 'Pacific/Auckland')"
+manual = f"select public.operator_book_appointment('{businesses[0]}','{services[0]}','{resources[0]}',{start},'Manual client')"
+operator_race([manual, manual])
+assert sql(f"select count(*) from public.visits where business_id='{businesses[0]}' and status='booked'").stdout.strip() == "1"
+print("PASS: competing manual appointments reserve exactly one slot")
+sql("update public.visits set status='cancelled' where status='booked'")
+claims = json.dumps({"sub": owners[0], "aal": "aal2"})
+ids = []
+for hours in [1, 2]:
+    result = sql(f"begin; set local role authenticated; select set_config('request.jwt.claims','{claims}',true); select public.operator_book_appointment('{businesses[0]}','{services[0]}','{resources[0]}',{start}+interval '{hours} hour','Move client'); commit;")
+    ids.append(result.stdout.strip().splitlines()[-1])
+operator_race([f"select public.reschedule_visit('{visit}',{start})" for visit in ids])
+assert sql(f"select count(*) from public.visits where business_id='{businesses[0]}' and status='booked' and starts_at={start}").stdout.strip() == "1"
+print("PASS: competing reschedules move exactly one appointment into the slot")
