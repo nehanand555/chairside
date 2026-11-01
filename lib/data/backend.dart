@@ -49,8 +49,9 @@ abstract class Backend {
   Future<void> uploadPhoto(String business, Uint8List bytes, String extension);
   Future<void> deletePhoto(String business, String url);
   /// Upload a public portrait for a bookable professional. Returns the storage path.
-  Future<String> uploadProfessionalPhoto(String business, String resource, Uint8List bytes, String extension);
-  String professionalPhotoUrl(String path);
+  Future<String> uploadProfessionalPhoto(String business, String resource, Uint8List bytes, String extension) =>
+      throw UnimplementedError('Professional photo upload is not supported');
+  String professionalPhotoUrl(String path) => '';
   void watchVisits(void Function() changed) {}
   void stopWatching() {}
 }
