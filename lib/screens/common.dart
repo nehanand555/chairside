@@ -48,6 +48,43 @@ ThemeData spicyTheme() {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: cream,
+    textTheme: ThemeData(useMaterial3: true).textTheme.copyWith(
+      headlineMedium: const TextStyle(
+        fontSize: 30,
+        height: 1.2,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -.7,
+        color: ink,
+      ),
+      titleLarge: const TextStyle(
+        fontSize: 22,
+        height: 1.3,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -.3,
+        color: ink,
+      ),
+      titleMedium: const TextStyle(
+        fontSize: 16,
+        height: 1.4,
+        fontWeight: FontWeight.w600,
+        color: ink,
+      ),
+      bodyLarge: const TextStyle(
+        fontSize: 16,
+        height: 1.55,
+        color: Color(0xff34443e),
+      ),
+      bodyMedium: const TextStyle(
+        fontSize: 14,
+        height: 1.5,
+        color: Color(0xff34443e),
+      ),
+      bodySmall: const TextStyle(
+        fontSize: 12,
+        height: 1.5,
+        color: Color(0xff58685f),
+      ),
+    ),
     visualDensity: VisualDensity.standard,
     appBarTheme: const AppBarTheme(
       backgroundColor: cream,
