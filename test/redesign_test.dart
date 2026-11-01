@@ -464,6 +464,10 @@ void main() {
     await fixtures.selectWorkspace(tester, 'Business settings');
     expect(find.text('Services & pricing'), findsOneWidget);
     expect(find.text('spicyself Business membership'), findsNothing);
+    await fixtures.tapVisible(tester, find.text('Team & availability'));
+    expect(find.text('Professionals & chairs'), findsOneWidget);
+    expect(find.byTooltip('Upload professional profile photo'), findsOneWidget);
+    expect(find.byType(ProfessionalAvatar), findsOneWidget);
     await fixtures.selectWorkspace(tester, 'Membership & billing');
     expect(find.text('spicyself Business membership'), findsOneWidget);
     await fixtures.tapVisible(
