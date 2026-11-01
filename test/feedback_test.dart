@@ -61,6 +61,7 @@ void main() {
       backend,
       (s) => AdminScreen(store: s),
     );
+    await fixtures.selectWorkspace(tester, 'Support');
     await fixtures.tapVisible(tester, find.text('User feedback'));
     expect(find.text('Please add more search filters.'), findsOneWidget);
     await fixtures.tapVisible(tester, find.text('Mark as read'));

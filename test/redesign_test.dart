@@ -31,14 +31,24 @@ class RoleBackend extends fixtures.TestBackend {
             ? 'Please provide ownership evidence.'
             : '',
       };
+    if (name == 'admin_workspace_insights') {
+      adminCalls++;
+      return {
+        'business_counts': {},
+        'memberships': <Json>[],
+        'audit': <Json>[],
+      };
+    }
     if (name == 'operator_business') operatorCalls++;
     if (name == 'admin_email_overview')
       return {'pending': 0, 'accepted': 0, 'delivered': 0, 'failed': 0};
     if (name == 'admin_email_events' || name == 'admin_feedback')
       return <Json>[];
-    if (name == 'admin_overview' || name == 'admin_health') {
+    if (name == 'admin_overview' ||
+        name == 'admin_business_page' ||
+        name == 'admin_health') {
       adminCalls++;
-      return name == 'admin_overview'
+      return name == 'admin_overview' || name == 'admin_business_page'
           ? {'businesses': <Json>[], 'reports': <Json>[]}
           : {'failed_sms': 0, 'pending_sms': 0, 'pending_refunds': 0};
     }
@@ -284,9 +294,10 @@ void main() {
         ..admin = flags.$1
         ..mfa = flags.$2;
       final store = await mount(tester, backend, (s) => AdminScreen(store: s));
-      expect(backend.adminCalls, flags.$1 && flags.$2 ? 2 : 0);
+      expect(backend.adminCalls, flags.$1 && flags.$2 ? 3 : 0);
       if (!flags.$1) expect(find.text('Restricted access'), findsOneWidget);
-      if (flags.$1 && flags.$2) expect(find.text('Pending'), findsOneWidget);
+      if (flags.$1 && flags.$2)
+        expect(find.text('Platform overview'), findsOneWidget);
       await close(tester, store);
     }
   });
@@ -446,14 +457,14 @@ void main() {
       ..status = 'approved';
     final store = await mount(tester, backend, (s) => BusinessScreen(store: s));
     expect(backend.operatorCalls, greaterThan(0));
-    expect(find.text('Live queue'), findsOneWidget);
-    await fixtures.tapVisible(tester, find.text('Calendar'));
-    expect(find.byType(CalendarDatePicker), findsOneWidget);
+    expect(find.text('Overview'), findsWidgets);
+    await fixtures.selectWorkspace(tester, 'Calendar');
+    expect(find.text('Your appointment calendar'), findsOneWidget);
     expect(find.text('No appointments on this date.'), findsOneWidget);
-    await fixtures.tapVisible(tester, find.text('Business settings'));
+    await fixtures.selectWorkspace(tester, 'Business settings');
     expect(find.text('Services & pricing'), findsOneWidget);
     expect(find.text('spicyself Business membership'), findsNothing);
-    await fixtures.tapVisible(tester, find.text('Membership & billing'));
+    await fixtures.selectWorkspace(tester, 'Membership & billing');
     expect(find.text('spicyself Business membership'), findsOneWidget);
     await fixtures.tapVisible(
       tester,
