@@ -9,6 +9,12 @@ Deno.serve(endpoint(async req => {
   if (returnUrl.protocol !== "https:") throw new HttpError(503, "Payments need a secure application URL");
   // All redirect URLs are configured server-side, never supplied by a caller.
   if (data.action === "checkout") {
+    // Never silently route platform-liable destination charges for the
+    // Stripe-billed connected-account model. Enabling direct charges requires
+    // corresponding webhook and refund routing changes, verified end-to-end.
+    if (Deno.env.get("STRIPE_CONNECT_CHARGE_MODEL") === "direct") {
+      throw new HttpError(503, "Online checkout is being upgraded for direct business payments. Pay at the business for now.");
+    }
     const checkout = await rpc<{ id: string; url: string | null; amount: number; expires_at: string; account: string; service_name: string }>(db, "integration_checkout", { p_user: user.id, p_visit: uuid(data.visit_id) });
     if (checkout.url) return { url: checkout.url };
     const methods: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = ["card"];
@@ -32,7 +38,13 @@ Deno.serve(endpoint(async req => {
   let account = await rpc<{ stripe_account: string | null }>(db, "integration_account", { p_business: business });
   if (!account.stripe_account) {
     if (data.action !== "connect") throw new HttpError(400, "Set up Stripe first");
-    const created = await api.accounts.create({ type: "express", country: "NZ", capabilities: { card_payments: { requested: true }, transfers: { requested: true } }, business_profile: { name: listing.name }, metadata: { chairside_business: business } }, { idempotencyKey: `chairside-account-${business}` });
+    const created = await api.accounts.create({
+      type: Deno.env.get("STRIPE_CONNECT_CHARGE_MODEL") === "direct" ? "standard" : "express",
+      country: "NZ",
+      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+      business_profile: { name: listing.name },
+      metadata: { chairside_business: business },
+    }, { idempotencyKey: `chairside-account-${business}` });
     account = await rpc(db, "integration_account", { p_business: business, p_account: created.id });
   }
   const id = account.stripe_account!;
@@ -41,7 +53,14 @@ Deno.serve(endpoint(async req => {
     await rpc(db, "integration_account", { p_business: business, p_enabled: result.charges_enabled && result.payouts_enabled });
     return { enabled: result.charges_enabled && result.payouts_enabled };
   }
-  if (data.action === "dashboard") return { url: (await api.accounts.createLoginLink(id)).url };
+  if (data.action === "dashboard") {
+    // Standard accounts use their own Stripe Dashboard; Express accounts
+    // need an ephemeral login link issued by the platform.
+    const connected = await api.accounts.retrieve(id);
+    return { url: connected.type === "standard"
+      ? "https://dashboard.stripe.com/"
+      : (await api.accounts.createLoginLink(id)).url };
+  }
   const link = await api.accountLinks.create({ account: id, type: "account_onboarding", refresh_url: returnUrl.toString(), return_url: returnUrl.toString() });
   return { url: link.url };
 }));
