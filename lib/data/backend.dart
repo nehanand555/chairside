@@ -52,6 +52,7 @@ abstract class Backend {
   Future<String> uploadProfessionalPhoto(String business, String resource, Uint8List bytes, String extension) =>
       throw UnimplementedError('Professional photo upload is not supported');
   String professionalPhotoUrl(String path) => '';
+  Future<void> removeProfessionalPhotoFile(String path) async {}
   void watchVisits(void Function() changed) {}
   void stopWatching() {}
 }
@@ -296,6 +297,12 @@ class SupabaseBackend extends Backend {
   @override
   String professionalPhotoUrl(String path) =>
       client.storage.from('portfolios').getPublicUrl(path);
+
+  @override
+  Future<void> removeProfessionalPhotoFile(String path) async {
+    if (!path.contains('/professionals/')) return;
+    await client.storage.from('portfolios').remove([path]);
+  }
 
   @override
   void watchVisits(void Function() changed) {
