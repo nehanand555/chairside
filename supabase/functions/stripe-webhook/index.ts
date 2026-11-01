@@ -1,6 +1,7 @@
 import { env, rpc, service } from "../_shared/http.ts";
 import { processRefunds, Stripe } from "../_shared/stripe.ts";
 import { verifyStripeWebhook } from "../_shared/webhook.ts";
+import { processBusinessBillingEvent } from "../_shared/business_billing.ts";
 
 Deno.serve(async req => {
   if (req.method !== "POST") return new Response("Use POST", { status: 405 });
@@ -9,6 +10,9 @@ Deno.serve(async req => {
   if (!verified) return new Response("Invalid signature", { status: 400 });
   const event = verified;
   try {
+    if (await processBusinessBillingEvent(event)) {
+      return new Response(JSON.stringify({ received: true }), { headers: { "content-type": "application/json" } });
+    }
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;
       if (!event.account && session.payment_status === "paid" && session.metadata?.chairside_session) {
