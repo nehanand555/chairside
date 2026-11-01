@@ -174,7 +174,18 @@ class _BusinessScheduleState extends State<BusinessSchedule> {
             for (final resource in resources)
               DropdownMenuItem(
                 value: resource['id'] as String,
-                child: Text(resource['name'] as String),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ProfessionalAvatar(
+                      backend: widget.store.backend!,
+                      resource: resource,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(child: Text(resource['name'] as String)),
+                  ],
+                ),
               ),
           ],
           onChanged: (value) => setState(() => professional = value),
