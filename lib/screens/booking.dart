@@ -387,14 +387,25 @@ class _BookingScreenState extends State<BookingScreen> {
                             initialValue: resource,
                             isExpanded: true,
                             decoration: const InputDecoration(
-                              labelText: 'Chair / professional',
+                              labelText: 'Choose your barber or technician',
                               border: OutlineInputBorder(),
                             ),
                             items: resources
                                 .map(
                                   (r) => DropdownMenuItem(
                                     value: r['id'] as String,
-                                    child: Text(r['name'] as String),
+                                    child: Row(
+                                       mainAxisSize: MainAxisSize.min,
+                                       children: [
+                                         ProfessionalAvatar(
+                                           backend: widget.store.backend!,
+                                           resource: r,
+                                           size: 30,
+                                         ),
+                                         const SizedBox(width: 8),
+                                         Flexible(child: Text(r['name'] as String)),
+                                       ],
+                                     ),
                                   ),
                                 )
                                 .toList(),
@@ -421,7 +432,18 @@ class _BookingScreenState extends State<BookingScreen> {
                                 for (final professional in resources)
                                   DropdownMenuItem(
                                     value: professional['id'] as String,
-                                    child: Text(professional['name'] as String),
+                                    child: Row(
+                                       mainAxisSize: MainAxisSize.min,
+                                       children: [
+                                         ProfessionalAvatar(
+                                           backend: widget.store.backend!,
+                                           resource: professional,
+                                           size: 30,
+                                         ),
+                                         const SizedBox(width: 8),
+                                         Flexible(child: Text(professional['name'] as String)),
+                                       ],
+                                     ),
                                   ),
                               ],
                               onChanged: (value) => setState(() {
