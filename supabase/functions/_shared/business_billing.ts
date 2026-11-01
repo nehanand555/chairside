@@ -11,6 +11,13 @@ async function syncSubscription(subId: string, expectedBusinessId?: string): Pro
   // Retrieve current authoritative state to tolerate out-of-order events.
   const sub = await stripe().subscriptions.retrieve(subId);
   if (!allowedStatus(sub.status)) throw Error("Unsupported Stripe subscription status");
+  // An active subscription on another Stripe price must not unlock the paid
+  // business membership (e.g. the earlier NZ$0 placeholder product).
+  if (sub.items.data.length !== 1 ||
+      sub.items.data[0].price.id !== "price_1UWtMV00BuF4kp6TV3uWObsP" ||
+      sub.items.data[0].quantity !== 1) {
+    throw Error("Unexpected spicyself membership price");
+  }
   if (sub.metadata?.spicyself_kind !== "business_subscription") return;
   const businessId = sub.metadata.spicyself_business_id;
   if (!businessId || (expectedBusinessId && expectedBusinessId !== businessId)) throw Error("Business mismatch");
