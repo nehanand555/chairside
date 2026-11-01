@@ -9,6 +9,11 @@ Deno.serve(endpoint(async req => {
   if (returnUrl.protocol !== "https:") throw new HttpError(503, "Payments need a secure application URL");
   // All redirect URLs are configured server-side, never supplied by a caller.
   if (data.action === "checkout") {
+    // Prevent real charges before direct-charge webhooks, refunds and settlement
+    // have passed independent verification. Test-mode checkout remains available.
+    if ((Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_live_")) {
+      throw new HttpError(503, "Live checkout is not enabled yet. Please pay the business directly.");
+    }
     // Never silently route platform-liable destination charges for the
     // Stripe-billed connected-account model. Enabling direct charges requires
     // corresponding webhook and refund routing changes, verified end-to-end.
