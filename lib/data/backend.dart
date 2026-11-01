@@ -48,6 +48,9 @@ abstract class Backend {
   Future<List<String>> photos(String business);
   Future<void> uploadPhoto(String business, Uint8List bytes, String extension);
   Future<void> deletePhoto(String business, String url);
+  /// Upload a public portrait for a bookable professional. Returns the storage path.
+  Future<String> uploadProfessionalPhoto(String business, String resource, Uint8List bytes, String extension);
+  String professionalPhotoUrl(String path);
   void watchVisits(void Function() changed) {}
   void stopWatching() {}
 }
@@ -265,6 +268,33 @@ class SupabaseBackend extends Backend {
     final name = Uri.parse(url).pathSegments.last;
     await client.storage.from('portfolios').remove(['$business/$name']);
   }
+
+  @override
+  Future<String> uploadProfessionalPhoto(
+    String business,
+    String resource,
+    Uint8List bytes,
+    String extension,
+  ) async {
+    if (bytes.isEmpty || bytes.length > 5 * 1024 * 1024) {
+      throw Exception('Choose a photo smaller than 5 MB');
+    }
+    if (!['jpg', 'jpeg', 'png', 'webp'].contains(extension)) {
+      throw Exception('Use a JPG, PNG or WebP photo');
+    }
+    final type = extension == 'jpg' ? 'jpeg' : extension;
+    final path = '$business/professionals/$resource/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    await client.storage.from('portfolios').uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(contentType: 'image/$type'),
+    );
+    return path;
+  }
+
+  @override
+  String professionalPhotoUrl(String path) =>
+      client.storage.from('portfolios').getPublicUrl(path);
 
   @override
   void watchVisits(void Function() changed) {
