@@ -1312,25 +1312,31 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                           subtitle: Text(
                             r['active'] == true ? 'Available for booking' : 'Hidden from booking',
                           ),
-                          trailing: Wrap(
+                          trailing: Row(
                             mainAxisSize: MainAxisSize.min,
-                            spacing: 2,
                             children: [
                               IconButton(
                                 tooltip: 'Upload professional profile photo',
                                 onPressed: () => changeProfessionalPhoto(r),
                                 icon: const Icon(Icons.add_a_photo_outlined),
                               ),
-                              if (r['photo_path'] != null)
-                                IconButton(
-                                  tooltip: 'Remove profile photo',
-                                  onPressed: () => removeProfessionalPhoto(r),
-                                  icon: const Icon(Icons.hide_image_outlined),
-                                ),
-                              IconButton(
-                                tooltip: 'Edit professional',
-                                onPressed: () => editResource(context, r),
-                                icon: const Icon(Icons.edit_outlined),
+                              PopupMenuButton<String>(
+                                tooltip: 'More professional options',
+                                onSelected: (action) {
+                                  if (action == 'edit') editResource(context, r);
+                                  if (action == 'remove') removeProfessionalPhoto(r);
+                                },
+                                itemBuilder: (_) => [
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Edit professional'),
+                                  ),
+                                  if (r['photo_path'] != null)
+                                    const PopupMenuItem(
+                                      value: 'remove',
+                                      child: Text('Remove profile photo'),
+                                    ),
+                                ],
                               ),
                             ],
                           ),
