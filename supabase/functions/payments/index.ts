@@ -5,8 +5,12 @@ Deno.serve(endpoint(async req => {
   const { user, client } = await authenticated(req);
   await limited(`payments:${user.id}`, 20, 600);
   const data = await body(req), db = service(), api = stripe();
-  const returnUrl = new URL(env("APP_URL"));
-  if (returnUrl.protocol !== "https:") throw new HttpError(503, "Payments need a secure application URL");
+  // Canonical return URL is public, not a secret. Redirects must never come
+  // from callers; the deployed www hostname is the only supported destination.
+  const returnUrl = new URL(Deno.env.get("APP_URL") ?? "https://www.spicyself.com");
+  if (returnUrl.origin !== "https://www.spicyself.com") {
+    throw new HttpError(503, "Payment return URL is not configured for spicyself");
+  }
   // All redirect URLs are configured server-side, never supplied by a caller.
   if (data.action === "checkout") {
     // Prevent real charges before direct-charge webhooks, refunds and settlement
@@ -44,7 +48,10 @@ Deno.serve(endpoint(async req => {
   if (!account.stripe_account) {
     if (data.action !== "connect") throw new HttpError(400, "Set up Stripe first");
     const created = await api.accounts.create({
-      type: Deno.env.get("STRIPE_CONNECT_CHARGE_MODEL") === "direct" ? "standard" : "express",
+      // Stripe-billed businesses receive their own Stripe Dashboard and pay
+      // their own processing fees under the agreed direct-charge model.
+      // Checkout remains blocked until its connected-account event path ships.
+      type: "standard",
       country: "NZ",
       capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
       business_profile: { name: listing.name },
