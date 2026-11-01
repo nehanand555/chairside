@@ -915,6 +915,7 @@ class BusinessDashboard extends StatefulWidget {
 class _BusinessDashboardState extends State<BusinessDashboard> {
   late Future<Json> business;
   late Future<List<String>> photos;
+  Future<Json>? membership;
   int section = 0;
   DateTime calendarDay = DateTime.now();
   @override
@@ -924,6 +925,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
   }
 
   void reload() {
+    membership = null;
     business = widget.store.backend!
         .rpc('operator_business', {'p_business': widget.id})
         .then((v) => Json.from(v as Map));
@@ -1416,6 +1418,66 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                   ],
                 ),
                 WorkspaceGroup(
+                  title: 'spicyself Business membership',
+                  icon: Icons.workspace_premium_outlined,
+                  children: [
+                    Text('NZ\\$49.99 per month',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Monthly membership for in-app business management. External public listings remain free. Your subscription is separate from customer payments.',
+                    ),
+                    const SizedBox(height: 12),
+                    AsyncPanel<Json>(
+                      future: membership ??= s.backend!.invoke(
+                        'business-subscription',
+                        {'action': 'status', 'business_id': widget.id},
+                      ),
+                      retry: () => setState(() => membership = null),
+                      builder: (m) {
+                        final status = (m['status'] ?? 'not_subscribed').toString();
+                        final active = status == 'active' || status == 'trialing';
+                        final checkoutEnabled = m['checkout_enabled'] == true;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Membership status: ${status.replaceAll('_', ' ')}'),
+                            const SizedBox(height: 10),
+                            if (!checkoutEnabled && !active)
+                              const Text(
+                                'Membership payments are being prepared. No subscription charge will be made yet.',
+                              ),
+                            if (!active && checkoutEnabled)
+                              ActionButton(s, 'Subscribe for NZ\\$49.99/month', () async {
+                                final result = await s.backend!.invoke(
+                                  'business-subscription',
+                                  {'action': 'checkout', 'business_id': widget.id},
+                                );
+                                await openLink(result['url'] as String);
+                              }, icon: Icons.credit_card_outlined),
+                            if (active || (status != 'not_subscribed' && status != 'checkout_pending'))
+                              OutlinedButton(
+                                onPressed: s.busy ? null : () => s.run(() async {
+                                  final result = await s.backend!.invoke(
+                                    'business-subscription',
+                                    {'action': 'portal', 'business_id': widget.id},
+                                  );
+                                  await openLink(result['url'] as String);
+                                }),
+                                child: const Text('Manage subscription'),
+                              ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => setState(() => membership = null),
+                              child: const Text('Refresh membership status'),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                WorkspaceGroup(
                   title: 'Payments & payouts',
                   icon: Icons.payments_outlined,
                   children: [
@@ -1425,7 +1487,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     ),
                     Text(
                       b['online_payments'] == true
-                          ? 'Online payments are enabled.'
+                          ? 'Your Stripe business account is connected. Customer online checkout is not live yet.'
                           : 'Complete Stripe verification to accept online payments. Customers can still pay at your business.',
                     ),
                     const SizedBox(height: 12),
