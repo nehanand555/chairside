@@ -1,0 +1,39 @@
+# spicyself — Stripe Connect real payments launch checklist
+
+**Launch state: NOT READY FOR LIVE CHARGES.** Do not enable real payment checkout before every item is completed and evidenced.
+
+## Commercial model selected
+- Stripe handles processing pricing and bills connected businesses directly.
+- Use Stripe-connected accounts with Stripe-managed fee liability and **direct charges** in the connected-account context.
+- The current deployed legacy implementation creates Express accounts and **destination charges** on the platform. It does not meet the chosen model.
+- Current implementation has a safety guard that refuses live checkout with sk_live keys; do not remove it until the direct-charge migration is verified.
+
+## Platform setup
+- [ ] Activate the platform Stripe account in New Zealand and verify its legal/business and payout details.
+- [ ] Configure Stripe Connect for Stripe-managed pricing, check accounts' controller.fees.payer, dashboard, risk and liability settings with Stripe.
+- [ ] Use a restricted server-side production key if supported for required APIs. Store only in Supabase Edge Function secrets (STRIPE_SECRET_KEY); never GitHub, Flutter, logs or chat.
+- [ ] Set trusted APP_URL=https://www.spicyself.com, never client-supplied redirect URLs.
+- [ ] Register platform and Connect webhook endpoints in the correct live Stripe environment; store webhook signing secrets in Supabase.
+- [ ] Ensure all required Stripe webhook event types are subscribed and signatures are verified.
+- [ ] Confirm billing/processing fees, refunds, dispute handling, business terms and responsibility disclosures.
+
+## Engineering prerequisites
+- [ ] Switch payment flow from destination charges to direct charges created **on the connected account**.
+- [ ] Ensure connected businesses self-onboard and complete Stripe identity verification and can receive payouts; block until both charges_enabled and payouts_enabled.
+- [ ] Reconcile backend checkout session identifiers with connected-account webhook events and validate event.account against stored business Stripe account ID.
+- [ ] Change refunds to run in correct connected-account context; do not use reverse_transfer on direct charges.
+- [ ] Validate duplicate, delayed, failed and out-of-order webhook/refund events with idempotency.
+- [ ] Confirm no payment can be charged for another business, cancelled appointment or stale checkout.
+- [ ] Add concurrency-safe E2E tests for checkout, processing fees, payout, refund, dispute and chargeback events.
+- [ ] Enforce server-side admin authorization and MFA, and audit reported account-switching issue before production money flows.
+
+## Production rollout
+- [ ] Complete tests in Stripe sandbox with at least two independently verified connected businesses.
+- [ ] Inspect Supabase payment/refund tables, key restrictions and Edge Function logs.
+- [ ] Have an operator complete a tiny real payment and refund end to end; verify the amount, fee payer and payee in Stripe before broad rollout.
+- [ ] Only after the above, remove the live-checkout safety guard in a separately reviewed change.
+
+Stripe references:
+- https://stripe.com/nz/connect/pricing
+- https://docs.stripe.com/connect/direct-charges
+- https://docs.stripe.com/connect/webhooks
