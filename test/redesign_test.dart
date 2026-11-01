@@ -220,9 +220,10 @@ void main() {
           },
         ),
       );
-      expect(find.text('Public Google listing'), findsOneWidget);
+      expect(find.text('Not a spicyself member'), findsOneWidget);
       expect(find.text('Website'), findsOneWidget);
-      expect(find.text('Book externally'), findsNothing);
+      expect(find.text('External booking (free)'), findsNothing);
+      expect(find.textContaining('booking page for free'), findsOneWidget);
       expect(find.textContaining('Verified'), findsNothing);
       expect(find.text('Services & availability'), findsNothing);
       expect(find.textContaining('0.0 km'), findsNothing);
