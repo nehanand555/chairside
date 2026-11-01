@@ -1096,6 +1096,11 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     onSelected: (_) => setState(() => section = 1),
                   ),
                   ChoiceChip(
+                    label: const Text('Membership & billing'),
+                    selected: section == 5,
+                    onSelected: (_) => setState(() => section = 5),
+                  ),
+                  ChoiceChip(
                     label: const Text('Calendar'),
                     selected: section == 4,
                     onSelected: (_) => setState(() => section = 4),
@@ -1417,6 +1422,30 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     ),
                   ],
                 ),
+                TextButton(
+                  onPressed: s.busy
+                      ? null
+                      : () async {
+                          if (await confirm(
+                            context,
+                            'Close your spicyself listing?',
+                            'Finish or cancel all visits first. This removes your listing from search. Historical financial records are retained.',
+                            store: s,
+                            requireMfa: true,
+                            action: 'Close listing',
+                          ))
+                            await s.run(() async {
+                              await configure('close', {});
+                              await s.refreshAccount();
+                            });
+                        },
+                  child: const Text('Close business listing'),
+                ),
+              ],
+              if (section == 5) ...[
+                const Notice(
+                  'Your NZ\\$49.99 monthly spicyself membership is separate from customer haircut payments. Customer payments will go to your connected Stripe business account when that feature launches.',
+                ),
                 WorkspaceGroup(
                   title: 'spicyself Business membership',
                   icon: Icons.workspace_premium_outlined,
@@ -1478,7 +1507,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                   ],
                 ),
                 WorkspaceGroup(
-                  title: 'Payments & payouts',
+                  title: 'Customer payments & payouts',
                   icon: Icons.payments_outlined,
                   children: [
                     Text(
@@ -1516,25 +1545,6 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                       style: TextStyle(fontSize: 12),
                     ),
                   ],
-                ),
-                TextButton(
-                  onPressed: s.busy
-                      ? null
-                      : () async {
-                          if (await confirm(
-                            context,
-                            'Close your spicyself listing?',
-                            'Finish or cancel all visits first. This removes your listing from search. Historical financial records are retained.',
-                            store: s,
-                            requireMfa: true,
-                            action: 'Close listing',
-                          ))
-                            await s.run(() async {
-                              await configure('close', {});
-                              await s.refreshAccount();
-                            });
-                        },
-                  child: const Text('Close business listing'),
                 ),
               ],
             ],
