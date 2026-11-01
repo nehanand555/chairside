@@ -4,6 +4,7 @@ import '../data/backend.dart';
 import '../data/store.dart';
 import 'app.dart';
 import 'common.dart';
+import 'scheduling.dart';
 
 class VisitsScreen extends StatefulWidget {
   const VisitsScreen({super.key, required this.store});
@@ -141,6 +142,50 @@ class VisitCard extends StatelessWidget {
             ),
           if (v['queue_position'] != null)
             Text('Queue position: ${v['queue_position']}'),
+          if (operator && upcoming && v['checked_in_at'] == null)
+            TextButton.icon(
+              onPressed: store.busy
+                  ? null
+                  : () => store.run(() async {
+                      await store.backend!.rpc('check_in_visit', {
+                        'p_visit': v['id'],
+                      });
+                      await store.refreshVisits();
+                    }),
+              icon: const Icon(Icons.how_to_reg_outlined),
+              label: const Text('Check in'),
+            ),
+          if (v['kind'] == 'appointment' && v['status'] == 'booked')
+            TextButton.icon(
+              onPressed: store.busy
+                  ? null
+                  : () async {
+                      Json? business;
+                      final ok = await store.run(() async {
+                        business = Json.from(
+                          await store.backend!.rpc('business_detail', {
+                            'p_business': v['business_id'],
+                          }) as Map,
+                        );
+                      });
+                      if (ok && context.mounted && business != null)
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => DetailScaffold(
+                              store: store,
+                              title: 'Reschedule appointment',
+                              child: AppointmentEditor(
+                                store: store,
+                                business: business!,
+                                visit: v,
+                              ),
+                            ),
+                          ),
+                        );
+                    },
+              icon: const Icon(Icons.event_repeat),
+              label: const Text('Reschedule'),
+            ),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -153,7 +198,18 @@ class VisitCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Chip(label: Text((v['status'] as String).replaceAll('_', ' '))),
+              Chip(
+                backgroundColor: v['status'] == 'serving'
+                    ? lime
+                    : v['status'] == 'completed'
+                    ? const Color(0xffe4eee5)
+                    : v['status'] == 'cancelled'
+                    ? const Color(0xffeeeeea)
+                    : cream,
+                label: Text((v['status'] as String).replaceAll('_', ' ')),
+              ),
+              if (v['checked_in_at'] != null)
+                const StatusPill('Checked in', icon: Icons.how_to_reg_outlined),
             ],
           ),
           if (operator)

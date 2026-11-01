@@ -34,6 +34,7 @@ class AppStore extends ChangeNotifier {
   int _visitRevision = 0;
   int _sessionRevision = 0;
   int get sessionRevision => _sessionRevision;
+  int get visitRevision => _visitRevision;
   bool isCurrentSession(int revision, String? user) =>
       !_disposed && revision == _sessionRevision && backend?.userId == user;
   String? _lastUser;
