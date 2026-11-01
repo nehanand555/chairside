@@ -455,9 +455,18 @@ void main() {
     expect(find.text('spicyself Business membership'), findsNothing);
     await fixtures.tapVisible(tester, find.text('Membership & billing'));
     expect(find.text('spicyself Business membership'), findsOneWidget);
-    expect(find.text('NZ\\$49.99 per month'), findsOneWidget);
+    await fixtures.tapVisible(
+      tester,
+      find.text('spicyself Business membership'),
+    );
+    expect(find.text('NZ\$49.99 per month'), findsOneWidget);
     expect(find.text('Customer payments & payouts'), findsOneWidget);
-    expect(find.text('Membership payments are being prepared. No subscription charge will be made yet.'), findsOneWidget);
+    expect(
+      find.text(
+        'Membership payments are being prepared. No subscription charge will be made yet.',
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('Subscribe for'), findsNothing);
     await close(tester, store);
   });

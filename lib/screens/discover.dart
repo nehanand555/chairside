@@ -505,7 +505,9 @@ class PublicBusinessCard extends StatelessWidget {
         const SizedBox(height: 8),
         Text(place['address'] as String),
         const SizedBox(height: 8),
-        const Text('Open their website or booking page for free. The business handles bookings and payments directly.'),
+        const Text(
+          'Open their website or booking page for free. The business handles bookings and payments directly.',
+        ),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
