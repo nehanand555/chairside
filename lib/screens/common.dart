@@ -563,12 +563,15 @@ class AsyncPanel<T> extends StatelessWidget {
     required this.future,
     required this.builder,
     this.retry,
+    this.loading,
   });
+  final Widget? loading;
   final Future<T> future;
   final Widget Function(T) builder;
   final VoidCallback? retry;
   @override
   Widget build(BuildContext context) => FutureBuilder<T>(
+    key: ObjectKey(future),
     future: future,
     builder: (context, snapshot) {
       if (snapshot.hasError)
@@ -579,12 +582,13 @@ class AsyncPanel<T> extends StatelessWidget {
               : TextButton(onPressed: retry, child: const Text('Try again')),
         );
       if (!snapshot.hasData)
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: CircularProgressIndicator(),
-          ),
-        );
+        return loading ??
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            );
       return builder(snapshot.data as T);
     },
   );

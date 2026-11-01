@@ -31,6 +31,7 @@ class WorkspaceNavigation extends StatelessWidget {
             DropdownButtonFormField<int>(
               key: ValueKey(('workspace-section', selected)),
               initialValue: selected,
+              isExpanded: true,
               decoration: const InputDecoration(
                 labelText: 'Workspace section',
                 prefixIcon: Icon(Icons.dashboard_outlined),
@@ -39,7 +40,11 @@ class WorkspaceNavigation extends StatelessWidget {
                 for (var i = 0; i < destinations.length; i++)
                   DropdownMenuItem(
                     value: i,
-                    child: Text(destinations[i].label),
+                    child: Text(
+                      destinations[i].label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
               onChanged: (value) {
@@ -134,5 +139,56 @@ class WorkspaceSkeleton extends StatelessWidget {
         Panel(child: SizedBox(height: 160, width: double.infinity)),
       ],
     ),
+  );
+}
+
+/// Shared factual records: a table at desktop widths and labelled cards on mobile.
+class WorkspaceTable extends StatelessWidget {
+  const WorkspaceTable({super.key, required this.columns, required this.rows});
+  final List<String> columns;
+  final List<List<Widget>> rows;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.maxWidth < 700)
+        return Column(
+          children: [
+            for (final row in rows)
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < columns.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              columns[i],
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                            row[i],
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columns: [
+            for (final label in columns) DataColumn(label: Text(label)),
+          ],
+          rows: [
+            for (final row in rows)
+              DataRow(cells: [for (final cell in row) DataCell(cell)]),
+          ],
+        ),
+      );
+    },
   );
 }
