@@ -1290,32 +1290,55 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                     ],
                   ),
                   WorkspaceGroup(
-                    title: 'Chairs & breaks',
+                    title: 'Team & availability',
                     icon: Icons.chair_outlined,
                     children: [
                       Text(
-                        'Chairs / professionals',
+                        'Professionals & chairs',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const Text(
-                        'Each chair has its own appointments and queue. Everyone uses the business opening hours.',
+                        'Add your team, upload professional portraits and manage availability. Each professional or chair has its own appointments and queue.',
                       ),
                       for (final r in resources)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
+                          leading: ProfessionalAvatar(
+                            backend: s.backend!,
+                            resource: r,
+                            size: 48,
+                          ),
                           title: Text(r['name'] as String),
                           subtitle: Text(
-                            r['active'] == true ? 'Active' : 'Hidden',
+                            r['active'] == true ? 'Available for booking' : 'Hidden from booking',
                           ),
-                          trailing: IconButton(
-                            onPressed: () => editResource(context, r),
-                            icon: const Icon(Icons.edit_outlined),
+                          trailing: Wrap(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 2,
+                            children: [
+                              IconButton(
+                                tooltip: 'Upload professional profile photo',
+                                onPressed: () => changeProfessionalPhoto(r),
+                                icon: const Icon(Icons.add_a_photo_outlined),
+                              ),
+                              if (r['photo_path'] != null)
+                                IconButton(
+                                  tooltip: 'Remove profile photo',
+                                  onPressed: () => removeProfessionalPhoto(r),
+                                  icon: const Icon(Icons.hide_image_outlined),
+                                ),
+                              IconButton(
+                                tooltip: 'Edit professional',
+                                onPressed: () => editResource(context, r),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                            ],
                           ),
                         ),
                       OutlinedButton.icon(
                         onPressed: () => editResource(context, null),
                         icon: const Icon(Icons.add),
-                        label: const Text('Add chair'),
+                        label: const Text('Add professional or chair'),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton(
@@ -1663,6 +1686,65 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
       await widget.store.run(() => configure('service', result));
   }
 
+  Future<void> changeProfessionalPhoto(Json resource) async {
+    final s = widget.store;
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      imageQuality: 82,
+    );
+    if (image == null || !mounted) return;
+    final id = resource['id'] as String;
+    final previous = resource['photo_path'] as String?;
+    await s.run(() async {
+      final backend = s.backend!;
+      final path = await backend.uploadProfessionalPhoto(
+        widget.id,
+        id,
+        await image.readAsBytes(),
+        image.name.split('.').last.toLowerCase(),
+      );
+      try {
+        await backend.rpc('set_professional_photo', {
+          'p_business': widget.id,
+          'p_resource': id,
+          'p_path': path,
+        });
+      } catch (_) {
+        await backend.removeProfessionalPhotoFile(path);
+        rethrow;
+      }
+      if (previous != null && previous != path) {
+        try {
+          await backend.removeProfessionalPhotoFile(previous);
+        } catch (_) {
+          // Photo is saved; stale file cleanup can be retried.
+        }
+      }
+      if (mounted) setState(reload);
+    });
+  }
+
+  Future<void> removeProfessionalPhoto(Json resource) async {
+    final s = widget.store;
+    await s.run(() async {
+      final path = resource['photo_path'] as String?;
+      await s.backend!.rpc('set_professional_photo', {
+        'p_business': widget.id,
+        'p_resource': resource['id'],
+        'p_path': null,
+      });
+      if (path != null) {
+        try {
+          await s.backend!.removeProfessionalPhotoFile(path);
+        } catch (_) {
+          // Portrait no longer appears on this profile.
+        }
+      }
+      if (mounted) setState(reload);
+    });
+  }
+
   Future<void> editResource(BuildContext context, Json? current) async {
     final name = TextEditingController(text: current?['name'] as String? ?? '');
     bool active = current?['active'] != false;
@@ -1672,7 +1754,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
       requireMfa: true,
       builder: (context) => StatefulBuilder(
         builder: (context, set) => AlertDialog(
-          title: const Text('Chair / professional'),
+          title: const Text('Professional or chair'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
