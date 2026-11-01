@@ -18,3 +18,9 @@ Deno.test("invoice events resolve modern and legacy subscription identifiers",()
   if(invoiceSubscriptionId({subscription:"sub_legacy"})!=="sub_legacy")throw Error("Missing legacy subscription");
   if(invoiceSubscriptionId({})!==null)throw Error("Non-subscription invoice misrouted");
 });
+
+Deno.test("membership checkout remains blocked in live mode even if a flag is set", async()=>{
+  const {membershipCheckoutAllowed}=await import("./membership_policy.ts");
+  if(membershipCheckoutAllowed(true,true) || membershipCheckoutAllowed(false,false)) throw Error("Checkout release guard failed");
+  if(!membershipCheckoutAllowed(true,false)) throw Error("Test-mode flag changed");
+});

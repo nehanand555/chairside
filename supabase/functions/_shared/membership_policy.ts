@@ -17,3 +17,8 @@ export function invoiceSubscriptionId(invoice: {subscription?: string | {id:stri
   const value = invoice.parent?.subscription_details?.subscription ?? invoice.subscription;
   return typeof value === "string" ? value : value?.id ?? null;
 }
+
+// Live checkout needs a separately approved release after payment verification.
+export function membershipCheckoutAllowed(requested: boolean, liveMode: boolean): boolean {
+  return requested && !liveMode;
+}
