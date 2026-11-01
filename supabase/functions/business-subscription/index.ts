@@ -46,8 +46,8 @@ Deno.serve(endpoint(async req => {
     });
     return { url: portal.url };
   }
-  if (billing?.status === "active" || billing?.status === "trialing") {
-    throw new HttpError(409, "Your subscription is already active. Use Manage billing.");
+  if (billing?.stripe_subscription_id) {
+    throw new HttpError(409, "A membership already exists. Use Manage billing for changes.");
   }
   // Price is read from Stripe, not trusted from client or from the display.
   const price = await api.prices.retrieve(PRICE_ID);
@@ -84,7 +84,7 @@ Deno.serve(endpoint(async req => {
     subscription_data: { metadata: { spicyself_kind: "business_subscription", spicyself_business_id: businessId } },
     success_url: `${BASE_URL}/?billing=return`,
     cancel_url: `${BASE_URL}/?billing=cancel`,
-  }, { idempotencyKey: `spicyself-subscribe-${businessId}-${crypto.randomUUID()}` });
+  }, { idempotencyKey: `spicyself-subscribe-${businessId}-${Math.floor(Date.now() / 600000)}` });
   const { error } = await db.from("business_subscriptions").update({
     stripe_checkout_session_id: session.id, status: "checkout_pending",
     updated_at: new Date().toISOString(),
