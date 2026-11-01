@@ -496,7 +496,7 @@ class PublicBusinessCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const StatusPill('Public Google listing', icon: Icons.public),
+        const StatusPill('Not a spicyself member', icon: Icons.public),
         const SizedBox(height: 16),
         Text(
           place['name'] as String,
@@ -504,6 +504,8 @@ class PublicBusinessCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(place['address'] as String),
+        const SizedBox(height: 8),
+        const Text('Open their website or booking page for free. The business handles bookings and payments directly.'),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
@@ -513,7 +515,7 @@ class PublicBusinessCard extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () => openLink(publicBookingUrl(place)!),
                 icon: const Icon(Icons.open_in_new),
-                label: const Text('Book externally'),
+                label: const Text('External booking (free)'),
               ),
             if (publicWebsiteUrl(place) != null)
               OutlinedButton.icon(
@@ -633,14 +635,14 @@ Future<void> showPublicListing(
         Text(place['address'] as String),
         const SizedBox(height: 16),
         const Text(
-          'This business has not joined spicyself. We do not have verified booking availability, prices or queue times.',
+          'This business has not joined spicyself. Opening its website or booking page is free; we cannot verify its availability, prices or queue times.',
         ),
         const SizedBox(height: 16),
         if (publicBookingUrl(place) != null) ...[
           FilledButton.icon(
             onPressed: () => openLink(publicBookingUrl(place)!),
             icon: const Icon(Icons.event_available),
-            label: const Text('Book externally'),
+            label: const Text('External booking (free)'),
           ),
           const SizedBox(height: 8),
         ],
@@ -652,7 +654,7 @@ Future<void> showPublicListing(
           ),
           const SizedBox(height: 8),
           const Text(
-            'External links open the business website or booking provider. Bookings are handled outside spicyself; availability is not verified.',
+            'External links are free to open. The business or its booking provider handles bookings, prices and any payments outside spicyself. Availability is not verified.',
           ),
           const SizedBox(height: 12),
         ],
