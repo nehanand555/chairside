@@ -36,7 +36,7 @@ Deno.serve(endpoint(async req => {
   if (data.action !== "checkout" && data.action !== "portal") throw new HttpError(400, "Unknown subscription action");
   // This flag is deliberately off until webhooks, Stripe pricing and existing-
   // business migration are verified. Never charge businesses by default.
-  if (!enabled()) throw new HttpError(503, "Business subscriptions are being prepared. No payment has been taken.");
+  if (data.action === "checkout" && !enabled()) throw new HttpError(503, "Business subscriptions are being prepared. No payment has been taken.");
   const api = stripe();
   if (data.action === "portal") {
     if (!billing?.stripe_customer_id) throw new HttpError(400, "No subscription billing account yet");
