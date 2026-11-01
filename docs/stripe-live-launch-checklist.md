@@ -37,3 +37,30 @@ Stripe references:
 - https://stripe.com/nz/connect/pricing
 - https://docs.stripe.com/connect/direct-charges
 - https://docs.stripe.com/connect/webhooks
+
+## Settings to enter in the live Stripe Dashboard
+
+1. Open https://dashboard.stripe.com/settings/account and complete the platform's legal entity, New Zealand address, representative, public support contact, bank and tax details. Confirm the account is activated for live payments.
+2. Open https://dashboard.stripe.com/settings/connect and select a **Stripe-owned pricing / Stripe-billed merchant** commercial model (not platform-billed). If the dashboard does not offer this, ask Stripe support before onboarding merchants. Confirm fee and loss responsibility for your account configuration.
+3. Set Connect branding to lowercase **spicyself** and the verified website `https://www.spicyself.com`. Keep the support contact accurate.
+4. Open https://dashboard.stripe.com/apikeys in **live mode**. Copy the live secret key into Supabase Edge Function Secrets, key `STRIPE_SECRET_KEY`. Never copy it to Flutter, GitHub, or a chat.
+5. Open https://dashboard.stripe.com/workbench/webhooks in **live mode**. Add two event destinations at the same HTTPS endpoint:
+   `https://nylhyzveicmgqmckveyr.supabase.co/functions/v1/stripe-webhook`
+   - Destination A: **Your account** events. Start with `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `refund.created`, `refund.updated`.
+   - Destination B: **Connected accounts** events. Start with `account.updated`, `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `refund.created`, `refund.updated`, `account.application.deauthorized`, `charge.dispute.created`, `payout.failed`.
+   - Each destination has its **own** signing secret that starts with `whsec_`. Put destination A's in Supabase as `STRIPE_WEBHOOK_SECRET`, and destination B's as `STRIPE_CONNECT_WEBHOOK_SECRET`.
+   - Event delivery configuration is **not** proof that the current handler supports each event type; disputes, direct-charge fulfilment and direct-charge refunds must be implemented and tested before go-live.
+6. In Supabase https://supabase.com/dashboard/project/nylhyzveicmgqmckveyr/settings/functions, set `APP_URL=https://www.spicyself.com`. The code also has this public canonical fallback, but setting it explicitly makes the deployment easier to audit.
+7. Leave `ENABLE_AFTERPAY` unset/false unless separately activated and tested. Do not configure live payments or bypass the checkout safety gate merely because a key is saved.
+
+**Important:** No Stripe account API keys or webhook signing secrets can be inspected or changed using the connected Supabase tools in this conversation. Stripe dashboard settings and the two signing secrets require authenticated access to your Stripe account.
+
+## Readiness criteria for switching on actual charges
+- [ ] Stripe shows live platform activation and Connect Stripe-owned pricing.
+- [ ] Both webhook destinations deliver events with valid signatures.
+- [ ] Direct checkout runs with the `Stripe-Account` context, **not** `transfer_data.destination`.
+- [ ] Connected events are matched to the correct business account and stored checkout session.
+- [ ] Refunds use connected-account context and do not use legacy `reverse_transfer`.
+- [ ] No unresolved admin-account privilege leak.
+- [ ] Both test and live small-payment plus refund scenarios have been verified.
+- [ ] Only then remove the protective checkout gate, with reviewed release.
