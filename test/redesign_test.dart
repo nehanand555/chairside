@@ -54,6 +54,21 @@ class RoleBackend extends fixtures.TestBackend {
 
   @override
   Future<Json> invoke(String name, Json data) async {
+    if (name == 'business-subscription') {
+      if (data['action'] == 'status') {
+        return {
+          'plan': 'spicyself Business',
+          'amount_cents': 4999,
+          'currency': 'nzd',
+          'interval': 'month',
+          'status': 'not_subscribed',
+          'checkout_enabled': false,
+          'current_period_end': null,
+          'cancel_at_period_end': false,
+        };
+      }
+      throw Exception('Subscription checkout disabled during tests');
+    }
     if (name == 'business-address') {
       if (data['action'] == 'suggest') {
         return {
