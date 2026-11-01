@@ -1,7 +1,8 @@
 import { authenticated, body, endpoint, HttpError, limited, service, uuid, rpc } from "../_shared/http.ts";
 import { stripe } from "../_shared/stripe.ts";
+import { MEMBERSHIP_PRICE_ID, validMembershipPrice } from "../_shared/membership_policy.ts";
 
-const PRICE_ID = "price_1UWtMV00BuF4kp6TV3uWObsP";
+const PRICE_ID = MEMBERSHIP_PRICE_ID;
 const BASE_URL = "https://www.spicyself.com";
 type Billing = {
   business_id: string; stripe_customer_id: string | null;
@@ -51,8 +52,7 @@ Deno.serve(endpoint(async req => {
   }
   // Price is read from Stripe, not trusted from client or from the display.
   const price = await api.prices.retrieve(PRICE_ID);
-  if (!price.active || price.currency !== "nzd" || price.unit_amount !== 4999 ||
-      price.recurring?.interval !== "month" || price.recurring?.interval_count !== 1) {
+  if (!validMembershipPrice(price)) {
     throw new HttpError(503, "The NZ$49.99 monthly subscription price needs verification in Stripe");
   }
   let customerId = billing?.stripe_customer_id;
