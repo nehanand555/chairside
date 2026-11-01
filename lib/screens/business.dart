@@ -1298,7 +1298,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const Text(
-                        'Add your team, upload professional portraits and manage availability. Each professional or chair has its own appointments and queue.',
+                        'Add your team and manage availability. Profile portraits appear publicly during booking, so only upload photos with each professional’s permission.',
                       ),
                       for (final r in resources)
                         ListTile(
