@@ -3,11 +3,53 @@ import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/backend.dart';
 import '../data/store.dart';
 
 const ink = Color(0xff153e37);
 const cream = Color(0xfffaf9f0);
 const lime = Color(0xffdcf4a5);
+
+/// Portrait of the professional customers can choose when booking.
+/// A chair without a portrait shows a consistent neutral fallback.
+class ProfessionalAvatar extends StatelessWidget {
+  const ProfessionalAvatar({
+    super.key,
+    required this.backend,
+    required this.resource,
+    this.size = 42,
+  });
+
+  final Backend backend;
+  final Json resource;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final path = resource['photo_path'] as String?;
+    final url = path == null ? '' : backend.professionalPhotoUrl(path);
+    final fallback = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(Icons.person_outline, size: size * 0.5),
+    );
+    if (url.isEmpty) return fallback;
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+      ),
+    );
+  }
+}
 
 class LocationSearchBar extends StatelessWidget {
   const LocationSearchBar({
