@@ -85,11 +85,12 @@ Deno.serve(endpoint(async req => {
     success_url: `${BASE_URL}/?billing=return`,
     cancel_url: `${BASE_URL}/?billing=cancel`,
   }, { idempotencyKey: `spicyself-subscribe-${businessId}-${Math.floor(Date.now() / 600000)}` });
-  const { error } = await db.from("business_subscriptions").update({
+  const { data: saved, error } = await db.from("business_subscriptions").update({
     stripe_checkout_session_id: session.id, status: "checkout_pending",
     updated_at: new Date().toISOString(),
-  }).eq("business_id", businessId).eq("stripe_customer_id", customerId);
-  if (error) {
+  }).eq("business_id", businessId).eq("stripe_customer_id", customerId)
+    .select("business_id").maybeSingle();
+  if (error || !saved || !session.url) {
     await api.checkout.sessions.expire(session.id);
     throw new HttpError(503, "Could not save subscription checkout");
   }
