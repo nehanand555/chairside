@@ -242,6 +242,28 @@ class _AccountScreenState extends State<AccountScreen> {
             ],
           ),
         ),
+        Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Own or manage a hair, beauty or grooming business?',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Create your business listing, manage appointments and keep your queue organised.',
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: const ValueKey('profile-business-entry'),
+                onPressed: s.busy ? null : () => openBusinessWorkspace(context, s),
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('For business'),
+              ),
+            ],
+          ),
+        ),
         if (s.isAdmin)
           Panel(
             child: ListTile(
