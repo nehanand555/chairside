@@ -30,7 +30,7 @@
 7. Add integration tests and staged rollout behind a feature flag. Do not enable real charges or deploy production without explicit approval.
 
 ## Open decisions before live payments
-- Is 6% absorbed by business (default assumption) or added as a customer fee?
+- **Resolved:** The business absorbs the 6% commission. Customer-facing prices must not be increased by a SpicySelf commission surcharge. For a NZ$100 service, the customer pays NZ$100, SpicySelf's gross commission is NZ$6, and the business receives NZ$94 before other applicable fees and tax treatment.
 - GST-inclusive versus GST-exclusive commission calculation and invoicing (NZ tax review).
 - Who is merchant of record, which Stripe Connect charge type, and whether offline commission is invoiced monthly or auto-debited.
 - How to handle partial refunds, deposits, tips and chargebacks.
