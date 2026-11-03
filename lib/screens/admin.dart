@@ -104,7 +104,8 @@ class _AdminScreenState extends State<AdminScreen> {
               WorkspaceDestination('Businesses', Icons.storefront_outlined),
               WorkspaceDestination('Billing history', Icons.receipt_long_outlined),
               WorkspaceDestination('Notifications', Icons.mail_outline),
-              WorkspaceDestination('Support', Icons.support_agent),
+              WorkspaceDestination('Feedback', Icons.chat_bubble_outline),
+              WorkspaceDestination('Reports', Icons.flag_outlined),
               WorkspaceDestination('Security', Icons.shield_outlined),
             ],
             child: Column(
@@ -189,7 +190,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       'SMS needing review: ${h['failed_sms']} • Overdue texts: ${h['pending_sms']} • Pending refunds: ${h['pending_refunds']}',
                     ),
                   ),
-                if (insights != null && [0, 3, 6].contains(section))
+                if (insights != null && [0, 3, 7].contains(section))
                   AsyncPanel<Json>(
                     future: insights!,
                     retry: () => setState(reload),
@@ -307,7 +308,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               ],
                             ),
                           ],
-                          if (section == 6) ...[
+                          if (section == 7) ...[
                             const SectionHeader(
                               'Security & activity',
                               subtitle: 'Admin access is verified by the backend and requires MFA. Latest 50 recorded actions.',
@@ -330,7 +331,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       );
                     },
                   ),
-                if (data != null && [1, 2, 5].contains(section))
+                if (data != null && [1, 2, 5, 6].contains(section))
                   AsyncPanel<Json>(
                     future: data!,
                     retry: () => setState(reload),
@@ -584,7 +585,9 @@ class _AdminScreenState extends State<AdminScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
+                          ],
+                          if (section == 6) ...[
+                            const SizedBox(height: 8),
                             Text(
                               'Open reports (${reports.length})',
                               style: Theme.of(context).textTheme.titleLarge,
