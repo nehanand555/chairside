@@ -102,9 +102,10 @@ class _AdminScreenState extends State<AdminScreen> {
               WorkspaceDestination('Overview', Icons.dashboard_outlined),
               WorkspaceDestination('Applications', Icons.fact_check_outlined),
               WorkspaceDestination('Businesses', Icons.storefront_outlined),
-              WorkspaceDestination('Memberships', Icons.receipt_long_outlined),
+              WorkspaceDestination('Billing history', Icons.receipt_long_outlined),
               WorkspaceDestination('Notifications', Icons.mail_outline),
-              WorkspaceDestination('Support', Icons.support_agent),
+              WorkspaceDestination('Feedback', Icons.chat_bubble_outline),
+              WorkspaceDestination('Reports', Icons.flag_outlined),
               WorkspaceDestination('Security', Icons.shield_outlined),
             ],
             child: Column(
@@ -135,40 +136,49 @@ class _AdminScreenState extends State<AdminScreen> {
                           const SizedBox(height: 8),
                           if (events.isEmpty)
                             const Text('No notification events yet.'),
-                          for (final raw in events)
-                            Builder(
-                              builder: (context) {
-                                final event = Json.from(raw as Map);
-                                final error = event['error'] as String?;
-                                return ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(
-                                    "${event['business']} · ${event['event']}",
-                                  ),
-                                  subtitle: Text(
-                                    "State: ${event['state']} · Attempts: ${event['attempts']}${error == null ? '' : ' · ' + error}",
-                                  ),
-                                  trailing:
-                                      error != null &&
-                                          error.startsWith('http_') &&
-                                          (event['state'] == 'failed' ||
-                                              event['state'] == 'dead')
-                                      ? TextButton(
-                                          onPressed: s.busy
-                                              ? null
-                                              : () => s.run(() async {
-                                                  await s.backend!.rpc(
-                                                    'admin_retry_email',
-                                                    {'p_id': event['id']},
-                                                  );
-                                                  if (mounted) setState(reload);
-                                                }),
-                                          child: const Text('Retry'),
-                                        )
-                                      : null,
-                                );
-                              },
-                            ),
+                          WorkspaceTable(
+                            columns: const ['Business', 'Event', 'Status', 'Attempts', 'Action'],
+                            rows: [
+                              for (final raw in events)
+                                [
+                                  Builder(builder: (_) {
+                                    final e = Json.from(raw as Map);
+                                    return Text('${e['business'] ?? '—'}', maxLines: 2, overflow: TextOverflow.ellipsis);
+                                  }),
+                                  Builder(builder: (_) {
+                                    final e = Json.from(raw as Map);
+                                    return Text('${e['event'] ?? '—'}', maxLines: 2, overflow: TextOverflow.ellipsis);
+                                  }),
+                                  Builder(builder: (_) {
+                                    final e = Json.from(raw as Map);
+                                    final error = e['error'] as String?;
+                                    return Tooltip(
+                                      message: error ?? 'No error reported',
+                                      child: Text('${e['state'] ?? '—'}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    );
+                                  }),
+                                  Builder(builder: (_) {
+                                    final e = Json.from(raw as Map);
+                                    return Text('${e['attempts'] ?? 0}');
+                                  }),
+                                  Builder(builder: (_) {
+                                    final e = Json.from(raw as Map);
+                                    final error = e['error'] as String?;
+                                    final retryable = error != null && error.startsWith('http_') &&
+                                        (e['state'] == 'failed' || e['state'] == 'dead');
+                                    return retryable
+                                        ? TextButton(
+                                            onPressed: s.busy ? null : () => s.run(() async {
+                                              await s.backend!.rpc('admin_retry_email', {'p_id': e['id']});
+                                              if (mounted) setState(reload);
+                                            }),
+                                            child: const Text('Retry'),
+                                          )
+                                        : const Text('—');
+                                  }),
+                                ],
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -180,7 +190,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       'SMS needing review: ${h['failed_sms']} • Overdue texts: ${h['pending_sms']} • Pending refunds: ${h['pending_refunds']}',
                     ),
                   ),
-                if (insights != null && [0, 3, 6].contains(section))
+                if (insights != null && [0, 3, 7].contains(section))
                   AsyncPanel<Json>(
                     future: insights!,
                     retry: () => setState(reload),
@@ -198,7 +208,7 @@ class _AdminScreenState extends State<AdminScreen> {
                           if (section == 0) ...[
                             const SectionHeader(
                               'Platform overview',
-                              subtitle: 'Current database state. Payments and subscriptions are separate.',
+                              subtitle: 'Business approvals, platform activity and operational health.',
                             ),
                             Wrap(
                               spacing: 12,
@@ -212,7 +222,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                 WorkspaceMetric(
                                   label: 'Approved businesses',
                                   value: '${counts['approved'] ?? 0}',
-                                  detail: 'Approved listings, independent of paid membership',
+                                  detail: 'Approved businesses with free management access',
                                   icon: Icons.verified_outlined,
                                 ),
                                 WorkspaceMetric(
@@ -235,8 +245,8 @@ class _AdminScreenState extends State<AdminScreen> {
                           ],
                           if (section == 3) ...[
                             const SectionHeader(
-                              'Business memberships',
-                              subtitle: 'Latest 100 server-reconciled records. No membership enforcement is enabled here.',
+                              'Legacy subscription records',
+                              subtitle: 'Historical subscription records only. New businesses use free access with 6% commission on completed bookings.',
                             ),
                             if (memberships.isEmpty)
                               const Notice(
@@ -298,34 +308,30 @@ class _AdminScreenState extends State<AdminScreen> {
                               ],
                             ),
                           ],
-                          if (section == 6) ...[
+                          if (section == 7) ...[
                             const SectionHeader(
                               'Security & activity',
                               subtitle: 'Admin access is verified by the backend and requires MFA. Latest 50 recorded actions.',
                             ),
                             if (events.isEmpty)
                               const Notice('No audit records available.'),
-                            for (final event in events)
-                              Panel(
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(
-                                    (event['action'] as String).replaceAll(
-                                      '_',
-                                      ' ',
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${nzTime(event['created_at'])}\nActor: ${event['actor_id'] ?? 'system'}',
-                                  ),
-                                ),
-                              ),
+                            WorkspaceTable(
+                              columns: const ['Action', 'Date', 'Actor'],
+                              rows: [
+                                for (final event in events)
+                                  [
+                                    Text('${event['action'] ?? '—'}'.replaceAll('_', ' ')),
+                                    Text(nzTime(event['created_at'])),
+                                    SelectableText('${event['actor_id'] ?? 'system'}'),
+                                  ],
+                              ],
+                            ),
                           ],
                         ],
                       );
                     },
                   ),
-                if (data != null && [1, 2, 5].contains(section))
+                if (data != null && [1, 2, 5, 6].contains(section))
                   AsyncPanel<Json>(
                     future: data!,
                     retry: () => setState(reload),
@@ -579,7 +585,9 @@ class _AdminScreenState extends State<AdminScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 20),
+                          ],
+                          if (section == 6) ...[
+                            const SizedBox(height: 8),
                             Text(
                               'Open reports (${reports.length})',
                               style: Theme.of(context).textTheme.titleLarge,

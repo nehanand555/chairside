@@ -1016,7 +1016,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                 Icons.settings_outlined,
               ),
               WorkspaceDestination(
-                'Membership & billing',
+                'Commission & billing',
                 Icons.receipt_long_outlined,
               ),
             ],
@@ -1459,87 +1459,27 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                 ],
                 if (section == 5) ...[
                   const Notice(
-                    'Your NZ\$49.99 monthly spicyself membership is separate from customer haircut payments. Customer payments will go to your connected Stripe business account when that feature launches.',
+                    'SpicySelf business management is free. A 6% commission accrues on every completed booking, including manually entered appointments. The business absorbs this fee; customers pay the listed price. Payment collection is not yet live.',
                   ),
                   WorkspaceGroup(
-                    title: 'spicyself Business membership',
-                    icon: Icons.workspace_premium_outlined,
+                    title: 'Commission & billing',
+                    icon: Icons.receipt_long_outlined,
                     children: [
-                      Text(
-                        'NZ\$49.99 per month',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Monthly membership for in-app business management. External public listings remain free. Your subscription is separate from customer payments.',
-                      ),
+                      const Text('No monthly subscription. Calendar, staff and service management are free.'),
                       const SizedBox(height: 12),
                       AsyncPanel<Json>(
-                        future: membership ??= s.backend!.invoke(
-                          'business-subscription',
-                          {'action': 'status', 'business_id': widget.id},
+                        future: s.backend!.rpc('business_commission_summary', {'p_business': widget.id}),
+                        retry: () => setState(reload),
+                        builder: (m) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Completed service value: NZ\$${((m['completed_service_cents'] as num? ?? 0) / 100).toStringAsFixed(2)}'),
+                            Text('6% commission accrued: NZ\$${((m['commission_accrued_cents'] as num? ?? 0) / 100).toStringAsFixed(2)}'),
+                            Text('Outstanding commission: NZ\$${((m['commission_uncollected_cents'] as num? ?? 0) / 100).toStringAsFixed(2)}'),
+                            const SizedBox(height: 8),
+                            const Text('Accrued amounts are not necessarily collected.'),
+                          ],
                         ),
-                        retry: () => setState(() => membership = null),
-                        builder: (m) {
-                          final status = (m['status'] ?? 'not_subscribed')
-                              .toString();
-                          final active =
-                              status == 'active' || status == 'trialing';
-                          final checkoutEnabled = m['checkout_enabled'] == true;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Membership status: ${status.replaceAll('_', ' ')}',
-                              ),
-                              const SizedBox(height: 10),
-                              if (!checkoutEnabled && !active)
-                                const Text(
-                                  'Membership payments are being prepared. No subscription charge will be made yet.',
-                                ),
-                              if (!active && checkoutEnabled)
-                                ActionButton(
-                                  s,
-                                  'Subscribe for NZ\$49.99/month',
-                                  () async {
-                                    final result = await s.backend!.invoke(
-                                      'business-subscription',
-                                      {
-                                        'action': 'checkout',
-                                        'business_id': widget.id,
-                                      },
-                                    );
-                                    await openLink(result['url'] as String);
-                                  },
-                                  icon: Icons.credit_card_outlined,
-                                ),
-                              if (active ||
-                                  (status != 'not_subscribed' &&
-                                      status != 'checkout_pending'))
-                                OutlinedButton(
-                                  onPressed: s.busy
-                                      ? null
-                                      : () => s.run(() async {
-                                          final result = await s.backend!
-                                              .invoke('business-subscription', {
-                                                'action': 'portal',
-                                                'business_id': widget.id,
-                                              });
-                                          await openLink(
-                                            result['url'] as String,
-                                          );
-                                        }),
-                                  child: const Text('Manage subscription'),
-                                ),
-                              const SizedBox(height: 8),
-                              TextButton(
-                                onPressed: () =>
-                                    setState(() => membership = null),
-                                child: const Text('Refresh membership status'),
-                              ),
-                            ],
-                          );
-                        },
                       ),
                     ],
                   ),
