@@ -1016,7 +1016,7 @@ class _BusinessDashboardState extends State<BusinessDashboard> {
                 Icons.settings_outlined,
               ),
               WorkspaceDestination(
-                'Membership & billing',
+                'Commission & billing',
                 Icons.receipt_long_outlined,
               ),
             ],
